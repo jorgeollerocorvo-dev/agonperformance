@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  COACH
+  ATHLETE
+}
+
+enum Specialty {
+  CROSSFIT
+  WOMEN
+  BODYBUILDING
+  OTHER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         Role
+  locale       String   @default("es")
+  createdAt    DateTime @default(now())
+
+  coachProfile   Coach?
+  athleteProfile Athlete?
+}
+
+model Coach {
+  id      String @id @default(cuid())
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  athletes Athlete[]
+  programs Program[]
+  exercises ExerciseLibrary[]
+}
+
+model Athlete {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coachId   String
+  coach     Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  specialty Specialty @default(OTHER)
+  goals     String?
+
+  assignments Assignment[]
+  logs        WorkoutLog[]
+}
+
+model ExerciseLibrary {
+  id         String @id @default(cuid())
+  coachId    String
+  coach      Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  name       String
+  youtubeUrl String?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([coachId, name])
+}
+
+model Program {
+  id          String    @id @default(cuid())
+  coachId     String
+  coach       Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  specialty   Specialty @default(OTHER)
+  createdAt   DateTime  @default(now())
+
+  workouts Workout[]
+}
+
+model Workout {
+  id        String   @id @default(cuid())
+  programId String?
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  title     String
+  notes     String?
+  dayIndex  Int?
+  createdAt DateTime @default(now())
+
+  sections    Section[]
+  assignments Assignment[]
+}
+
+model Section {
+  id        String @id @default(cuid())
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  label     String
+  protocol  String?
+  order     Int    @default(0)
+
+  exercises Exercise[]
+}
+
+model Exercise {
+  id         String  @id @default(cuid())
+  sectionId  String
+  section    Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name       String
+  reps       String?
+  sets       String?
+  load       String?
+  rest       String?
+  tempo      String?
+  youtubeUrl String?
+  notes      String?
+  order      Int     @default(0)
+
+  logs ExerciseLog[]
+}
+
+model Assignment {
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  workoutId String
+  workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  log WorkoutLog?
+
+  @@unique([athleteId, workoutId, date])
+  @@index([athleteId, date])
+}
+
+model WorkoutLog {
+  id           String   @id @default(cuid())
+  assignmentId String   @unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  athleteId    String
+  athlete      Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  completedAt  DateTime @default(now())
+  rating       Int?
+  notes        String?
+
+  exerciseLogs ExerciseLog[]
+}
+
+model ExerciseLog {
+  id           String @id @default(cuid())
+  workoutLogId String
+  workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  exerciseId   String
+  exercise     Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  setsDone     Int?
+  repsDone     String?
+  loadUsed     String?
+  notes        String?
+}

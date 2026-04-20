@@ -1,0 +1,64 @@
+{
+  "brand": "Agon Performance",
+  "nav": {
+    "login": "Log in",
+    "logout": "Log out",
+    "athletes": "Athletes",
+    "programs": "Programs",
+    "today": "Today",
+    "history": "History"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "role": "I am a",
+    "coach": "Coach",
+    "athlete": "Athlete",
+    "inviteCode": "Invite code (optional)",
+    "invalid": "Invalid email or password",
+    "alreadyHaveAccount": "Already have an account?",
+    "needAccount": "Need an account?"
+  },
+  "landing": {
+    "tagline": "Train your clients online. Editable workouts, YouTube videos, zero friction.",
+    "cta": "Get started"
+  },
+  "coach": {
+    "dashboard": "Coach dashboard",
+    "noAthletes": "No athletes yet.",
+    "addAthlete": "Add athlete",
+    "newProgram": "New program",
+    "specialty": "Specialty",
+    "crossfit": "CrossFit",
+    "women": "Women (glutes / abs / legs)",
+    "bodybuilding": "Bodybuilding",
+    "other": "Other",
+    "assign": "Assign",
+    "editWorkout": "Edit workout",
+    "addSection": "Add section",
+    "addExercise": "Add exercise",
+    "save": "Save",
+    "saved": "Saved"
+  },
+  "athlete": {
+    "todayHeader": "Today's workout",
+    "noWorkout": "No workout assigned for today.",
+    "markDone": "Mark complete",
+    "completed": "Completed",
+    "notes": "Notes",
+    "youtube": "Watch demo"
+  },
+  "exercise": {
+    "name": "Exercise",
+    "reps": "Reps",
+    "sets": "Sets",
+    "load": "Load",
+    "rest": "Rest",
+    "tempo": "Tempo",
+    "youtube": "YouTube URL",
+    "notes": "Notes"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "brand": "Agon Performance",
+  "nav": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "athletes": "Atletas",
+    "programs": "Programas",
+    "today": "Hoy",
+    "history": "Historial"
+  },
+  "auth": {
+    "email": "Correo",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "signIn": "Entrar",
+    "signUp": "Crear cuenta",
+    "role": "Soy",
+    "coach": "Entrenador",
+    "athlete": "Atleta",
+    "inviteCode": "Código de invitación (opcional)",
+    "invalid": "Correo o contraseña incorrectos",
+    "alreadyHaveAccount": "¿Ya tienes cuenta?",
+    "needAccount": "¿Necesitas una cuenta?"
+  },
+  "landing": {
+    "tagline": "Entrena a tus clientes online. Rutinas editables, vídeos de YouTube, sin fricción.",
+    "cta": "Empezar"
+  },
+  "coach": {
+    "dashboard": "Panel del entrenador",
+    "noAthletes": "Aún no tienes atletas.",
+    "addAthlete": "Añadir atleta",
+    "newProgram": "Nuevo programa",
+    "specialty": "Especialidad",
+    "crossfit": "CrossFit",
+    "women": "Mujer (glúteo / abdomen / pierna)",
+    "bodybuilding": "Culturismo",
+    "other": "Otro",
+    "assign": "Asignar",
+    "editWorkout": "Editar entrenamiento",
+    "addSection": "Añadir sección",
+    "addExercise": "Añadir ejercicio",
+    "save": "Guardar",
+    "saved": "Guardado"
+  },
+  "athlete": {
+    "todayHeader": "Entrenamiento de hoy",
+    "noWorkout": "No hay entrenamiento asignado para hoy.",
+    "markDone": "Marcar completado",
+    "completed": "Completado",
+    "notes": "Notas",
+    "youtube": "Ver vídeo"
+  },
+  "exercise": {
+    "name": "Ejercicio",
+    "reps": "Reps",
+    "sets": "Series",
+    "load": "Peso",
+    "rest": "Descanso",
+    "tempo": "Tempo",
+    "youtube": "URL de YouTube",
+    "notes": "Notas"
+  }
+}
