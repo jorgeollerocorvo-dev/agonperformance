@@ -50,6 +50,12 @@ model Athlete {
   coach     Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
   specialty Specialty @default(OTHER)
   goals     String?
+  phone     String?
+  birthDate DateTime? @db.Date
+  heightCm  Int?
+  weightKg  Float?
+  notes     String?
+  createdAt DateTime  @default(now())
 
   assignments Assignment[]
   logs        WorkoutLog[]
