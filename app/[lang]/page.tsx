@@ -2,14 +2,18 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getDictionary, hasLocale } from "./dictionaries";
-import { landingPathFor } from "@/lib/roles";
+import { primaryRole } from "@/lib/roles";
 
 export default async function LandingPage({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
 
   const session = await auth();
-  if (session?.user) redirect(landingPathFor(lang, session));
+  const role = primaryRole(session);
+  if (role === "COACH") redirect(`/${lang}/coach`);
+  if (role === "CLIENT") redirect(`/${lang}/athlete`);
+  if (role === "ADMIN") redirect(`/${lang}/admin`);
+  // No role (or stale session from pre-rewrite) → show public landing
 
   const dict = await getDictionary(lang);
 

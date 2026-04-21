@@ -13,6 +13,9 @@ export default async function AthleteLayout({
 
   const session = await auth();
   if (!session?.user) redirect(`/${lang}/login`);
+  if (!Array.isArray(session.user.roles) || session.user.roles.length === 0) {
+    redirect(`/${lang}/login`);
+  }
   if (!hasRole(session, "CLIENT")) redirect(`/${lang}/coach`);
 
   const dict = await getDictionary(lang);

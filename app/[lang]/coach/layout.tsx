@@ -13,6 +13,10 @@ export default async function CoachLayout({
 
   const session = await auth();
   if (!session?.user) redirect(`/${lang}/login`);
+  if (!Array.isArray(session.user.roles) || session.user.roles.length === 0) {
+    // Stale session from pre-rewrite — force re-login
+    redirect(`/${lang}/login`);
+  }
   if (!hasRole(session, "COACH")) redirect(`/${lang}/athlete`);
 
   const dict = await getDictionary(lang);
