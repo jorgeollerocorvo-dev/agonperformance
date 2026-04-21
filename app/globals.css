@@ -53,30 +53,8 @@
   --font-sans: var(--font-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:         #0A0A0B;
-    --bg-alt:     #131316;
-    --surface:    #131316;
-    --surface-2:  #1A1A1E;
-    --ink:        #FAFAFB;
-    --ink-muted:  #9C9CA3;
-    --ink-subtle: #5E5E66;
-    --border:     #25252B;
-    --border-strong: #3A3A42;
-
-    --primary:        #3A92FF;
-    --primary-hover:  #5BA5FF;
-    --primary-soft:   rgba(58, 146, 255, 0.15);
-
-    --success-soft: rgba(30, 173, 107, 0.15);
-    --danger-soft:  rgba(226, 58, 58, 0.15);
-
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
-    --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
-  }
-}
+/* Force light mode — dark auto-switch disabled per product decision */
+:root { color-scheme: light; }
 
 html, body {
   background: var(--bg);

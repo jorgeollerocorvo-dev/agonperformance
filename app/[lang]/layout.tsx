@@ -32,8 +32,8 @@ export default async function RootLayout({
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={lang} dir={dir} className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <html lang={lang} dir={dir} className={`${inter.variable} h-full antialiased`} style={{ colorScheme: "light" }}>
+      <body className="min-h-full bg-[var(--bg)] text-[var(--ink)]">
         {children}
         <LanguageSwitcher current={lang} />
       </body>
