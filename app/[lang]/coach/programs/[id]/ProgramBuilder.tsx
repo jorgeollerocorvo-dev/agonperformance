@@ -26,7 +26,18 @@ type Dict = {
   week: string;
   day: string;
   rest_day: string;
+  copy: string;
+  paste: string;
+  pasteBlock: string;
+  pasteMovement: string;
+  clipboardEmpty: string;
+  markRest: string;
 };
+
+type Clip =
+  | { kind: "block"; data: EditorBlock }
+  | { kind: "movement"; data: EditorMovement }
+  | null;
 
 export default function ProgramBuilder({
   initial,
@@ -41,6 +52,35 @@ export default function ProgramBuilder({
   const [activeWeek, setActiveWeek] = useState(0);
   const [pending, start] = useTransition();
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [clip, setClip] = useState<Clip>(null);
+
+  const copyBlock = (b: EditorBlock) => setClip({ kind: "block", data: structuredClone(b) });
+  const copyMovement = (m: EditorMovement) => setClip({ kind: "movement", data: structuredClone(m) });
+  const clearClip = () => setClip(null);
+
+  const pasteBlockInto = (wi: number, di: number) => {
+    if (clip?.kind !== "block") return;
+    patchDay(wi, di, (d) => {
+      const clone = structuredClone(clip.data);
+      clone.id = null;
+      clone.movements = clone.movements.map((m) => ({ ...m, id: null }));
+      // Auto-increment block code if the current code is already present
+      const usedCodes = new Set(d.blocks.map((b) => b.blockCode));
+      if (usedCodes.has(clone.blockCode)) {
+        clone.blockCode = String.fromCharCode(65 + d.blocks.length);
+      }
+      d.blocks.push(clone);
+    });
+  };
+
+  const pasteMovementInto = (wi: number, di: number, bi: number) => {
+    if (clip?.kind !== "movement") return;
+    patchBlock(wi, di, bi, (b) => {
+      const clone = structuredClone(clip.data);
+      clone.id = null;
+      b.movements.push(clone);
+    });
+  };
 
   const save = () => {
     start(async () => {
@@ -132,6 +172,14 @@ export default function ProgramBuilder({
     patchDay(wi, di, (d) => { d.blocks = []; d.focus = null; d.notes = null; });
   };
 
+  const toggleRest = (wi: number, di: number) => {
+    patchDay(wi, di, (d) => {
+      d.blocks = [];
+      d.focus = "Rest day";
+      d.intensity = null;
+    });
+  };
+
   const addWeek = () => {
     setProg((p) => {
       const lastWeek = p.weeks.at(-1);
@@ -189,6 +237,14 @@ export default function ProgramBuilder({
         className="w-full text-[var(--ink-muted)] bg-transparent outline-none border-b border-transparent hover:border-[var(--border)] focus:border-[var(--primary)]"
       />
 
+      {/* Clipboard indicator */}
+      {clip && (
+        <div className="sticky top-16 z-20 flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-1.5 text-sm w-fit shadow-[var(--shadow-md)]">
+          <span>📋 {clip.kind === "block" ? dict.addBlock.replace("Add ", "Block: ") : dict.movementName}: <span className="font-semibold">{clip.kind === "block" ? (clip.data.label || clip.data.blockCode) : clip.data.name}</span></span>
+          <button onClick={clearClip} className="opacity-60 hover:opacity-100">×</button>
+        </div>
+      )}
+
       {/* Week tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 border-b border-[var(--border)]">
         {prog.weeks.map((w, i) => (
@@ -220,17 +276,23 @@ export default function ProgramBuilder({
             day={day}
             index={di}
             dict={dict}
+            clip={clip}
             onFocus={(v) => patchDay(activeWeek, di, (d) => { d.focus = v; })}
             onNotes={(v) => patchDay(activeWeek, di, (d) => { d.notes = v; })}
             onIntensity={(v) => patchDay(activeWeek, di, (d) => { d.intensity = v; })}
             onAddBlock={() => addBlock(activeWeek, di)}
             onDuplicate={() => duplicateDay(activeWeek, di)}
             onClear={() => clearDay(activeWeek, di)}
+            onMarkRest={() => toggleRest(activeWeek, di)}
+            onPasteBlock={() => pasteBlockInto(activeWeek, di)}
             onBlockPatch={(bi, fn) => patchBlock(activeWeek, di, bi, fn)}
             onBlockRemove={(bi) => removeBlock(activeWeek, di, bi)}
+            onBlockCopy={(bi) => copyBlock(day.blocks[bi])}
             onMovementPatch={(bi, mi, fn) => patchMovement(activeWeek, di, bi, mi, fn)}
             onMovementAdd={(bi) => addMovement(activeWeek, di, bi)}
             onMovementRemove={(bi, mi) => removeMovement(activeWeek, di, bi, mi)}
+            onMovementCopy={(bi, mi) => copyMovement(day.blocks[bi].movements[mi])}
+            onMovementPaste={(bi) => pasteMovementInto(activeWeek, di, bi)}
           />
         ))}
       </div>
@@ -250,40 +312,57 @@ export default function ProgramBuilder({
 }
 
 function DayCard({
-  day, index, dict,
+  day, index, dict, clip,
   onFocus, onNotes, onIntensity,
-  onAddBlock, onDuplicate, onClear,
-  onBlockPatch, onBlockRemove,
-  onMovementPatch, onMovementAdd, onMovementRemove,
+  onAddBlock, onDuplicate, onClear, onMarkRest, onPasteBlock,
+  onBlockPatch, onBlockRemove, onBlockCopy,
+  onMovementPatch, onMovementAdd, onMovementRemove, onMovementCopy, onMovementPaste,
 }: {
   day: EditorDay;
   index: number;
   dict: Dict;
+  clip: Clip;
   onFocus: (v: string) => void;
   onNotes: (v: string) => void;
   onIntensity: (v: string) => void;
   onAddBlock: () => void;
   onDuplicate: () => void;
   onClear: () => void;
+  onMarkRest: () => void;
+  onPasteBlock: () => void;
   onBlockPatch: (bi: number, fn: (b: EditorBlock) => void) => void;
   onBlockRemove: (bi: number) => void;
+  onBlockCopy: (bi: number) => void;
   onMovementPatch: (bi: number, mi: number, fn: (m: EditorMovement) => void) => void;
   onMovementAdd: (bi: number) => void;
   onMovementRemove: (bi: number, mi: number) => void;
+  onMovementCopy: (bi: number, mi: number) => void;
+  onMovementPaste: (bi: number) => void;
 }) {
-  const isRest = day.blocks.length === 0 && !day.focus;
+  const isRest =
+    (day.blocks.length === 0 && !day.focus) ||
+    (day.focus ?? "").toLowerCase().includes("rest");
 
   return (
-    <div className="rounded-2xl bg-white border border-[var(--border)] flex flex-col">
+    <div className={`rounded-2xl border flex flex-col ${isRest ? "bg-[var(--surface-2)] border-dashed border-[var(--border-strong)]" : "bg-white border-[var(--border)]"}`}>
       {/* Header */}
       <div className="px-3 pt-3 pb-2 border-b border-[var(--border)] flex items-center gap-2">
         <div className="flex-1">
-          <div className="text-xs font-semibold text-[var(--ink-muted)]">
+          <div className="text-xs font-semibold text-[var(--ink-muted)] flex items-center gap-1">
+            {isRest && <span title="Rest day">💤</span>}
             {dict.day} {index + 1}
           </div>
           <div className="text-xs text-[var(--ink-subtle)]">{day.day} · {day.date.slice(5)}</div>
         </div>
         <div className="flex gap-1">
+          {clip?.kind === "block" && (
+            <IconButton title={dict.pasteBlock} onClick={onPasteBlock}>
+              <svg viewBox="0 0 24 24" className="w-4 h-4 text-[var(--primary)]" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>
+            </IconButton>
+          )}
+          <IconButton title={dict.markRest} onClick={onMarkRest}>
+            <span className="text-base leading-none">💤</span>
+          </IconButton>
           <IconButton title={dict.duplicateDay} onClick={onDuplicate}>
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/></svg>
           </IconButton>
@@ -323,11 +402,15 @@ function DayCard({
             key={bi}
             block={b}
             dict={dict}
+            clip={clip}
             onPatch={(fn) => onBlockPatch(bi, fn)}
             onRemove={() => onBlockRemove(bi)}
+            onCopy={() => onBlockCopy(bi)}
+            onPasteMovement={() => onMovementPaste(bi)}
             onMovementPatch={(mi, fn) => onMovementPatch(bi, mi, fn)}
             onMovementAdd={() => onMovementAdd(bi)}
             onMovementRemove={(mi) => onMovementRemove(bi, mi)}
+            onMovementCopy={(mi) => onMovementCopy(bi, mi)}
           />
         ))}
 
@@ -343,15 +426,21 @@ function DayCard({
 }
 
 function BlockEditor({
-  block, dict, onPatch, onRemove, onMovementPatch, onMovementAdd, onMovementRemove,
+  block, dict, clip,
+  onPatch, onRemove, onCopy, onPasteMovement,
+  onMovementPatch, onMovementAdd, onMovementRemove, onMovementCopy,
 }: {
   block: EditorBlock;
   dict: Dict;
+  clip: Clip;
   onPatch: (fn: (b: EditorBlock) => void) => void;
   onRemove: () => void;
+  onCopy: () => void;
+  onPasteMovement: () => void;
   onMovementPatch: (mi: number, fn: (m: EditorMovement) => void) => void;
   onMovementAdd: () => void;
   onMovementRemove: (mi: number) => void;
+  onMovementCopy: (mi: number) => void;
 }) {
   return (
     <div className="rounded-xl border border-[var(--border)] p-2 space-y-2 bg-[var(--surface-2)]/50">
@@ -367,7 +456,8 @@ function BlockEditor({
           placeholder={dict.blockLabel}
           className="flex-1 text-sm font-medium bg-transparent border-b border-transparent hover:border-[var(--border)] focus:border-[var(--primary)] outline-none"
         />
-        <button onClick={onRemove} className="text-[var(--ink-subtle)] hover:text-[var(--danger)] px-1">✕</button>
+        <button onClick={onCopy} title={dict.copy} className="text-[var(--ink-subtle)] hover:text-[var(--primary)] px-1 text-xs">📋</button>
+        <button onClick={onRemove} title={dict.clear} className="text-[var(--ink-subtle)] hover:text-[var(--danger)] px-1">✕</button>
       </div>
       <input
         value={block.format ?? ""}
@@ -392,7 +482,8 @@ function BlockEditor({
                 target="_blank" rel="noreferrer"
                 className="text-xs text-[var(--primary)] hover:underline px-1"
               >🎥</a>
-              <button onClick={() => onMovementRemove(mi)} className="text-xs text-[var(--ink-subtle)] hover:text-[var(--danger)] px-1">✕</button>
+              <button onClick={() => onMovementCopy(mi)} title={dict.copy} className="text-xs text-[var(--ink-subtle)] hover:text-[var(--primary)] px-1">📋</button>
+              <button onClick={() => onMovementRemove(mi)} title={dict.clear} className="text-xs text-[var(--ink-subtle)] hover:text-[var(--danger)] px-1">✕</button>
             </div>
             <div className="grid grid-cols-4 gap-1 text-xs">
               <input value={m.sets ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.sets = e.target.value; })} placeholder={dict.sets} className={tinyInput} />
@@ -416,12 +507,23 @@ function BlockEditor({
         ))}
       </ul>
 
-      <button
-        onClick={onMovementAdd}
-        className="w-full text-xs text-[var(--primary)] hover:underline py-1"
-      >
-        + {dict.addMovement}
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={onMovementAdd}
+          className="flex-1 text-xs text-[var(--primary)] hover:underline py-1"
+        >
+          + {dict.addMovement}
+        </button>
+        {clip?.kind === "movement" && (
+          <button
+            onClick={onPasteMovement}
+            title={dict.pasteMovement}
+            className="text-xs text-[var(--primary)] font-semibold hover:underline py-1"
+          >
+            📋 {dict.paste}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

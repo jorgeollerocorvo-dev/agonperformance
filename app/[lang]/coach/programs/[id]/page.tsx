@@ -141,6 +141,12 @@ export default async function ProgramDetail({ params }: PageProps<"/[lang]/coach
           week: dict.coach.week ?? "Week",
           day: dict.coach.day ?? "Day",
           rest_day: dict.coach.restDay ?? "Rest day",
+          copy: dict.coach.copy ?? "Copy",
+          paste: dict.coach.paste ?? "Paste",
+          pasteBlock: dict.coach.pasteBlock ?? "Paste block here",
+          pasteMovement: dict.coach.pasteMovement ?? "Paste movement here",
+          clipboardEmpty: "",
+          markRest: dict.coach.markRest ?? "Mark as rest day",
         }}
       />
     </div>
