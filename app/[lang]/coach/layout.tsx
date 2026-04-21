@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { hasRole } from "@/lib/roles";
 import { getDictionary, hasLocale } from "../dictionaries";
+import HomeLink from "@/components/HomeLink";
 
 export default async function CoachLayout({
   children,
@@ -24,7 +25,8 @@ export default async function CoachLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center gap-4 sm:gap-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+          <HomeLink href={`/${lang}`} label="Home" />
           <Link href={`/${lang}/coach`} className="font-semibold">{dict.brand}</Link>
           <nav className="flex gap-3 sm:gap-4 text-sm flex-wrap">
             <Link href={`/${lang}/coach/athletes`}>{dict.nav.athletes}</Link>

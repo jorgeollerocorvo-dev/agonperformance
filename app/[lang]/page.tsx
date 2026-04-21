@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getDictionary, hasLocale } from "./dictionaries";
 import { primaryRole } from "@/lib/roles";
@@ -10,10 +10,11 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
 
   const session = await auth();
   const role = primaryRole(session);
-  if (role === "COACH") redirect(`/${lang}/coach`);
-  if (role === "CLIENT") redirect(`/${lang}/athlete`);
-  if (role === "ADMIN") redirect(`/${lang}/admin`);
-  // No role (or stale session from pre-rewrite) → show public landing
+  const dashboardHref =
+    role === "COACH" ? `/${lang}/coach`
+    : role === "ADMIN" ? `/${lang}/admin`
+    : role === "CLIENT" ? `/${lang}/athlete`
+    : null;
 
   const dict = await getDictionary(lang);
 
@@ -37,14 +38,15 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
           </Link>
         </div>
         <div className="text-xs text-zinc-500 flex gap-3 justify-center">
-          <Link href={`/${lang}/login`} className="hover:underline">{dict.auth.signIn}</Link>
-          <span>·</span>
-          <Link href={`/${lang}/register`} className="hover:underline">{dict.auth.signUp}</Link>
-        </div>
-        <div className="pt-6 text-xs text-zinc-500 flex justify-center gap-3">
-          <Link href="/es">ES</Link>
-          <span>·</span>
-          <Link href="/en">EN</Link>
+          {dashboardHref ? (
+            <Link href={dashboardHref} className="hover:underline">{dict.nav.profile} →</Link>
+          ) : (
+            <>
+              <Link href={`/${lang}/login`} className="hover:underline">{dict.auth.signIn}</Link>
+              <span>·</span>
+              <Link href={`/${lang}/register`} className="hover:underline">{dict.auth.signUp}</Link>
+            </>
+          )}
         </div>
       </div>
     </main>

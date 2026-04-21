@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { hasLocale, LOCALES } from "./dictionaries";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -28,10 +29,13 @@ export default async function RootLayout({
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
 
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
   return (
-    <html lang={lang} className={`${inter.variable} h-full antialiased`}>
+    <html lang={lang} dir={dir} className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         {children}
+        <LanguageSwitcher current={lang} />
       </body>
     </html>
   );
