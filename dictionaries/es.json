@@ -126,7 +126,8 @@
     "sendMessage": "Enviar mensaje",
     "reviews": "Reseñas",
     "noMapLocations": "Ningún entrenador ha fijado su ubicación aún. Consulta la lista o vuelve más tarde.",
-    "perSession": "sesión"
+    "perSession": "sesión",
+    "viewProfile": "Ver perfil"
   },
   "leadForm": {
     "goal": "¿Cuál es tu objetivo?",

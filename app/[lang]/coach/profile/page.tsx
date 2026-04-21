@@ -130,7 +130,9 @@ export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/
         <Field label={dict.coach.listingStatus}>
           <select name="listingStatus" defaultValue={coach.listingStatus} className={inputCls}>
             <option value="DRAFT">DRAFT</option>
+            <option value="PENDING_REVIEW">PENDING_REVIEW</option>
             <option value="APPROVED">APPROVED (public)</option>
+            <option value="REJECTED">REJECTED</option>
             <option value="SUSPENDED">SUSPENDED</option>
           </select>
         </Field>

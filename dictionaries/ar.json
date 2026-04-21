@@ -126,7 +126,8 @@
     "sendMessage": "إرسال رسالة",
     "reviews": "التقييمات",
     "noMapLocations": "لم يحدد أي مدرب موقعه على الخريطة بعد. تصفح القائمة أو عد لاحقًا.",
-    "perSession": "جلسة"
+    "perSession": "جلسة",
+    "viewProfile": "عرض الملف"
   },
   "leadForm": {
     "goal": "ما هدفك؟",

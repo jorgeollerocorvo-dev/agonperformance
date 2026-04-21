@@ -126,7 +126,8 @@
     "sendMessage": "Send message",
     "reviews": "Reviews",
     "noMapLocations": "No coaches have set their location on the map yet. Browse the list or check back soon.",
-    "perSession": "session"
+    "perSession": "session",
+    "viewProfile": "View profile"
   },
   "leadForm": {
     "goal": "What's your goal?",

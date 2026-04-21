@@ -113,6 +113,7 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
               noMapLoc: dict.directory.noMapLocations,
               from: dict.directory.from,
               perSession: dict.directory.perSession ?? "session",
+              viewProfile: dict.directory.viewProfile ?? "View profile",
             }}
           />
         )}

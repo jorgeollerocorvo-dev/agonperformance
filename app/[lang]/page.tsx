@@ -70,29 +70,38 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
           </div>
         </div>
 
-        {/* Gradient feature card — Revolut-style */}
+        {/* Gradient feature cards — each links to a real page */}
         <div className="mt-16 sm:mt-24 grid gap-5 sm:grid-cols-3">
-          <div className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between">
+          <Link
+            href={`/${lang}/coaches`}
+            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
+          >
             <div className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">🗺️</div>
             <div>
               <div className="text-xl font-bold">{dict.landing.feat1Title ?? "Browse by map"}</div>
               <div className="text-sm text-white/80 mt-1">{dict.landing.feat1Sub ?? "See coaches who cover your area."}</div>
             </div>
-          </div>
-          <div className="rounded-2xl p-6 bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-sm)] min-h-[180px] flex flex-col justify-between">
+          </Link>
+          <Link
+            href={`/${lang}/find-my-coach`}
+            className="rounded-2xl p-6 bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-sm)] min-h-[180px] flex flex-col justify-between hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)] transition"
+          >
             <div className="w-9 h-9 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] grid place-items-center">📋</div>
             <div>
               <div className="text-xl font-bold">{dict.landing.feat2Title ?? "Real programming"}</div>
               <div className="text-sm text-[var(--ink-muted)] mt-1">{dict.landing.feat2Sub ?? "Weekly plans, video demos, check-ins."}</div>
             </div>
-          </div>
-          <div className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--ink)] to-[var(--accent-purple)] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between">
+          </Link>
+          <Link
+            href={dashboardHref ? `/${lang}/messages` : `/${lang}/register`}
+            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--ink)] to-[var(--accent-purple)] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
+          >
             <div className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">💬</div>
             <div>
               <div className="text-xl font-bold">{dict.landing.feat3Title ?? "Talk to your coach"}</div>
               <div className="text-sm text-white/80 mt-1">{dict.landing.feat3Sub ?? "In-app chat, no phone-tag."}</div>
             </div>
-          </div>
+          </Link>
         </div>
       </main>
 
