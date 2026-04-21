@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
+import LocationPicker from "@/components/LocationPicker";
 
 export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/coach/profile">) {
   const { lang } = await params;
@@ -39,6 +40,9 @@ export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/
     const languages = String(formData.get("languagesSpoken") ?? "")
       .split(",").map((l) => l.trim().toLowerCase()).filter(Boolean);
     const specialtyIds = formData.getAll("specialty").map(String);
+    const latRaw = String(formData.get("homeBaseLat") ?? "").trim();
+    const lngRaw = String(formData.get("homeBaseLng") ?? "").trim();
+    const radiusRaw = String(formData.get("serviceAreaRadiusKm") ?? "").trim();
 
     // Handle uniqueness check
     if (handle) {
@@ -60,6 +64,9 @@ export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/
         pricePerSessionMax: priceMax ? parseFloat(priceMax) : null,
         listingStatus,
         languagesSpoken: languages,
+        homeBaseLat: latRaw ? parseFloat(latRaw) : null,
+        homeBaseLng: lngRaw ? parseFloat(lngRaw) : null,
+        serviceAreaRadiusKm: radiusRaw ? parseInt(radiusRaw, 10) || null : null,
       },
     });
 
@@ -132,10 +139,23 @@ export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/
             {allSpecialties.map((s) => (
               <label key={s.id} className="text-sm flex items-center gap-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5">
                 <input type="checkbox" name="specialty" value={s.id} defaultChecked={selectedIds.has(s.id)} />
-                {lang === "es" ? s.labelEs : s.labelEn}
+                {lang === "es" ? s.labelEs : lang === "ar" ? (s.labelAr ?? s.labelEn) : s.labelEn}
               </label>
             ))}
           </div>
+        </Field>
+        <Field label={dict.coach.serviceArea} full>
+          <LocationPicker
+            initialLat={coach.homeBaseLat ? Number(coach.homeBaseLat) : null}
+            initialLng={coach.homeBaseLng ? Number(coach.homeBaseLng) : null}
+            initialRadiusKm={coach.serviceAreaRadiusKm ?? 10}
+            labels={{
+              lat: dict.coach.lat,
+              lng: dict.coach.lng,
+              radius: dict.coach.radius,
+              instruction: dict.coach.locationInstruction,
+            }}
+          />
         </Field>
         <div className="sm:col-span-2">
           <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.coach.save}</button>

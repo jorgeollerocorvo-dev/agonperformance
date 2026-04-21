@@ -69,7 +69,12 @@
     "priceMin": "Min price/session",
     "priceMax": "Max price/session",
     "specialties": "Specialties",
-    "myListing": "My public profile"
+    "myListing": "My public profile",
+    "serviceArea": "Service area (click the map to set your home base)",
+    "lat": "Lat",
+    "lng": "Lng",
+    "radius": "Radius",
+    "locationInstruction": "Click anywhere on the map to set where you're based. Drag the radius slider to show how far you'll travel."
   },
   "athlete": {
     "todayHeader": "Today's workout",
@@ -97,7 +102,8 @@
     "contact": "Contact",
     "contactPlaceholder": "Tell this coach what you're looking for...",
     "sendMessage": "Send message",
-    "reviews": "Reviews"
+    "reviews": "Reviews",
+    "noMapLocations": "No coaches have set their location on the map yet. Browse the list or check back soon."
   },
   "leadForm": {
     "goal": "What's your goal?",

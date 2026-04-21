@@ -69,7 +69,12 @@
     "priceMin": "Precio mínimo/sesión",
     "priceMax": "Precio máximo/sesión",
     "specialties": "Especialidades",
-    "myListing": "Mi perfil público"
+    "myListing": "Mi perfil público",
+    "serviceArea": "Zona de servicio (haz clic en el mapa para fijar tu base)",
+    "lat": "Lat",
+    "lng": "Lng",
+    "radius": "Radio",
+    "locationInstruction": "Haz clic en cualquier parte del mapa para indicar dónde estás. Mueve el deslizador para definir el radio hasta el que te desplazas."
   },
   "athlete": {
     "todayHeader": "Entrenamiento de hoy",
@@ -97,7 +102,8 @@
     "contact": "Contactar",
     "contactPlaceholder": "Cuéntale a este entrenador qué buscas...",
     "sendMessage": "Enviar mensaje",
-    "reviews": "Reseñas"
+    "reviews": "Reseñas",
+    "noMapLocations": "Ningún entrenador ha fijado su ubicación aún. Consulta la lista o vuelve más tarde."
   },
   "leadForm": {
     "goal": "¿Cuál es tu objetivo?",
