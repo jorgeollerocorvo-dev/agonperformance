@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0",
+  "athlete_id": "wasmiya",
+  "name": "Wasmiya",
+  "sex": "F",
+  "age": 37,
+  "dob": null,
+  "division": "Open (35-39) scaled/Rx as appropriate",
+  "competitive_goal": "Compete well at Open and local competitions. Not chasing Games.",
+
+  "training_frequency": {
+    "days_per_week": 4,
+    "rest_days": ["Tuesday", "Thursday", "Sunday"],
+    "typical_days": ["Monday", "Wednesday", "Friday", "Saturday"]
+  },
+
+  "injury_history": [
+    {
+      "id": "calf_tear_2025",
+      "area": "Calf",
+      "diagnosis": "Grade 2 calf tear (partial)",
+      "injury_date": null,
+      "layoff_months": 3,
+      "return_date": null,
+      "medical_clearance": "Full clearance",
+      "months_since_return": "1-3",
+      "ongoing_considerations": [
+        "Calf strength deficits typically persist 4-6 months post-return",
+        "Calf-specific strength work is non-negotiable for at least 3-4 more months",
+        "DUs, running, box jumps, BJO, burpees require phased reintroduction",
+        "Monitor next-day calf response after every calf-loading session"
+      ]
+    }
+  ],
+
+  "current_1rms": {
+    "back_squat": null,
+    "front_squat": null,
+    "deadlift": null,
+    "bench_press": 65,
+    "strict_press": null,
+    "push_press": null,
+    "clean_and_jerk": null,
+    "power_clean": 55,
+    "snatch": null,
+    "notes": "Bench 1RM 65 kg tested Jan 2026. Push jerk 65 kg tested Mar 25 2026. Most other lifts not formally maxed."
+  },
+
+  "current_benchmarks": {
+    "max_strict_pull_ups_3_sets_30s_rest": "5-4-4 / 6-4-2 / 4-3-1 = 34 total (Feb 2026)",
+    "single_leg_heel_raise_reps": null,
+    "fran_time": null,
+    "annie_time": null,
+    "notes": "Strict pull-up baseline is strong. Calf strength baseline needed at Week 4 test."
+  },
+
+  "priority_gaps": [
+    {
+      "id": "calf_strength",
+      "label": "Calf-specific strength protocol",
+      "why": "Post-injury, permanent fixture for 3-4+ months minimum"
+    },
+    {
+      "id": "lower_body_strength",
+      "label": "Back squat + deadlift cycle",
+      "why": "Almost no dedicated strength work for legs in prior logs"
+    },
+    {
+      "id": "kipping_efficiency",
+      "label": "Kip pull-up, kip HSPU, kip T2B cycle rate",
+      "why": "Strict foundation is strong, now need efficient kipping"
+    },
+    {
+      "id": "oly_depth",
+      "label": "Full squat snatch, snatch balance, full clean",
+      "why": "Only hang variations in prior logs"
+    },
+    {
+      "id": "du_reintro",
+      "label": "Double-unders phased reintroduction",
+      "why": "High calf-loading movement, must build back slowly"
+    },
+    {
+      "id": "aerobic_base",
+      "label": "Zone 2 conditioning",
+      "why": "Missing from prior programming"
+    }
+  ],
+
+  "programming_notes": [
+    "Calf protocol attaches to Monday, Friday, Saturday sessions",
+    "Metcons for Blocks 1-2 must avoid BJO, running, burpees-to-fatigue, and DUs-to-fatigue",
+    "Monitor calf response on a 0-3 scale after every session",
+    "Test single-leg heel raise reps at end of each 4-week block. Target 25-30 by end of Block 3."
+  ],
+
+  "active_program_id": "wasmiya_12wk_2026-04-22",
+  "created_at": "2026-04-20",
+  "updated_at": "2026-04-20"
+}

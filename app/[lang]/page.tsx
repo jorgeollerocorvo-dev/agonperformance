@@ -1,17 +1,15 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getDictionary, hasLocale } from "./dictionaries";
-import { notFound } from "next/navigation";
+import { landingPathFor } from "@/lib/roles";
 
 export default async function LandingPage({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
 
   const session = await auth();
-  if (session?.user) {
-    redirect(`/${lang}/${session.user.role === "COACH" ? "coach" : "athlete"}`);
-  }
+  if (session?.user) redirect(landingPathFor(lang, session));
 
   const dict = await getDictionary(lang);
 

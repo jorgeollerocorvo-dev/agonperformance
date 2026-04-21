@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "athlete_id": "ravi",
+  "month": "2026-04",
+  "entries": [],
+  "entry_template": {
+    "description": "Copy this structure when logging a session",
+    "example": {
+      "log_id": "ravi_log_2026-04-21",
+      "session_id": "ravi_3wk_2026-04-21_2026-04-21",
+      "date": "2026-04-21",
+      "completed": true,
+      "completed_blocks": ["A", "B", "C"],
+      "skipped_blocks": [],
+      "actual_performance": [
+        {
+          "block_id": "A",
+          "movement_id": "strict_press",
+          "planned": { "sets": 5, "reps": 5, "load_kg": null, "rpe": 7 },
+          "actual": { "sets": 5, "reps": 5, "load_kg": [32.5, 35, 37.5, 37.5, 37.5], "rpe": [6, 7, 8, 8, 9] },
+          "notes": "Last set grinding, form stayed clean."
+        }
+      ],
+      "session_notes": "Strict HSPU to 2-inch riser tougher than expected. Scaled to 1-inch for last 2 sets.",
+      "joint_warmup_minutes": 15,
+      "overall_rpe": 8,
+      "logged_at": "2026-04-21T18:30:00Z"
+    }
+  }
+}

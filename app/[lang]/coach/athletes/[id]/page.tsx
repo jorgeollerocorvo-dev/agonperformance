@@ -4,24 +4,18 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 
-export default async function AthleteEdit({ params }: PageProps<"/[lang]/coach/athletes/[id]">) {
+export default async function AthleteDetail({ params }: PageProps<"/[lang]/coach/athletes/[id]">) {
   const { lang, id } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const session = await auth();
-  const coach = await prisma.coach.findUnique({ where: { userId: session!.user.id } });
+  const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session!.user.id } });
+
   const athlete = await prisma.athlete.findFirst({
-    where: { id, coachId: coach!.id },
+    where: { id, coachProfileId: coachProfile!.id },
     include: {
-      user: true,
-      coach: {
-        include: { programs: { include: { workouts: { orderBy: { dayIndex: "asc" } } } } },
-      },
-      assignments: {
-        orderBy: { date: "desc" },
-        include: { workout: true, log: true },
-        take: 20,
-      },
+      programs: { orderBy: { startDate: "desc" } },
+      testResults: { orderBy: { date: "desc" }, take: 10, include: { movement: true } },
     },
   });
   if (!athlete) notFound();
@@ -29,53 +23,40 @@ export default async function AthleteEdit({ params }: PageProps<"/[lang]/coach/a
   async function updateAthlete(formData: FormData) {
     "use server";
     const s = await auth();
-    const c = await prisma.coach.findUnique({ where: { userId: s!.user.id } });
-    const a = await prisma.athlete.findFirst({ where: { id, coachId: c!.id } });
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
+    const a = await prisma.athlete.findFirst({ where: { id, coachProfileId: cp!.id } });
     if (!a) return;
 
-    const name = String(formData.get("name") ?? "").trim() || null;
-    const specialty = (String(formData.get("specialty") ?? "OTHER") || "OTHER") as
-      | "CROSSFIT" | "WOMEN" | "BODYBUILDING" | "OTHER";
+    const fullName = String(formData.get("fullName") ?? "").trim() || a.fullName;
+    const email = String(formData.get("email") ?? "").toLowerCase().trim() || null;
     const phone = String(formData.get("phone") ?? "").trim() || null;
-    const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
+    const sex = (String(formData.get("sex") ?? "").trim() || null) as "M" | "F" | null;
+    const ageRaw = String(formData.get("age") ?? "").trim();
     const heightRaw = String(formData.get("heightCm") ?? "").trim();
     const weightRaw = String(formData.get("weightKg") ?? "").trim();
+    const dobRaw = String(formData.get("dob") ?? "").trim();
+    const division = String(formData.get("division") ?? "").trim() || null;
     const goals = String(formData.get("goals") ?? "").trim() || null;
     const notes = String(formData.get("notes") ?? "").trim() || null;
 
     await prisma.athlete.update({
       where: { id: a.id },
       data: {
-        specialty,
+        fullName,
+        email,
         phone,
-        birthDate: birthDateRaw ? new Date(birthDateRaw) : null,
+        sex,
+        age: ageRaw ? parseInt(ageRaw, 10) || null : null,
+        dob: dobRaw ? new Date(dobRaw) : null,
         heightCm: heightRaw ? parseInt(heightRaw, 10) || null : null,
         weightKg: weightRaw ? parseFloat(weightRaw) || null : null,
+        division,
         goals,
         notes,
-        user: { update: { name } },
       },
     });
-
     redirect(`/${lang}/coach/athletes/${id}`);
   }
-
-  async function assignWorkout(formData: FormData) {
-    "use server";
-    const workoutId = String(formData.get("workoutId") ?? "");
-    const date = String(formData.get("date") ?? "");
-    if (!workoutId || !date) return;
-    await prisma.assignment.upsert({
-      where: { athleteId_workoutId_date: { athleteId: athlete!.id, workoutId, date: new Date(date) } },
-      update: {},
-      create: { athleteId: athlete!.id, workoutId, date: new Date(date) },
-    });
-    redirect(`/${lang}/coach/athletes/${id}`);
-  }
-
-  const allWorkouts = athlete.coach.programs.flatMap((p) =>
-    p.workouts.map((w) => ({ id: w.id, label: `${p.name} — ${w.title}` })),
-  );
 
   const toDateStr = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
 
@@ -83,79 +64,66 @@ export default async function AthleteEdit({ params }: PageProps<"/[lang]/coach/a
     <div className="space-y-8">
       <Link href={`/${lang}/coach/athletes`} className="text-sm text-zinc-500 hover:underline">← {dict.nav.athletes}</Link>
 
-      <h1 className="text-2xl font-semibold">{athlete.user.name ?? athlete.user.email}</h1>
+      <header className="flex flex-wrap items-baseline gap-3">
+        <h1 className="text-2xl sm:text-3xl font-semibold">{athlete.fullName}</h1>
+        <span className="text-sm text-zinc-500">{athlete.division ?? ""}</span>
+      </header>
 
       <form action={updateAthlete} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
         <h2 className="text-lg font-medium sm:col-span-2">{dict.coach.editProfile}</h2>
-
-        <Field label={dict.auth.name}>
-          <input name="name" defaultValue={athlete.user.name ?? ""} className={inputCls} />
-        </Field>
-        <Field label={dict.auth.email}>
-          <input value={athlete.user.email} disabled className={`${inputCls} opacity-60`} />
-        </Field>
-        <Field label={dict.coach.specialty}>
-          <select name="specialty" defaultValue={athlete.specialty} className={inputCls}>
-            <option value="CROSSFIT">{dict.coach.crossfit}</option>
-            <option value="WOMEN">{dict.coach.women}</option>
-            <option value="BODYBUILDING">{dict.coach.bodybuilding}</option>
-            <option value="OTHER">{dict.coach.other}</option>
+        <Field label={dict.auth.name}><input name="fullName" defaultValue={athlete.fullName} className={inputCls} /></Field>
+        <Field label={dict.auth.email}><input name="email" type="email" defaultValue={athlete.email ?? ""} className={inputCls} /></Field>
+        <Field label={dict.coach.phone}><input name="phone" defaultValue={athlete.phone ?? ""} className={inputCls} /></Field>
+        <Field label={dict.coach.sex}>
+          <select name="sex" defaultValue={athlete.sex ?? ""} className={inputCls}>
+            <option value="">—</option><option value="M">M</option><option value="F">F</option>
           </select>
         </Field>
-        <Field label={dict.coach.phone}>
-          <input name="phone" defaultValue={athlete.phone ?? ""} className={inputCls} />
-        </Field>
-        <Field label={dict.coach.birthDate}>
-          <input name="birthDate" type="date" defaultValue={toDateStr(athlete.birthDate)} className={inputCls} />
-        </Field>
-        <Field label={dict.coach.height}>
-          <input name="heightCm" type="number" defaultValue={athlete.heightCm ?? ""} className={inputCls} />
-        </Field>
-        <Field label={dict.coach.weight}>
-          <input name="weightKg" type="number" step="0.1" defaultValue={athlete.weightKg ?? ""} className={inputCls} />
-        </Field>
-        <Field label={dict.coach.goals} full>
-          <textarea name="goals" rows={2} defaultValue={athlete.goals ?? ""} className={inputCls} />
-        </Field>
-        <Field label={dict.coach.notes} full>
-          <textarea name="notes" rows={3} defaultValue={athlete.notes ?? ""} className={inputCls} />
-        </Field>
+        <Field label={dict.coach.age}><input name="age" type="number" defaultValue={athlete.age ?? ""} className={inputCls} /></Field>
+        <Field label={dict.coach.birthDate}><input name="dob" type="date" defaultValue={toDateStr(athlete.dob)} className={inputCls} /></Field>
+        <Field label={dict.coach.height}><input name="heightCm" type="number" defaultValue={athlete.heightCm ?? ""} className={inputCls} /></Field>
+        <Field label={dict.coach.weight}><input name="weightKg" type="number" step="0.1" defaultValue={athlete.weightKg ?? ""} className={inputCls} /></Field>
+        <Field label={dict.coach.division} full><input name="division" defaultValue={athlete.division ?? ""} className={inputCls} /></Field>
+        <Field label={dict.coach.goals} full><textarea name="goals" rows={2} defaultValue={athlete.goals ?? ""} className={inputCls} /></Field>
+        <Field label={dict.coach.notes} full><textarea name="notes" rows={3} defaultValue={athlete.notes ?? ""} className={inputCls} /></Field>
         <div className="sm:col-span-2">
-          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">
-            {dict.coach.save}
-          </button>
+          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.coach.save}</button>
         </div>
       </form>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-medium">{dict.coach.assign}</h2>
-        <form action={assignWorkout} className="flex gap-2 items-end flex-wrap rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-          <label className="text-sm flex-1 min-w-52">
-            <span className="block mb-1">Workout</span>
-            <select name="workoutId" required className={inputCls}>
-              {allWorkouts.map((w) => (
-                <option key={w.id} value={w.id}>{w.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="block mb-1">Date</span>
-            <input type="date" name="date" required className={inputCls} />
-          </label>
-          <button className="rounded-md bg-zinc-900 text-white px-3 py-2 text-sm dark:bg-white dark:text-zinc-900">
-            {dict.coach.assign}
-          </button>
-        </form>
-
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          {athlete.assignments.map((a) => (
-            <li key={a.id} className="px-4 py-2 text-sm flex justify-between">
-              <span>{a.date.toISOString().slice(0, 10)} · {a.workout.title}</span>
-              <span className={a.log ? "text-green-600" : "text-zinc-500"}>{a.log ? dict.athlete.completed : "—"}</span>
-            </li>
-          ))}
-        </ul>
+        <h2 className="text-lg font-medium">{dict.nav.programs}</h2>
+        {athlete.programs.length === 0 ? (
+          <p className="text-sm text-zinc-500">No programs yet.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+            {athlete.programs.map((p) => (
+              <li key={p.id}>
+                <Link href={`/${lang}/coach/programs/${p.id}`} className="block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                  <div className="font-medium">{p.title}</div>
+                  <div className="text-xs text-zinc-500">
+                    {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
+
+      {athlete.testResults.length > 0 && (
+        <section>
+          <h2 className="text-lg font-medium mb-3">{dict.coach.recentTests}</h2>
+          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm">
+            {athlete.testResults.map((t) => (
+              <li key={t.id} className="px-4 py-2 flex justify-between">
+                <span>{toDateStr(t.date)} · {t.movement?.nameEn ?? t.customMovement} ({t.testType})</span>
+                <span className="text-zinc-600 dark:text-zinc-400">{t.resultValue?.toString() ?? "—"} {t.resultUnit ?? ""}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

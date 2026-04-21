@@ -50,7 +50,14 @@
     "addSection": "Add section",
     "addExercise": "Add exercise",
     "save": "Save",
-    "saved": "Saved"
+    "saved": "Saved",
+    "listingStatus": "Listing status",
+    "viewAll": "View all",
+    "sex": "Sex",
+    "age": "Age",
+    "division": "Division / Category",
+    "weeks": "weeks",
+    "recentTests": "Recent tests"
   },
   "athlete": {
     "todayHeader": "Today's workout",
@@ -58,7 +65,8 @@
     "markDone": "Mark complete",
     "completed": "Completed",
     "notes": "Notes",
-    "youtube": "Watch demo"
+    "youtube": "Watch demo",
+    "notLinked": "You're not yet linked to an athlete. Ask your coach to add you."
   },
   "exercise": {
     "name": "Exercise",

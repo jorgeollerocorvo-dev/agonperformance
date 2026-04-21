@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
@@ -10,59 +9,55 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const session = await auth();
-  const coach = await prisma.coach.findUnique({
+  const coachProfile = await prisma.coachProfile.findUnique({
     where: { userId: session!.user.id },
-    include: {
-      athletes: {
-        include: { user: true },
-        orderBy: { createdAt: "desc" },
-      },
-    },
+    include: { athletes: { orderBy: { createdAt: "desc" } } },
   });
 
   async function createAthlete(formData: FormData) {
     "use server";
     const s = await auth();
-    const c = await prisma.coach.findUnique({ where: { userId: s!.user.id } });
-    if (!c) return;
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
+    if (!cp) return;
 
-    const email = String(formData.get("email") ?? "").toLowerCase().trim();
-    const password = String(formData.get("password") ?? "");
-    const name = String(formData.get("name") ?? "").trim() || null;
-    const specialty = (String(formData.get("specialty") ?? "OTHER") || "OTHER") as
-      | "CROSSFIT" | "WOMEN" | "BODYBUILDING" | "OTHER";
+    const fullName = String(formData.get("fullName") ?? "").trim();
+    if (!fullName) redirect(`/${lang}/coach/athletes?error=name`);
+
+    const email = String(formData.get("email") ?? "").toLowerCase().trim() || null;
     const phone = String(formData.get("phone") ?? "").trim() || null;
-    const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
+    const sex = (String(formData.get("sex") ?? "").trim() || null) as "M" | "F" | null;
+    const ageRaw = String(formData.get("age") ?? "").trim();
     const heightRaw = String(formData.get("heightCm") ?? "").trim();
     const weightRaw = String(formData.get("weightKg") ?? "").trim();
+    const dobRaw = String(formData.get("dob") ?? "").trim();
+    const division = String(formData.get("division") ?? "").trim() || null;
     const goals = String(formData.get("goals") ?? "").trim() || null;
     const notes = String(formData.get("notes") ?? "").trim() || null;
 
-    if (!email || password.length < 6) redirect(`/${lang}/coach/athletes?error=1`);
-    const exists = await prisma.user.findUnique({ where: { email } });
-    if (exists) redirect(`/${lang}/coach/athletes?error=exists`);
+    // Generate a unique athleteKey slug
+    const base = fullName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || "athlete";
+    let athleteKey = base;
+    let suffix = 0;
+    while (await prisma.athlete.findUnique({ where: { athleteKey } })) {
+      suffix += 1;
+      athleteKey = `${base}_${suffix}`;
+    }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    await prisma.user.create({
+    await prisma.athlete.create({
       data: {
+        athleteKey,
+        coachProfileId: cp.id,
+        fullName,
         email,
-        name,
-        passwordHash,
-        role: "ATHLETE",
-        locale: lang,
-        athleteProfile: {
-          create: {
-            coachId: c.id,
-            specialty,
-            phone,
-            birthDate: birthDateRaw ? new Date(birthDateRaw) : null,
-            heightCm: heightRaw ? parseInt(heightRaw, 10) || null : null,
-            weightKg: weightRaw ? parseFloat(weightRaw) || null : null,
-            goals,
-            notes,
-          },
-        },
+        phone,
+        sex,
+        age: ageRaw ? parseInt(ageRaw, 10) || null : null,
+        dob: dobRaw ? new Date(dobRaw) : null,
+        heightCm: heightRaw ? parseInt(heightRaw, 10) || null : null,
+        weightKg: weightRaw ? parseFloat(weightRaw) || null : null,
+        division,
+        goals,
+        notes,
       },
     });
 
@@ -71,44 +66,41 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
 
   return (
     <div className="space-y-8">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">{dict.nav.athletes}</h1>
-        <p className="text-xs text-zinc-500">
-          Invite code: <code className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">{coach?.id}</code>
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold">{dict.nav.athletes}</h1>
 
       <form action={createAthlete} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
         <h2 className="text-lg font-medium sm:col-span-2">{dict.coach.addAthlete}</h2>
 
         <Field label={dict.auth.name}>
-          <input name="name" className={inputCls} />
+          <input name="fullName" required className={inputCls} />
         </Field>
         <Field label={dict.auth.email}>
-          <input name="email" type="email" required className={inputCls} />
-        </Field>
-        <Field label={dict.coach.tempPassword}>
-          <input name="password" type="text" minLength={6} required className={inputCls} placeholder="min 6 chars" />
-        </Field>
-        <Field label={dict.coach.specialty}>
-          <select name="specialty" className={inputCls}>
-            <option value="CROSSFIT">{dict.coach.crossfit}</option>
-            <option value="WOMEN">{dict.coach.women}</option>
-            <option value="BODYBUILDING">{dict.coach.bodybuilding}</option>
-            <option value="OTHER">{dict.coach.other}</option>
-          </select>
+          <input name="email" type="email" className={inputCls} />
         </Field>
         <Field label={dict.coach.phone}>
           <input name="phone" className={inputCls} />
         </Field>
+        <Field label={dict.coach.sex}>
+          <select name="sex" className={inputCls}>
+            <option value="">—</option>
+            <option value="M">M</option>
+            <option value="F">F</option>
+          </select>
+        </Field>
+        <Field label={dict.coach.age}>
+          <input name="age" type="number" min={0} max={120} className={inputCls} />
+        </Field>
         <Field label={dict.coach.birthDate}>
-          <input name="birthDate" type="date" className={inputCls} />
+          <input name="dob" type="date" className={inputCls} />
         </Field>
         <Field label={dict.coach.height}>
           <input name="heightCm" type="number" min={100} max={250} className={inputCls} />
         </Field>
         <Field label={dict.coach.weight}>
           <input name="weightKg" type="number" step="0.1" min={20} max={300} className={inputCls} />
+        </Field>
+        <Field label={dict.coach.division} full>
+          <input name="division" placeholder="e.g. Masters 55-59" className={inputCls} />
         </Field>
         <Field label={dict.coach.goals} full>
           <textarea name="goals" rows={2} className={inputCls} />
@@ -123,21 +115,20 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
         </div>
       </form>
 
-      {coach?.athletes.length === 0 ? (
+      {coachProfile?.athletes.length === 0 ? (
         <p className="text-sm text-zinc-500">{dict.coach.noAthletes}</p>
       ) : (
         <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          {coach?.athletes.map((a) => (
-            <li key={a.id} className="px-4 py-3 flex items-center justify-between">
-              <div>
-                <div className="font-medium">{a.user.name ?? a.user.email}</div>
-                <div className="text-xs text-zinc-500">{a.user.email} · {a.specialty}</div>
-              </div>
-              <Link
-                href={`/${lang}/coach/athletes/${a.id}`}
-                className="text-sm rounded-md border border-zinc-300 px-3 py-1.5 dark:border-zinc-700"
-              >
-                {dict.coach.editProfile}
+          {coachProfile?.athletes.map((a) => (
+            <li key={a.id}>
+              <Link href={`/${lang}/coach/athletes/${a.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                <div>
+                  <div className="font-medium">{a.fullName}</div>
+                  <div className="text-xs text-zinc-500">
+                    {[a.sex, a.age ? `${a.age} y/o` : null, a.division, a.email].filter(Boolean).join(" · ")}
+                  </div>
+                </div>
+                <span className="text-sm text-zinc-400">→</span>
               </Link>
             </li>
           ))}

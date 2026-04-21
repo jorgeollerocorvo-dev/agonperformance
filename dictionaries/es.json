@@ -50,7 +50,14 @@
     "addSection": "Añadir sección",
     "addExercise": "Añadir ejercicio",
     "save": "Guardar",
-    "saved": "Guardado"
+    "saved": "Guardado",
+    "listingStatus": "Estado del perfil",
+    "viewAll": "Ver todo",
+    "sex": "Sexo",
+    "age": "Edad",
+    "division": "Categoría / División",
+    "weeks": "semanas",
+    "recentTests": "Tests recientes"
   },
   "athlete": {
     "todayHeader": "Entrenamiento de hoy",
@@ -58,7 +65,8 @@
     "markDone": "Marcar completado",
     "completed": "Completado",
     "notes": "Notas",
-    "youtube": "Ver vídeo"
+    "youtube": "Ver vídeo",
+    "notLinked": "Aún no estás vinculado a un atleta. Pide a tu entrenador que te añada."
   },
   "exercise": {
     "name": "Ejercicio",

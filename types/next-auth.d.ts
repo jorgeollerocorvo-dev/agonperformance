@@ -1,15 +1,17 @@
 import "next-auth";
 
+type AppRole = "CLIENT" | "COACH" | "ADMIN";
+
 declare module "next-auth" {
   interface User {
-    role?: "COACH" | "ATHLETE";
+    roles?: AppRole[];
   }
   interface Session {
     user: {
       id: string;
-      email: string;
+      email?: string | null;
       name?: string | null;
-      role: "COACH" | "ATHLETE";
+      roles: AppRole[];
     };
   }
 }
@@ -17,6 +19,6 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     uid?: string;
-    role?: "COACH" | "ATHLETE";
+    roles?: AppRole[];
   }
 }

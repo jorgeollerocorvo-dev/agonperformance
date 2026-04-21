@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "athlete_id": "ravi",
+  "name": "Ravi",
+  "sex": "M",
+  "age": 57,
+  "dob": null,
+  "division": "Masters 55-59",
+  "competitive_goal": "Perform well at Masters-level Opens and Quarterfinals. Not chasing Games.",
+
+  "training_frequency": {
+    "days_per_week": 6,
+    "rest_days": ["Friday"],
+    "typical_days": ["Tuesday", "Wednesday", "Thursday", "Saturday", "Sunday", "Monday"]
+  },
+
+  "injury_history": [],
+
+  "current_1rms": {
+    "back_squat": null,
+    "front_squat": null,
+    "deadlift": null,
+    "bench_press": null,
+    "strict_press": null,
+    "push_press": null,
+    "clean_and_jerk": 75,
+    "power_clean": 75,
+    "snatch": 55,
+    "notes": "Most 1RMs not formally tested. Last heavy C&J attempt 75+ kg Mar 24 2026."
+  },
+
+  "current_benchmarks": {
+    "strict_hspu_to_2in_riser_max_ub": null,
+    "bar_muscle_ups_max_ub": null,
+    "strict_pull_ups_max_ub": null,
+    "kip_hspu_max_ub": 10,
+    "notes": "To be tested during Week 3 of current 3-week block."
+  },
+
+  "targets_by_competition": {
+    "masters_55_59_qf1_ohs": { "target_kg": 38, "current_capacity_kg": 45, "status": "above_standard" },
+    "masters_55_59_qf3_deadlift": { "target_kg": 102, "current_capacity_kg": 100, "status": "near_target" },
+    "masters_55_59_qf4_cleanjerk": { "target_kg": 52, "current_capacity_kg": 75, "status": "above_standard" },
+    "masters_55_59_qf4_strict_hspu_riser": { "target_reps": 30, "current_capacity_reps": null, "status": "gap" }
+  },
+
+  "priority_gaps": [
+    {
+      "id": "strict_hspu_riser",
+      "label": "Strict HSPU to 2-inch riser",
+      "why": "Masters 55-59 QF4 standard, biggest gap vs kip HSPU focus"
+    },
+    {
+      "id": "deadlift_progression",
+      "label": "Deadlift to 102 kg",
+      "why": "QF3 Masters 55-59 top weight"
+    },
+    {
+      "id": "aerobic_base",
+      "label": "Zone 2 and threshold intervals",
+      "why": "Engine is undertrained for 26.1-style long pieces"
+    },
+    {
+      "id": "deload_structure",
+      "label": "Programmed deload every 4 weeks",
+      "why": "At 57, tendon adaptation lags muscle adaptation"
+    }
+  ],
+
+  "programming_notes": [
+    "Training 6 days = 4 hard + 2 intentionally light (skill/Zone 2) + 1 rest",
+    "Track joint warm-up time as overtraining canary",
+    "Ring MU and HSW deprioritized — not featured prominently at Masters 55-59"
+  ],
+
+  "active_program_id": "ravi_3wk_2026-04-21",
+  "created_at": "2026-04-20",
+  "updated_at": "2026-04-20"
+}

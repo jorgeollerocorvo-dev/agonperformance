@@ -1,7 +1,0 @@
--- AlterTable
-ALTER TABLE "Athlete" ADD COLUMN     "birthDate" DATE,
-ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "heightCm" INTEGER,
-ADD COLUMN     "notes" TEXT,
-ADD COLUMN     "phone" TEXT,
-ADD COLUMN     "weightKg" DOUBLE PRECISION;

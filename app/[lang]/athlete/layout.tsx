@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
+import { hasRole } from "@/lib/roles";
 import { getDictionary, hasLocale } from "../dictionaries";
 
 export default async function AthleteLayout({
@@ -12,14 +13,14 @@ export default async function AthleteLayout({
 
   const session = await auth();
   if (!session?.user) redirect(`/${lang}/login`);
-  if (session.user.role !== "ATHLETE") redirect(`/${lang}/coach`);
+  if (!hasRole(session, "CLIENT")) redirect(`/${lang}/coach`);
 
   const dict = await getDictionary(lang);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="mx-auto max-w-3xl px-6 py-3 flex items-center gap-6">
+      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 py-3 flex items-center gap-4 sm:gap-6">
           <Link href={`/${lang}/athlete`} className="font-semibold">{dict.brand}</Link>
           <nav className="flex gap-4 text-sm">
             <Link href={`/${lang}/athlete`}>{dict.nav.today}</Link>
@@ -33,7 +34,7 @@ export default async function AthleteLayout({
           </form>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-6 sm:py-8">{children}</main>
     </div>
   );
 }

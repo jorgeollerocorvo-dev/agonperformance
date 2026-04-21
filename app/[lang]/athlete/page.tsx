@@ -10,42 +10,46 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
   const dict = await getDictionary(lang);
   const session = await auth();
 
-  const athlete = await prisma.athlete.findUnique({ where: { userId: session!.user.id } });
-  if (!athlete) redirect(`/${lang}/login`);
+  const link = await prisma.athleteLink.findFirst({
+    where: { userId: session!.user.id, active: true },
+    include: { athlete: true },
+  });
+  if (!link) {
+    return (
+      <div>
+        <h1 className="text-2xl font-semibold mb-2">{dict.athlete.todayHeader}</h1>
+        <p className="text-sm text-zinc-500">{dict.athlete.notLinked}</p>
+      </div>
+    );
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const assignment = await prisma.assignment.findFirst({
-    where: { athleteId: athlete.id, date: today },
+  const programSession = await prisma.programSession.findFirst({
+    where: { date: today, programWeek: { program: { athleteId: link.athleteId } } },
     include: {
-      workout: {
-        include: {
-          sections: {
-            orderBy: { order: "asc" },
-            include: { exercises: { orderBy: { order: "asc" } } },
-          },
-        },
+      programWeek: { include: { program: true } },
+      blocks: {
+        orderBy: { order: "asc" },
+        include: { movements: { orderBy: { order: "asc" }, include: { movement: true } } },
       },
-      log: true,
+      sessionLog: true,
     },
   });
 
   async function markDone() {
     "use server";
-    if (!assignment) return;
-    await prisma.workoutLog.upsert({
-      where: { assignmentId: assignment.id },
+    if (!programSession || !link) return;
+    await prisma.sessionLog.upsert({
+      where: { programSessionId: programSession.id },
       update: { completedAt: new Date() },
-      create: {
-        assignmentId: assignment.id,
-        athleteId: athlete!.id,
-      },
+      create: { programSessionId: programSession.id, athleteId: link.athleteId },
     });
     redirect(`/${lang}/athlete`);
   }
 
-  if (!assignment) {
+  if (!programSession) {
     return (
       <div>
         <h1 className="text-2xl font-semibold mb-2">{dict.athlete.todayHeader}</h1>
@@ -57,54 +61,53 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">{assignment.workout.title}</h1>
-        <p className="text-sm text-zinc-500">{dict.athlete.todayHeader}</p>
+        <h1 className="text-2xl font-semibold">{programSession.programWeek.program.title}</h1>
+        <p className="text-sm text-zinc-500">{programSession.day} · {programSession.date.toISOString().slice(0, 10)} — {programSession.focus}</p>
       </header>
 
-      {assignment.workout.sections.map((sec) => (
-        <section key={sec.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-3">
-          <div className="flex items-baseline gap-3">
-            <span className="text-lg font-semibold">{sec.label}</span>
-            {sec.protocol && <span className="text-sm text-zinc-500">{sec.protocol}</span>}
+      {programSession.blocks.map((b) => (
+        <section key={b.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-3">
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-semibold">{b.blockCode}</span>
+            <span className="text-sm">{b.label}</span>
+            {b.format && <span className="text-xs text-zinc-500">· {b.format}</span>}
           </div>
           <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {sec.exercises.map((ex, i) => {
-              const embed = ytEmbed(ex.youtubeUrl);
+            {b.movements.map((m) => {
+              const p = (m.prescription ?? {}) as Record<string, unknown>;
+              const name = m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—";
+              const bits = [
+                p.sets && `${p.sets}×`,
+                p.reps ?? p.reps_range,
+                p.load_kg && `${p.load_kg} kg`,
+                p.duration_min && `${p.duration_min} min`,
+                p.rpe && `RPE ${p.rpe}`,
+              ].filter(Boolean).join(" · ");
+              const embed = ytEmbed(m.movement?.videoUrl);
               return (
-                <li key={ex.id} className="py-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-medium">
-                      {sec.exercises.length > 1 ? `${sec.label}${i + 1}) ` : ""}
-                      {ex.name}
-                    </span>
-                    <span className="text-sm text-zinc-500">
-                      {[ex.sets && `${ex.sets}×`, ex.reps, ex.load, ex.rest && `rest ${ex.rest}`]
-                        .filter(Boolean).join(" · ")}
-                    </span>
-                  </div>
+                <li key={m.id} className="py-3">
+                  <div className="font-medium">{name}</div>
+                  {bits && <div className="text-sm text-zinc-600 dark:text-zinc-400">{bits}</div>}
+                  {typeof p.notes === "string" && <div className="text-xs text-zinc-500 italic">{p.notes}</div>}
                   {embed && (
                     <div className="mt-2 aspect-video max-w-md">
-                      <iframe
-                        src={embed}
-                        className="w-full h-full rounded-md"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
+                      <iframe src={embed} className="w-full h-full rounded-md" allow="encrypted-media" allowFullScreen />
                     </div>
                   )}
                 </li>
               );
             })}
           </ul>
+          {b.restSec && <div className="text-xs text-zinc-500">Rest: {b.restSec}s</div>}
         </section>
       ))}
 
       <form action={markDone}>
         <button
-          disabled={!!assignment.log}
+          disabled={!!programSession.sessionLog}
           className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900 disabled:opacity-50"
         >
-          {assignment.log ? dict.athlete.completed : dict.athlete.markDone}
+          {programSession.sessionLog ? dict.athlete.completed : dict.athlete.markDone}
         </button>
       </form>
     </div>

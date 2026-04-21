@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "athlete_id": "wasmiya",
+  "month": "2026-04",
+  "entries": [],
+  "entry_template": {
+    "description": "Copy this structure when logging a session",
+    "example": {
+      "log_id": "wasmiya_log_2026-04-22",
+      "session_id": "wasmiya_12wk_2026-04-22_2026-04-22",
+      "date": "2026-04-22",
+      "completed": true,
+      "completed_blocks": ["A", "B", "C"],
+      "skipped_blocks": [],
+      "actual_performance": [
+        {
+          "block_id": "A",
+          "movement_id": "snatch_balance",
+          "planned": { "sets": 5, "reps": 3, "load_build_kg": [20, 25] },
+          "actual": { "sets": 5, "reps": 3, "load_kg": [20, 22.5, 25, 25, 25], "rpe": [5, 6, 7, 7, 8] },
+          "notes": "Felt smooth through 25kg, no calf issues."
+        }
+      ],
+      "session_notes": "Good session. Kipping felt rusty but no pain.",
+      "calf_feedback_score": 0,
+      "calf_feedback_note": "No issues during or after.",
+      "overall_rpe": 7,
+      "logged_at": "2026-04-22T18:00:00Z"
+    }
+  }
+}

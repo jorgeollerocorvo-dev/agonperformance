@@ -1,0 +1,713 @@
+{
+  "schema_version": "1.0",
+  "program_id": "wasmiya_12wk_2026-04-22",
+  "athlete_id": "wasmiya",
+  "title": "Wasmiya — 12-Week Program (Return from Calf Tear → Open Readiness)",
+  "start_date": "2026-04-22",
+  "end_date": "2026-07-13",
+  "duration_weeks": 12,
+  "goal": "Rebuild foundation post-Grade 2 calf tear. Restore full Open-level capacity across 3 progressive blocks. Test against Open-style workouts in Block 3.",
+
+  "training_frequency": {
+    "days_per_week": 4,
+    "training_days": ["Monday", "Wednesday", "Friday", "Saturday"]
+  },
+
+  "calf_protocol": {
+    "frequency_per_week": 3,
+    "attach_to_sessions": ["Monday", "Friday", "Saturday"],
+    "duration_min": 15,
+    "blocks": {
+      "weeks_1_4": [
+        { "movement_id": "standing_heel_raise_bilateral", "sets": 3, "reps": 20, "load": "bodyweight" },
+        { "movement_id": "seated_soleus_raise", "sets": 3, "reps": 15, "load_kg": 10, "notes": "Weight on knees" },
+        { "movement_id": "single_leg_heel_raise", "sets": 3, "reps_range": [8, 12], "load": "bodyweight", "per_side": true, "notes": "Bilateral support for balance" }
+      ],
+      "weeks_5_8": [
+        { "movement_id": "single_leg_heel_raise", "sets": 3, "reps_range": [10, 15], "load": "bodyweight", "per_side": true },
+        { "movement_id": "seated_soleus_raise", "sets": 3, "reps": 15, "load_kg": 15 },
+        { "movement_id": "sled_push_or_lean_heel_raise", "sets": 3, "distance_m_or_reps": "20m or 15" }
+      ],
+      "weeks_9_12": [
+        { "movement_id": "weighted_single_leg_heel_raise", "sets": 3, "reps_range": [12, 15], "load_kg": [5, 10], "per_side": true },
+        { "movement_id": "seated_soleus_raise", "sets": 3, "reps": 12, "load_kg": 20 },
+        { "movement_id": "pogo_hops", "sets": 3, "reps": 20, "notes": "Low amplitude" }
+      ]
+    }
+  },
+
+  "calf_feedback_protocol": {
+    "scale": "0 (no issue) / 1 (mild awareness) / 2 (notable) / 3 (pain)",
+    "response_rules": {
+      "0": "continue as programmed",
+      "1": "continue, note in log",
+      "2": "reduce calf-loading volume 30% next session",
+      "3": "stop session, skip calf-loading next day, reassess with physio if not resolved in 48h"
+    }
+  },
+
+  "targets_by_block_end": {
+    "block_1_end": {
+      "single_leg_heel_raise_reps": { "target": 15, "note": "Baseline test end of Week 4" },
+      "front_squat_3rm_kg": { "target": null },
+      "bench_3rm_kg": { "target": null },
+      "max_strict_pull_ups_ub": { "target": null }
+    },
+    "block_2_end": {
+      "single_leg_heel_raise_reps": { "target": 22 },
+      "back_squat_3rm_kg": { "target": null },
+      "deadlift_3rm_kg": { "target": null },
+      "fran_modified_time_sec": { "target": 420 }
+    },
+    "block_3_end": {
+      "single_leg_heel_raise_reps": { "target": 28 },
+      "back_squat_1rm_kg": { "target": null },
+      "deadlift_1rm_kg": { "target": null },
+      "fran_time_sec": { "target": null },
+      "annie_time_sec": { "target": null, "note": "First full DU workout since injury" }
+    }
+  },
+
+  "blocks": [
+    {
+      "block_number": 1,
+      "block_label": "Block 1 — Foundation rebuild (Weeks 1-4)",
+      "start_date": "2026-04-22",
+      "end_date": "2026-05-18",
+      "focus": "Rebuild foundation. Calf reintroduction. Skill re-establishment. Metcons use rowing/biking/wall balls/pull-ups only. No DUs, no BJO, no running, no burpees to fatigue.",
+      "restrictions": ["no_du_under_fatigue", "no_box_jump_over", "no_running", "no_burpees_to_fatigue"],
+
+      "weeks": [
+        {
+          "week_number": 1,
+          "label": "Week 1",
+          "start_date": "2026-04-22",
+          "sessions": [
+            {
+              "session_id": "wasmiya_12wk_2026-04-22_2026-04-22",
+              "date": "2026-04-22", "day": "Wednesday",
+              "focus": "Kipping skill + Oly foundation", "intensity": "Moderate",
+              "blocks": [
+                { "block_id": "A", "label": "Oly technique",
+                  "movements": [
+                    { "movement_id": "snatch_balance", "sets": 5, "reps": 3, "load_build_kg": [20, 25] },
+                    { "movement_id": "drop_snatch", "sets": 4, "reps": 3, "load_kg": 25 },
+                    { "movement_id": "overhead_squat", "sets": 3, "reps": 5, "load_kg": [25, 30], "tempo": "pause 2s bottom" }
+                  ]},
+                { "block_id": "B", "label": "Kipping skill",
+                  "movements": [
+                    { "movement_id": "kip_pull_up", "sets": 6, "reps_range": [3, 5], "rest_sec": 45, "notes": "Hollow-arch focus, no reps to failure" },
+                    { "movement_id": "kip_t2b", "sets": 4, "reps": 5, "rest_sec": 45 }
+                  ]},
+                { "block_id": "C", "label": "Accessory",
+                  "movements": [
+                    { "movement_id": "db_row_sa", "sets": 3, "reps": 10, "per_side": true },
+                    { "movement_id": "banded_tricep_ext", "sets": 3, "reps": 15 },
+                    { "movement_id": "hollow_hold", "sets": 3, "duration_sec": 30 }
+                  ]}
+              ], "notes": "Skill-heavy day, no metcon."
+            },
+            {
+              "session_id": "wasmiya_12wk_2026-04-22_2026-04-24",
+              "date": "2026-04-24", "day": "Friday",
+              "focus": "Lower body + calf", "intensity": "Moderate",
+              "blocks": [
+                { "block_id": "A", "label": "Front squat (not back squat yet)",
+                  "movements": [{ "movement_id": "front_squat", "sets": 5, "reps": 5, "load_build_kg": [40, 50], "rest_sec": 150 }]},
+                { "block_id": "B", "label": "RDL",
+                  "movements": [{ "movement_id": "rdl", "sets": 4, "reps": 8, "load": "moderate" }]},
+                { "block_id": "C", "label": "Calf-safe engine", "format": "E3MOM x 4 rounds",
+                  "movements": [
+                    { "movement_id": "row_cal", "reps": 12 },
+                    { "movement_id": "wall_ball", "reps": 12, "load_kg": 6 },
+                    { "movement_id": "kip_pull_up", "reps": 8 }
+                  ]}
+              ], "calf_protocol_after": true
+            },
+            {
+              "session_id": "wasmiya_12wk_2026-04-22_2026-04-25",
+              "date": "2026-04-25", "day": "Saturday",
+              "focus": "Upper + metcon", "intensity": "Moderate",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press",
+                  "movements": [{ "movement_id": "bench_press", "sets": 5, "reps": 5, "load_build_kg": [45, 55] }]},
+                { "block_id": "B", "label": "Strict pull-up density", "format": "EMOM 10",
+                  "movements": [{ "movement_id": "strict_pull_up", "reps": 3, "scale": "banded if needed" }]},
+                { "block_id": "C", "label": "Metcon", "format": "AMRAP 10",
+                  "movements": [
+                    { "movement_id": "db_hang_clean", "reps": 10, "load_kg": 15 },
+                    { "movement_id": "strict_t2b", "reps": 8 },
+                    { "movement_id": "assault_bike_cal", "reps": 12 }
+                  ]}
+              ], "calf_protocol_after": true
+            },
+            {
+              "session_id": "wasmiya_12wk_2026-04-22_2026-04-27",
+              "date": "2026-04-27", "day": "Monday",
+              "focus": "Zone 2 + Oly skill", "intensity": "Light",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2",
+                  "movements": [{ "movement_id": "zone2_bike_or_row", "duration_min": 30, "rpe_range": [5, 6], "notes": "Nose breathing if possible" }]},
+                { "block_id": "B", "label": "Oly skill",
+                  "movements": [
+                    { "movement_id": "hang_muscle_snatch", "sets": 4, "reps": 3, "load_kg": 25 },
+                    { "movement_id": "hang_power_snatch", "sets": 4, "reps": 3, "load_kg": 30 }
+                  ]},
+                { "block_id": "C", "label": "Calf protocol + midline",
+                  "movements": [{ "movement_id": "calf_protocol_full" }, { "movement_id": "v_up", "sets": 3, "reps": 15 }, { "movement_id": "hollow_hold", "sets": 3, "duration_sec": 30 }]}
+              ]
+            }
+          ]
+        },
+        { "week_number": 2, "label": "Week 2", "start_date": "2026-04-29",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-04-29", "date": "2026-04-29", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly", "movements": [
+                  { "movement_id": "snatch_balance", "sets": 5, "reps": 2, "load_kg": 30 },
+                  { "movement_id": "overhead_squat", "sets": 4, "reps": 6, "load_kg": 27.5, "tempo": "3s descent" }
+                ]},
+                { "block_id": "B", "label": "Kipping", "movements": [
+                  { "movement_id": "kip_pull_up", "sets": 6, "reps": 5, "format": "UB", "rest_sec": 45 },
+                  { "movement_id": "kip_t2b", "sets": 5, "reps": 5 }
+                ]},
+                { "block_id": "C", "label": "Short metcon", "format": "AMRAP 6 min", "movements": [
+                  { "movement_id": "kip_pull_up", "reps": 5 },
+                  { "movement_id": "wall_ball", "reps": 10 },
+                  { "movement_id": "assault_bike_cal", "reps": 15 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-01", "date": "2026-05-01", "day": "Friday", "focus": "Lower + calf",
+              "blocks": [
+                { "block_id": "A", "label": "Front squat", "movements": [{ "movement_id": "front_squat", "sets": 5, "reps": 4, "load_build_kg": [45, 55] }]},
+                { "block_id": "B", "label": "RDL", "movements": [{ "movement_id": "rdl", "sets": 4, "reps": 6, "load": "moderate_heavy" }]},
+                { "block_id": "C", "label": "Metcon", "format": "AMRAP 15", "movements": [
+                  { "movement_id": "row_cal", "reps": 10 },
+                  { "movement_id": "kb_goblet_squat", "reps": 10, "load_kg": 16 },
+                  { "movement_id": "push_up", "reps": 10 },
+                  { "movement_id": "ring_row", "reps": 10 }
+                ]}
+              ], "calf_protocol_after": true},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-02", "date": "2026-05-02", "day": "Saturday", "focus": "Upper + metcon",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press", "movements": [{ "movement_id": "bench_press", "sets": 5, "reps": 4, "load_build_kg": [50, 57.5] }]},
+                { "block_id": "B", "label": "Strict pull-up volume", "movements": [{ "movement_id": "strict_pull_up", "sets": 5, "reps": "max UB", "rest_sec": 90, "scale": "banded ok" }]},
+                { "block_id": "C", "label": "Metcon", "format": "AMRAP 12", "movements": [
+                  { "movement_id": "db_hang_squat_clean", "reps": 8, "load_kg": 15 },
+                  { "movement_id": "strict_t2b", "reps": 10 },
+                  { "movement_id": "assault_bike_cal", "reps": 12 },
+                  { "movement_id": "kb_swing_american", "reps": 10, "load_kg": 16 }
+                ]}
+              ], "calf_protocol_after": true},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-04", "date": "2026-05-04", "day": "Monday", "focus": "Zone 2 + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2", "movements": [{ "movement_id": "zone2_row_or_bike", "duration_min": 35, "rpe_range": [5, 6] }]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "power_snatch", "sets": 5, "reps": 2, "load_kg": 35 },
+                  { "movement_id": "full_squat_snatch", "sets": 5, "reps": 1, "load_kg": [30, 32], "notes": "Technique only" }
+                ]},
+                { "block_id": "C", "label": "Calf protocol + midline" }
+              ]}
+          ]},
+        { "week_number": 3, "label": "Week 3", "start_date": "2026-05-06",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-06", "date": "2026-05-06", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly", "movements": [
+                  { "movement_id": "drop_snatch", "sets": 4, "reps": 3, "load_kg": 30 },
+                  { "movement_id": "snatch_pull_power_snatch_ohs_complex", "sets": 5, "load_build_kg": [27.5, 35] }
+                ]},
+                { "block_id": "B", "label": "Kipping", "movements": [
+                  { "movement_id": "kip_pull_up", "sets": 5, "reps": 7, "rest_sec": 60 },
+                  { "movement_id": "kip_hspu", "sets": 5, "reps": 3, "scale": "abmat as needed" }
+                ]},
+                { "block_id": "C", "label": "Metcon", "format": "3 rounds for time", "movements": [
+                  { "movement_id": "kip_pull_up", "reps": 10 },
+                  { "movement_id": "wall_ball", "reps": 12 },
+                  { "movement_id": "row_cal", "reps": 15 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-08", "date": "2026-05-08", "day": "Friday", "focus": "Lower + calf",
+              "blocks": [
+                { "block_id": "A", "label": "Back squat — first reintroduction", "movements": [{ "movement_id": "back_squat", "sets": 5, "reps": 5, "load_kg": [40, 50], "rest_sec": 150, "notes": "Pain-free only" }]},
+                { "block_id": "B", "label": "RDL", "movements": [{ "movement_id": "rdl", "sets": 4, "reps": 6 }]},
+                { "block_id": "C", "label": "Metcon", "format": "E3MOM x 5 rounds", "movements": [
+                  { "movement_id": "assault_bike_cal", "reps": 10 },
+                  { "movement_id": "kb_goblet_squat", "reps": 8 },
+                  { "movement_id": "push_up", "reps": 6 }
+                ]}
+              ], "calf_protocol_after": true, "notes": "Log back squat tolerance."},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-09", "date": "2026-05-09", "day": "Saturday", "focus": "Upper + metcon",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press", "movements": [{ "movement_id": "bench_press", "sets": 5, "reps": 3, "load_build_kg": [55, 62.5] }]},
+                { "block_id": "B", "label": "Strict pull-up density", "format": "EMOM 12", "movements": [{ "movement_id": "strict_pull_up", "reps": 3, "load": "weighted if easy" }]},
+                { "block_id": "C", "label": "Metcon", "format": "21-15-9 for time", "movements": [
+                  { "movement_id": "row_cal" },
+                  { "movement_id": "db_push_press", "load_kg": [10, 12] },
+                  { "movement_id": "kip_pull_up" }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-11", "date": "2026-05-11", "day": "Monday", "focus": "Zone 2 + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2", "movements": [{ "movement_id": "zone2_bike_or_row", "duration_min": 40, "rpe_range": [5, 6] }]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "power_clean", "sets": 5, "reps": 3, "load_kg": [45, 50] },
+                  { "movement_id": "push_press", "sets": 4, "reps": 5, "load_kg": 40 }
+                ]},
+                { "block_id": "C", "label": "Calf protocol + midline" }
+              ]}
+          ]},
+        { "week_number": 4, "label": "Week 4 — DELOAD + TEST", "start_date": "2026-05-13", "is_deload": true, "has_tests": true,
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-13", "date": "2026-05-13", "day": "Wednesday", "focus": "Light skill",
+              "blocks": [
+                { "block_id": "A", "label": "Oly skill light", "movements": [
+                  { "movement_id": "snatch_balance", "sets": 3, "reps": 2, "load_kg": 25 },
+                  { "movement_id": "overhead_squat", "sets": 3, "reps": 5, "load_kg": 25, "tempo": "slow" }
+                ]},
+                { "block_id": "B", "label": "Kipping skill light", "movements": [
+                  { "movement_id": "kip_pull_up", "sets": 4, "reps": 5 },
+                  { "movement_id": "kip_t2b", "sets": 4, "reps": 5 }
+                ]}
+              ], "notes": "No metcon. Easy day."},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-15", "date": "2026-05-15", "day": "Friday", "focus": "Test day 1", "has_tests": true,
+              "blocks": [
+                { "block_id": "A", "label": "TEST: Single-leg heel raise max reps", "movements": [{ "movement_id": "single_leg_heel_raise", "intent": "max_reps", "per_side": true, "test": true, "notes": "Goal 25-30 by end of Block 3" }]},
+                { "block_id": "B", "label": "TEST: Front squat 3RM", "movements": [{ "movement_id": "front_squat", "intent": "3rm", "test": true }]},
+                { "block_id": "C", "label": "Light metcon", "format": "AMRAP 8", "movements": [
+                  { "movement_id": "row_cal", "reps": 10 },
+                  { "movement_id": "wall_ball", "reps": 10 },
+                  { "movement_id": "sit_up", "reps": 10 }
+                ]}
+              ], "calf_protocol_after": true},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-16", "date": "2026-05-16", "day": "Saturday", "focus": "Test day 2 + benchmark", "has_tests": true,
+              "blocks": [
+                { "block_id": "A", "label": "TEST: Bench press 3RM", "movements": [{ "movement_id": "bench_press", "intent": "3rm", "test": true }]},
+                { "block_id": "B", "label": "TEST: Max strict pull-ups", "movements": [{ "movement_id": "strict_pull_up", "intent": "max_ub", "test": true }]},
+                { "block_id": "C", "label": "Benchmark: Annie (modified)", "format": "50-40-30-20-10 for time",
+                  "movements": [
+                    { "movement_id": "row_cal", "notes": "Replaces DUs, 2 cal = 1 DU" },
+                    { "movement_id": "sit_up" }
+                  ], "test": true, "notes": "Calf-safe substitution of Annie. Real DUs in Block 3." }
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-18", "date": "2026-05-18", "day": "Monday", "focus": "Easy Zone 2",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2 easy", "movements": [{ "movement_id": "zone2_easy", "duration_min": 25 }]},
+                { "block_id": "B", "label": "Calf protocol + mobility" }
+              ], "notes": "Block 2 starts Wed May 20."}
+          ]}
+      ]
+    },
+
+    {
+      "block_number": 2,
+      "block_label": "Block 2 — Build intensity + DU reintro (Weeks 5-8)",
+      "start_date": "2026-05-20",
+      "end_date": "2026-06-15",
+      "focus": "Add intensity and load. Reintroduce DU skill, low box jumps. Back squat returns. First real deadlift programming.",
+      "restrictions": ["du_skill_only_no_fatigue", "bjo_low_box_only_late_block"],
+      "weeks": [
+        { "week_number": 5, "label": "Week 5", "start_date": "2026-05-20",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-20", "date": "2026-05-20", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly", "movements": [
+                  { "movement_id": "snatch_balance", "sets": 4, "reps": 3, "load_kg": 32.5 },
+                  { "movement_id": "full_squat_snatch", "sets": 6, "reps": 1, "load_kg": [30, 37.5], "notes": "Technique focus" }
+                ]},
+                { "block_id": "B", "label": "Kipping", "movements": [
+                  { "movement_id": "kip_c2b", "sets": 5, "reps": 3 },
+                  { "movement_id": "kip_hspu", "sets": 5, "reps": 3, "scale": "progress abmat if ready" }
+                ]},
+                { "block_id": "C", "label": "Metcon", "format": "AMRAP 10", "movements": [
+                  { "movement_id": "power_clean", "reps": 5, "load_kg": 40 },
+                  { "movement_id": "kip_pull_up", "reps": 7 },
+                  { "movement_id": "wall_ball", "reps": 10 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-22", "date": "2026-05-22", "day": "Friday", "focus": "Lower + FIRST DU REINTRO",
+              "blocks": [
+                { "block_id": "A", "label": "Back squat", "movements": [{ "movement_id": "back_squat", "sets": 5, "reps": 5, "load_kg": [50, 55] }]},
+                { "block_id": "B", "label": "Deadlift — first real", "movements": [{ "movement_id": "deadlift", "sets": 4, "reps": 5, "load_kg": [50, 60], "notes": "Position first" }]},
+                { "block_id": "C", "label": "DU SKILL — FIRST REINTRODUCTION", "movements": [{ "movement_id": "double_under", "sets": 4, "duration_sec": 30, "rest_sec": 60, "notes": "Max 20 reps/attempt. Stop if calf complains." }]},
+                { "block_id": "D", "label": "Short metcon", "format": "AMRAP 6", "movements": [
+                  { "movement_id": "assault_bike_cal", "reps": 8 },
+                  { "movement_id": "kb_goblet_squat", "reps": 10 },
+                  { "movement_id": "strict_t2b", "reps": 6 }
+                ]}
+              ], "calf_protocol_after": true, "notes": "Monitor 48h DU response."},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-23", "date": "2026-05-23", "day": "Saturday", "focus": "Upper + metcon",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press", "movements": [{ "movement_id": "bench_press", "sets": 4, "reps": 5, "load": "moderate_heavy" }]},
+                { "block_id": "B", "label": "Pulling volume", "movements": [{ "movement_id": "strict_pull_up", "sets": 5, "reps": "max UB", "rest_sec": 90 }]},
+                { "block_id": "C", "label": "Metcon", "format": "3 rounds for time", "movements": [
+                  { "movement_id": "db_hang_squat_clean", "reps": 12, "load_kg": 12.5 },
+                  { "movement_id": "push_press", "reps": 10, "load_kg": 35 },
+                  { "movement_id": "row_cal", "reps": 15 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-25", "date": "2026-05-25", "day": "Monday", "focus": "Zone 2 + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2", "movements": [{ "movement_id": "zone2_bike_or_row", "duration_min": 40 }]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "power_clean_push_jerk", "sets": 5, "reps": 2, "load_kg": 45 },
+                  { "movement_id": "front_squat", "sets": 4, "reps": 6, "load_kg": 50 }
+                ]},
+                { "block_id": "C", "label": "Calf protocol" }
+              ]}
+          ]},
+        { "week_number": 6, "label": "Week 6", "start_date": "2026-05-27",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-27", "date": "2026-05-27", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly", "movements": [
+                  { "movement_id": "drop_snatch", "sets": 4, "reps": 3, "load_kg": 32.5 },
+                  { "movement_id": "full_squat_snatch", "sets": 6, "reps": 1, "load_kg": 35 }
+                ]},
+                { "block_id": "B", "label": "Gymnastics density", "format": "EMOM 12 min rotating", "movements": [
+                  { "movement_id": "kip_pull_up", "reps": 5, "min": 1 },
+                  { "movement_id": "strict_hspu", "reps": 5, "min": 2, "scale": "abmat" },
+                  { "movement_id": "hollow_hold", "duration_sec": 30, "min": 3 }
+                ]},
+                { "block_id": "C", "label": "Short metcon", "format": "4 x AMRAP 2 min (1 min rest)", "movements": [
+                  { "movement_id": "hang_power_snatch", "reps": 6, "load_kg": 30 },
+                  { "movement_id": "wall_ball", "reps": 8 },
+                  { "movement_id": "assault_bike_cal", "reps": "max" }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-29", "date": "2026-05-29", "day": "Friday", "focus": "Lower + DU skill",
+              "blocks": [
+                { "block_id": "A", "label": "Back squat", "movements": [{ "movement_id": "back_squat", "sets": 4, "reps": 5, "load_kg": [55, 60] }]},
+                { "block_id": "B", "label": "Deadlift", "movements": [{ "movement_id": "deadlift", "sets": 4, "reps": 4, "load_kg": [65, 70] }]},
+                { "block_id": "C", "label": "DU skill", "movements": [{ "movement_id": "double_under", "sets": 5, "duration_sec": 30, "rest_sec": 60, "notes": "Keep quality high" }]},
+                { "block_id": "D", "label": "Metcon", "format": "AMRAP 15", "movements": [
+                  { "movement_id": "row_m", "reps": 200 },
+                  { "movement_id": "kb_goblet_squat", "reps": 10, "load_kg": 16 },
+                  { "movement_id": "kip_pull_up", "reps": 8 },
+                  { "movement_id": "sit_up", "reps": 12 }
+                ]}
+              ], "calf_protocol_after": true},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-05-30", "date": "2026-05-30", "day": "Saturday", "focus": "Upper + Light Grace",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press 5-3-1 wave", "movements": [
+                  { "movement_id": "bench_press", "reps": 5, "load_kg": 55 },
+                  { "movement_id": "bench_press", "reps": 3, "load_kg": 60 },
+                  { "movement_id": "bench_press", "reps": 1, "load_kg": 62.5 }
+                ]},
+                { "block_id": "B", "label": "Strict C2B attempts", "movements": [{ "movement_id": "strict_c2b", "sets": 5, "reps": [2, 3], "scale": "banded ok" }]},
+                { "block_id": "C", "label": "Light Grace", "format": "30 C&J for time", "movements": [{ "movement_id": "clean_and_jerk", "reps": 30, "load_kg": [25, 30], "target_time_sec": 240 }]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-01", "date": "2026-06-01", "day": "Monday", "focus": "Zone 2 + pickups + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2 with pickups", "movements": [
+                  { "movement_id": "zone2_bike_or_row", "duration_min": 40 },
+                  { "movement_id": "pickups", "sets": 4, "duration_sec": 60, "rpe": [7, 8], "notes": "In last 10 min" }
+                ]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "clean_pull", "sets": 5, "reps": 3, "load_kg": 60 },
+                  { "movement_id": "push_jerk", "sets": 4, "reps": 3, "load_kg": 47.5 }
+                ]},
+                { "block_id": "C", "label": "Calf protocol" }
+              ]}
+          ]},
+        { "week_number": 7, "label": "Week 7", "start_date": "2026-06-03",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-03", "date": "2026-06-03", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly", "movements": [{ "movement_id": "snatch_from_blocks_above_knee", "sets": 5, "reps": 2, "load_kg": [35, 40] }]},
+                { "block_id": "B", "label": "Gymnastics", "movements": [
+                  { "movement_id": "kip_c2b", "sets": 5, "reps": 3 },
+                  { "movement_id": "kip_hspu", "sets": 5, "reps": 4 }
+                ]},
+                { "block_id": "C", "label": "Metcon", "format": "5 rounds for time", "movements": [
+                  { "movement_id": "power_clean", "reps": 5, "load_kg": 45 },
+                  { "movement_id": "strict_t2b", "reps": 7 },
+                  { "movement_id": "assault_bike_cal", "reps": 10 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-05", "date": "2026-06-05", "day": "Friday", "focus": "Lower + BJO REINTRO",
+              "blocks": [
+                { "block_id": "A", "label": "Back squat 3-rep wave build", "movements": [{ "movement_id": "back_squat", "sets": 5, "reps": 3, "load_target_kg": [62.5, 70], "intent": "heavy_triple" }]},
+                { "block_id": "B", "label": "Deadlift", "movements": [{ "movement_id": "deadlift", "sets": 3, "reps": 5, "load_kg": 70 }]},
+                { "block_id": "C", "label": "BOX JUMP-OVER REINTRODUCTION (20\")", "movements": [{ "movement_id": "box_jump_over", "sets": 5, "reps": 3, "height_in": 20, "notes": "Full recovery. Step-overs if calf complains.", "rest_sec": 60 }]},
+                { "block_id": "D", "label": "Short metcon", "format": "AMRAP 8", "movements": [
+                  { "movement_id": "row_cal", "reps": 8 },
+                  { "movement_id": "kb_goblet_squat", "reps": 6, "load_kg": 20 },
+                  { "movement_id": "db_push_press", "reps": 6 }
+                ]}
+              ], "calf_protocol_after": true, "notes": "Log BJO tolerance."},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-06", "date": "2026-06-06", "day": "Saturday", "focus": "Upper + metcon",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press", "movements": [{ "movement_id": "bench_press", "sets": 4, "reps": 4, "load_kg": 57.5 }]},
+                { "block_id": "B", "label": "Strict press volume", "movements": [{ "movement_id": "strict_press", "sets": 5, "reps": 5, "load_kg": 30 }]},
+                { "block_id": "C", "label": "Metcon", "format": "AMRAP 14 min", "movements": [
+                  { "movement_id": "db_hang_squat_clean", "reps": 10, "load_kg": 15 },
+                  { "movement_id": "kip_t2b", "reps": 10 },
+                  { "movement_id": "assault_bike_cal", "reps": 12 },
+                  { "movement_id": "burpee", "reps": 5, "every_min": 3, "notes": "Controlled tempo, no explosive jump" }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-08", "date": "2026-06-08", "day": "Monday", "focus": "Zone 2 + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2", "movements": [{ "movement_id": "zone2_bike_or_row", "duration_min": 40, "rpe_range": [5, 6] }]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "power_snatch", "sets": 5, "reps": 2, "load_kg": 40 },
+                  { "movement_id": "overhead_squat", "sets": 4, "reps": 4, "load_kg": 35 }
+                ]},
+                { "block_id": "C", "label": "Calf protocol" }
+              ]}
+          ]},
+        { "week_number": 8, "label": "Week 8 — DELOAD + TEST", "start_date": "2026-06-10", "is_deload": true, "has_tests": true,
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-10", "date": "2026-06-10", "day": "Wednesday", "focus": "Light skill",
+              "blocks": [
+                { "block_id": "A", "label": "Oly light", "movements": [{ "movement_id": "full_squat_snatch", "sets": 5, "reps": 1, "load_kg": 30, "notes": "Technique" }]},
+                { "block_id": "B", "label": "Kipping light", "movements": [
+                  { "movement_id": "kip_pull_up", "sets": 4, "reps": 5 },
+                  { "movement_id": "kip_t2b", "sets": 4, "reps": 5 }
+                ]}
+              ], "notes": "No metcon."},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-12", "date": "2026-06-12", "day": "Friday", "focus": "Test 1",
+              "blocks": [
+                { "block_id": "A", "label": "TEST: Single-leg heel raise max reps", "movements": [{ "movement_id": "single_leg_heel_raise", "intent": "max_reps", "test": true }]},
+                { "block_id": "B", "label": "TEST: Back squat 3RM", "movements": [{ "movement_id": "back_squat", "intent": "3rm", "test": true }]},
+                { "block_id": "C", "label": "Light metcon", "format": "AMRAP 5", "movements": [
+                  { "movement_id": "kip_pull_up", "reps": 5 },
+                  { "movement_id": "wall_ball", "reps": 10 },
+                  { "movement_id": "db_hang_clean", "reps": 5 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-13", "date": "2026-06-13", "day": "Saturday", "focus": "Test 2 + Fran modified",
+              "blocks": [
+                { "block_id": "A", "label": "TEST: Deadlift 3RM", "movements": [{ "movement_id": "deadlift", "intent": "3rm", "test": true }]},
+                { "block_id": "B", "label": "Benchmark: Fran modified", "format": "21-15-9 for time",
+                  "movements": [
+                    { "movement_id": "thruster", "load_kg": 25 },
+                    { "movement_id": "kip_pull_up" }
+                  ], "target_time_sec": 420, "test": true }
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-15", "date": "2026-06-15", "day": "Monday", "focus": "Easy",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2 easy", "movements": [{ "movement_id": "zone2_easy", "duration_min": 25 }]},
+                { "block_id": "B", "label": "Calf protocol + mobility" }
+              ]}
+          ]}
+      ]
+    },
+
+    {
+      "block_number": 3,
+      "block_label": "Block 3 — Open/competition density (Weeks 9-12)",
+      "start_date": "2026-06-17",
+      "end_date": "2026-07-13",
+      "focus": "Full DUs in metcons (monitored). BJO at normal heights. Open-style simulations. Final test week.",
+      "restrictions": ["monitor_calf_response_daily"],
+      "weeks": [
+        { "week_number": 9, "label": "Week 9", "start_date": "2026-06-17",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-17", "date": "2026-06-17", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly complex", "movements": [{ "movement_id": "snatch_complex_dl_hang_power_ohs", "sets": 5, "load_build_kg": [35, 42.5] }]},
+                { "block_id": "B", "label": "Gymnastics density", "format": "EMOM 10 rotating", "movements": [
+                  { "movement_id": "kip_c2b", "reps": 3 },
+                  { "movement_id": "kip_hspu", "reps": 3 },
+                  { "movement_id": "row_cal", "reps": 15 }
+                ]},
+                { "block_id": "C", "label": "Metcon", "format": "AMRAP 12", "movements": [
+                  { "movement_id": "double_under", "reps": 30, "alt": "30 cal bike if calf feedback unclear" },
+                  { "movement_id": "db_hang_squat_clean", "reps": 10, "load_kg": 15 },
+                  { "movement_id": "kip_pull_up", "reps": 8 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-19", "date": "2026-06-19", "day": "Friday", "focus": "Lower + Open 26.3 sim",
+              "blocks": [
+                { "block_id": "A", "label": "Back squat", "movements": [{ "movement_id": "back_squat", "sets": 5, "reps": 3, "load_kg": [65, 70] }]},
+                { "block_id": "B", "label": "Deadlift", "movements": [{ "movement_id": "deadlift", "sets": 4, "reps": 3, "load_kg": [75, 80] }]},
+                { "block_id": "C", "label": "Open 26.3 simulation", "format": "For time 16 min cap",
+                  "movements": [
+                    { "pattern": "2 rounds", "movements": [
+                      { "movement_id": "burpee_over_bar", "reps": 12 },
+                      { "movement_id": "clean", "reps": 12, "load_kg": 29 },
+                      { "movement_id": "burpee_over_bar", "reps": 12 },
+                      { "movement_id": "thruster", "reps": 12, "load_kg": 29 }
+                    ]},
+                    { "pattern": "2 rounds", "movements": [
+                      { "movement_id": "burpee_over_bar", "reps": 12 },
+                      { "movement_id": "clean", "reps": 12, "load_kg": 34 },
+                      { "movement_id": "burpee_over_bar", "reps": 12 },
+                      { "movement_id": "thruster", "reps": 12, "load_kg": 34 }
+                    ]},
+                    { "pattern": "2 rounds", "movements": [
+                      { "movement_id": "burpee_over_bar", "reps": 12 },
+                      { "movement_id": "clean", "reps": 12, "load_kg": 38 },
+                      { "movement_id": "burpee_over_bar", "reps": 12 },
+                      { "movement_id": "thruster", "reps": 12, "load_kg": 38 }
+                    ]}
+                  ], "time_cap_sec": 960, "test": true }
+              ], "calf_protocol_after": true, "notes": "Real test: can she execute Open-level work?"},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-20", "date": "2026-06-20", "day": "Saturday", "focus": "Upper + short piece",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press", "movements": [{ "movement_id": "bench_press", "sets": 5, "reps": 3, "load_kg": 60 }]},
+                { "block_id": "B", "label": "Strict press ladder", "movements": [{ "movement_id": "strict_press", "intent": "heavy_3rm" }]},
+                { "block_id": "C", "label": "Short metcon", "format": "3 rounds for time", "movements": [
+                  { "movement_id": "db_snatch_alt", "reps": 10, "load_kg": 15 },
+                  { "movement_id": "pull_up", "reps": 10 },
+                  { "movement_id": "row_m", "reps": 200 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-22", "date": "2026-06-22", "day": "Monday", "focus": "Zone 2 intervals + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2 + intervals", "movements": [{ "movement_id": "zone2_bike", "duration_min": 30, "intervals": "5 x 2min @ RPE 8 / 2min @ RPE 5" }]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "power_clean_push_jerk", "sets": 5, "reps": 2, "load_kg": 50 },
+                  { "movement_id": "front_squat", "sets": 4, "reps": 4, "load_kg": 55 }
+                ]},
+                { "block_id": "C", "label": "Calf protocol" }
+              ]}
+          ]},
+        { "week_number": 10, "label": "Week 10", "start_date": "2026-06-24",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-24", "date": "2026-06-24", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly", "movements": [{ "movement_id": "full_squat_snatch", "sets": 6, "reps": 1, "load_kg": [37.5, 40] }]},
+                { "block_id": "B", "label": "Gymnastics", "movements": [
+                  { "movement_id": "kip_c2b", "sets": 5, "reps": 5 },
+                  { "movement_id": "kip_hspu", "sets": 5, "reps": 5 }
+                ]},
+                { "block_id": "C", "label": "Metcon", "format": "4 x AMRAP 3 min (1 min rest)", "movements": [
+                  { "movement_id": "hang_power_snatch", "reps": 6, "load_kg": 32.5 },
+                  { "movement_id": "box_jump_over", "reps": 8, "height_in": 20 },
+                  { "movement_id": "kip_pull_up", "reps": 10 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-26", "date": "2026-06-26", "day": "Friday", "focus": "Lower + QF3 style",
+              "blocks": [
+                { "block_id": "A", "label": "Back squat", "movements": [{ "movement_id": "back_squat", "sets": 4, "reps": 3, "load_kg": 70 }]},
+                { "block_id": "B", "label": "Deadlift", "movements": [{ "movement_id": "deadlift", "sets": 3, "reps": 3, "load_kg": [80, 85] }]},
+                { "block_id": "C", "label": "QF3-style", "format": "For time 12 min cap",
+                  "movements": [
+                    { "pattern": "3 rounds", "movements": [
+                      { "movement_id": "double_under", "reps": 40 },
+                      { "movement_id": "deadlift", "reps": 8, "load_kg": 50 }
+                    ]},
+                    { "pattern": "2 rounds", "movements": [
+                      { "movement_id": "double_under", "reps": 40 },
+                      { "movement_id": "deadlift", "reps": 8, "load_kg": 65 }
+                    ]},
+                    { "pattern": "1 round", "movements": [
+                      { "movement_id": "double_under", "reps": 40 },
+                      { "movement_id": "deadlift", "reps": 8, "load_kg": 75 }
+                    ]}
+                  ], "time_cap_sec": 720, "test": true }
+              ], "calf_protocol_after": true},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-27", "date": "2026-06-27", "day": "Saturday", "focus": "Upper + bar MU attempts",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press", "movements": [{ "movement_id": "bench_press", "sets": 4, "reps": 3, "load_kg": 62.5 }]},
+                { "block_id": "B", "label": "TEST: Max strict pull-ups UB", "movements": [{ "movement_id": "strict_pull_up", "intent": "max_ub", "test": true, "compare_to": "Feb 2026 5-4-4" }]},
+                { "block_id": "C", "label": "Metcon", "format": "AMRAP 10", "movements": [
+                  { "movement_id": "bar_mu_attempts", "reps": 5, "scale": "10 kip C2B" },
+                  { "movement_id": "db_push_press", "reps": 10 },
+                  { "movement_id": "double_under", "reps": 30 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-06-29", "date": "2026-06-29", "day": "Monday", "focus": "Zone 2 intervals + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2 + intervals", "movements": [{ "movement_id": "zone2_bike_or_row", "duration_min": 35, "intervals": "4 x 3min @ RPE 8 / 2min @ RPE 5" }]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "clean_and_jerk", "sets": 5, "reps": 1, "load_kg": [52.5, 55] },
+                  { "movement_id": "front_squat", "sets": 3, "reps": 5, "load_kg": 55 }
+                ]},
+                { "block_id": "C", "label": "Calf protocol" }
+              ]}
+          ]},
+        { "week_number": 11, "label": "Week 11", "start_date": "2026-07-01",
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-01", "date": "2026-07-01", "day": "Wednesday", "focus": "Kipping + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Oly", "movements": [{ "movement_id": "hang_squat_snatch", "sets": 5, "reps": 2, "load_kg": 35 }]},
+                { "block_id": "B", "label": "Gymnastics", "movements": [
+                  { "movement_id": "bar_mu_practice", "sets": 3, "scale": "bands/box allowed" },
+                  { "movement_id": "kip_hspu", "sets": 5, "reps": 5 }
+                ]},
+                { "block_id": "C", "label": "Short piece", "format": "AMRAP 8", "movements": [
+                  { "movement_id": "db_hang_squat_clean", "reps": 6, "load_kg": 17.5 },
+                  { "movement_id": "kip_pull_up", "reps": 8 },
+                  { "movement_id": "double_under", "reps": 30 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-03", "date": "2026-07-03", "day": "Friday", "focus": "Lower + Open 26.1 sim",
+              "blocks": [
+                { "block_id": "A", "label": "Back squat heavy 2-rep build", "movements": [{ "movement_id": "back_squat", "intent": "heavy_2rep" }]},
+                { "block_id": "B", "label": "Deadlift heavy 3-rep build", "movements": [{ "movement_id": "deadlift", "intent": "heavy_3rep" }]},
+                { "block_id": "C", "label": "Open 26.1 simulation", "format": "For time 12 min cap",
+                  "movements": [
+                    { "movement_id": "wall_ball", "reps": 20 },
+                    { "movement_id": "box_jump_over", "reps": 18 },
+                    { "movement_id": "wall_ball", "reps": 30 },
+                    { "movement_id": "box_jump_over", "reps": 18 },
+                    { "movement_id": "wall_ball", "reps": 40 },
+                    { "movement_id": "mb_step_over", "reps": 18 },
+                    { "movement_id": "continue_pyramid", "notes": "If time allows" }
+                  ], "time_cap_sec": 720, "test": true, "notes": "Biggest BJO fatigue test yet." }
+              ], "calf_protocol_after": true},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-04", "date": "2026-07-04", "day": "Saturday", "focus": "Upper + metcon",
+              "blocks": [
+                { "block_id": "A", "label": "Bench press 1RM attempt", "movements": [{ "movement_id": "bench_press", "intent": "1rm", "test": true }]},
+                { "block_id": "B", "label": "Metcon", "format": "3 rounds for time", "movements": [
+                  { "movement_id": "db_snatch_alt", "reps": 10, "load_kg": 20 },
+                  { "movement_id": "kip_c2b", "reps": 8 },
+                  { "movement_id": "double_under", "reps": 20 }
+                ]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-06", "date": "2026-07-06", "day": "Monday", "focus": "Active recovery + Oly",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2", "movements": [{ "movement_id": "zone2_easy", "duration_min": 30 }]},
+                { "block_id": "B", "label": "Oly", "movements": [
+                  { "movement_id": "power_snatch", "sets": 5, "reps": 1, "load_kg": 45 },
+                  { "movement_id": "push_jerk", "sets": 4, "reps": 2, "load_kg": 55 }
+                ]},
+                { "block_id": "C", "label": "Calf protocol + mobility" }
+              ]}
+          ]},
+        { "week_number": 12, "label": "Week 12 — FINAL TEST", "start_date": "2026-07-08", "has_tests": true,
+          "sessions": [
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-08", "date": "2026-07-08", "day": "Wednesday", "focus": "Light skill",
+              "blocks": [
+                { "block_id": "A", "label": "Skill only", "movements": [
+                  { "movement_id": "kip_pull_up", "sets": 3, "reps": 5 },
+                  { "movement_id": "kip_hspu", "sets": 3, "reps": 3 },
+                  { "movement_id": "oly_empty_bar_drills" }
+                ]}
+              ], "notes": "Rest. No metcon."},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-10", "date": "2026-07-10", "day": "Friday", "focus": "Strength test", "has_tests": true,
+              "blocks": [
+                { "block_id": "A", "label": "Back squat 1RM", "movements": [{ "movement_id": "back_squat", "intent": "1rm", "test": true }]},
+                { "block_id": "B", "label": "Deadlift 1RM", "movements": [{ "movement_id": "deadlift", "intent": "1rm", "test": true }]},
+                { "block_id": "C", "label": "Calf test", "movements": [{ "movement_id": "single_leg_heel_raise", "intent": "max_reps", "test": true, "notes": "Final calf test. Compare to Block 1 baseline." }]}
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-11", "date": "2026-07-11", "day": "Saturday", "focus": "Benchmark test", "has_tests": true,
+              "blocks": [
+                { "block_id": "A", "label": "Fran", "format": "21-15-9 for time",
+                  "movements": [
+                    { "movement_id": "thruster", "load_kg": 30 },
+                    { "movement_id": "pull_up" }
+                  ], "test": true },
+                { "block_id": "B", "label": "Annie (after 10 min rest)", "format": "50-40-30-20-10 for time",
+                  "movements": [
+                    { "movement_id": "double_under" },
+                    { "movement_id": "sit_up" }
+                  ], "test": true, "notes": "First fully-loaded DU workout since injury." }
+              ]},
+            { "session_id": "wasmiya_12wk_2026-04-22_2026-07-13", "date": "2026-07-13", "day": "Monday", "focus": "Recovery + debrief",
+              "blocks": [
+                { "block_id": "A", "label": "Zone 2 easy", "movements": [{ "movement_id": "zone2_easy", "duration_min": 25 }]},
+                { "block_id": "B", "label": "Calf protocol + mobility" }
+              ], "notes": "End of 12-week program. Review test scores, plan next block."}
+          ]}
+      ]
+    }
+  ],
+
+  "created_at": "2026-04-20",
+  "updated_at": "2026-04-20"
+}

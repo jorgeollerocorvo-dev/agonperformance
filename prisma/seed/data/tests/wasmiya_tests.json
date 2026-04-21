@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "athlete_id": "wasmiya",
+  "tests": [
+    {
+      "test_id": "wasmiya_test_bench_2026-01-12",
+      "date": "2026-01-12",
+      "movement_id": "bench_press",
+      "test_type": "5rm",
+      "result_value": 65,
+      "result_unit": "kg",
+      "notes": "Historical baseline from log.",
+      "source": "training_log"
+    },
+    {
+      "test_id": "wasmiya_test_strict_pu_2026-02-08",
+      "date": "2026-02-08",
+      "movement_id": "strict_pull_up",
+      "test_type": "max_ub_3_sets_30s_rest",
+      "result_value": "5-4-4 / 6-4-2 / 4-3-1",
+      "result_total": 34,
+      "result_unit": "reps",
+      "notes": "Historical baseline from log.",
+      "source": "training_log"
+    },
+    {
+      "test_id": "wasmiya_test_pj_2026-03-25",
+      "date": "2026-03-25",
+      "movement_id": "push_jerk",
+      "test_type": "heavy_2rep",
+      "result_value": 65,
+      "result_unit": "kg",
+      "notes": "Historical baseline. Aggressive jump from 55 kg in 6 weeks — worth verifying technique at top end.",
+      "source": "training_log"
+    }
+  ],
+  "created_at": "2026-04-20",
+  "updated_at": "2026-04-20"
+}

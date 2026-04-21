@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "description": "2026 CrossFit Open + Quarterfinals competition standards for relevant divisions.",
+  "source": "games.crossfit.com",
+  "season": 2026,
+
+  "open_2026": {
+    "26_1": {
+      "time_cap_min": 12,
+      "description": "Wall-ball + box jump-over pyramid (20-18-30-18-40-18-66-18-40-18-30-18-20)",
+      "tests": ["engine", "leg_endurance", "hip_extension_under_fatigue"],
+      "loads": {
+        "individual_m": "10 kg ball to 10 ft, 24 in box",
+        "individual_f": "6 kg ball to 9 ft, 20 in box",
+        "masters_55_59_m": "9 kg ball to 10 ft, 24 in box",
+        "open_35_39_f": "6 kg ball to 9 ft, 20 in box"
+      }
+    },
+    "26_2": {
+      "time_cap_min": 15,
+      "description": "3 rounds escalating: DB OH lunge + DB snatch + pull-up progression (→ C2B → ring MU)",
+      "tests": ["overhead_stability", "pulling_progression", "gymnastics_ceiling"],
+      "loads": {
+        "individual_m": "50 lb / 22.5 kg DB",
+        "individual_f": "35 lb / 15 kg DB",
+        "masters_55_59_m": "35 lb / 15 kg DB"
+      }
+    },
+    "26_3": {
+      "time_cap_min": 16,
+      "description": "Burpees over bar + cleans + thrusters at 3 ascending weights",
+      "tests": ["barbell_cycling", "heart_rate_management"],
+      "loads": {
+        "individual_m": [43, 52, 61],
+        "individual_f": [29, 34, 38],
+        "masters_55_59_m": [43, 52, 61],
+        "open_35_39_f": [29, 34, 38]
+      }
+    }
+  },
+
+  "quarterfinals_individual_2026": {
+    "qf1": {
+      "time_cap_min": 12,
+      "description": "10 shuttle runs + 20 OHS + 30 burpees over bar / rest 1:00 / reverse",
+      "loads_kg": { "individual_m": 52, "individual_f": 36, "masters_55_59_m": 38, "masters_55_59_f": 29 }
+    },
+    "qf2": {
+      "time_cap_min": 15,
+      "description": "80 DB hang squat cleans + 40 bar muscle-ups (any order)",
+      "loads_kg": { "individual_m": 22.5, "individual_f": 15, "masters_55_59_m": 17.5, "masters_55_59_f": 12.5 }
+    },
+    "qf3": {
+      "time_cap_min": 12,
+      "description": "DUs + deadlifts at 3 ascending weights",
+      "loads_kg": {
+        "individual_m": [102, 125, 143],
+        "individual_f": [70, 83, 102],
+        "masters_55_59_m": [70, 83, 102],
+        "masters_55_59_f": [47, 56, 70]
+      }
+    },
+    "qf4": {
+      "time_cap_min": 20,
+      "description": "1000m row + 30 C&J + 1000m row + 30 strict HSPU (to riser for Masters 55+)",
+      "loads_kg": {
+        "individual_m": 61,
+        "individual_f": 43,
+        "masters_55_59_m": 52,
+        "masters_55_59_f": 38
+      },
+      "masters_55_plus_hspu_standard": "strict HSPU to 2-inch riser"
+    }
+  }
+}
