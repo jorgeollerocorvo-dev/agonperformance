@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
 import { ytEmbed } from "@/lib/youtube";
+import Link from "next/link";
 import { Card, Pill, Button } from "@/components/ui/Card";
 
 export default async function AthleteToday({ params }: PageProps<"/[lang]/athlete">) {
@@ -54,7 +55,13 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
     return (
       <Card>
         <h1 className="text-2xl font-bold mb-2">{dict.athlete.todayHeader}</h1>
-        <p className="text-sm text-[var(--ink-muted)]">{dict.athlete.noWorkout}</p>
+        <p className="text-sm text-[var(--ink-muted)] mb-4">{dict.athlete.noWorkout}</p>
+        <Link
+          href={`/${lang}/athlete/talk`}
+          className="inline-flex rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90"
+        >
+          💬 {dict.athlete.talkToCoach}
+        </Link>
       </Card>
     );
   }
@@ -69,9 +76,17 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
             {programSession.day} · {programSession.date.toISOString().slice(0, 10)} — {programSession.focus}
           </p>
         </div>
-        {programSession.intensity && (
-          <Pill color={programSession.intensity === "Hard" ? "primary" : "soft"}>{programSession.intensity}</Pill>
-        )}
+        <div className="flex items-center gap-2">
+          {programSession.intensity && (
+            <Pill color={programSession.intensity === "Hard" ? "primary" : "soft"}>{programSession.intensity}</Pill>
+          )}
+          <Link
+            href={`/${lang}/athlete/talk`}
+            className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90"
+          >
+            💬 {dict.athlete.talkToCoach}
+          </Link>
+        </div>
       </header>
 
       {programSession.blocks.map((b) => (

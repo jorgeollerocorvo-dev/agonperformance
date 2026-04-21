@@ -105,7 +105,8 @@
     "completed": "Completado",
     "notes": "Notas",
     "youtube": "Ver vídeo",
-    "notLinked": "Aún no estás vinculado a un atleta. Pide a tu entrenador que te añada."
+    "notLinked": "Aún no estás vinculado a un entrenador. Explora el directorio para encontrar uno.",
+    "talkToCoach": "Hablar con el coach"
   },
   "directory": {
     "browseCoaches": "Encuentra tu entrenador",

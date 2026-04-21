@@ -93,7 +93,11 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
             </div>
           </Link>
           <Link
-            href={dashboardHref ? `/${lang}/messages` : `/${lang}/register`}
+            href={
+              role === "CLIENT" ? `/${lang}/athlete/talk`
+              : role === "COACH" ? `/${lang}/messages`
+              : `/${lang}/register`
+            }
             className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--ink)] to-[var(--accent-purple)] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
           >
             <div className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">💬</div>
