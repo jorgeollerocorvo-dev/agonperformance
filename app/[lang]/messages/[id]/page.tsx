@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
+import HomeLink from "@/components/HomeLink";
 
 export default async function ConversationPage({ params }: PageProps<"/[lang]/messages/[id]">) {
   const { lang, id } = await params;
@@ -51,10 +52,11 @@ export default async function ConversationPage({ params }: PageProps<"/[lang]/me
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 py-3 flex items-center gap-4">
-          <Link href={`/${lang}/messages`} className="text-sm text-zinc-500 hover:underline">←</Link>
-          <span className="font-medium">{other.displayName ?? other.fullName ?? other.email}</span>
+      <header className="sticky top-0 z-30 bg-[color-mix(in_oklab,var(--bg)_85%,transparent)] backdrop-blur border-b border-[var(--border)]">
+        <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 py-3 flex items-center gap-3">
+          <HomeLink href={`/${lang}`} label="Home" />
+          <Link href={`/${lang}/messages`} className="text-sm text-[var(--ink-muted)] hover:underline">←</Link>
+          <span className="font-semibold">{other.displayName ?? other.fullName ?? other.email}</span>
         </div>
       </header>
       <main className="mx-auto max-w-3xl w-full flex-1 px-4 sm:px-6 py-6 flex flex-col gap-3">
@@ -63,7 +65,7 @@ export default async function ConversationPage({ params }: PageProps<"/[lang]/me
             const mine = m.senderUserId === uid;
             return (
               <li key={m.id} className={mine ? "flex justify-end" : "flex justify-start"}>
-                <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800"}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${mine ? "bg-[var(--primary)] text-white" : "bg-white border border-[var(--border)]"}`}>
                   <div className="whitespace-pre-wrap">{m.body}</div>
                   <div className={`text-[10px] mt-1 ${mine ? "opacity-70" : "text-zinc-500"}`}>
                     {m.createdAt.toISOString().slice(11, 16)}
@@ -74,9 +76,9 @@ export default async function ConversationPage({ params }: PageProps<"/[lang]/me
             );
           })}
         </ul>
-        <form action={sendMessage} className="flex gap-2 sticky bottom-0 bg-zinc-50 dark:bg-zinc-950 pt-3">
-          <input name="body" required className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800" placeholder={dict.messages.placeholder} />
-          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.messages.send}</button>
+        <form action={sendMessage} className="flex gap-2 sticky bottom-0 bg-[var(--bg)] pt-3">
+          <input name="body" required className="flex-1 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)]" placeholder={dict.messages.placeholder} />
+          <button className="rounded-full bg-[var(--primary)] text-white px-5 py-2 font-medium hover:bg-[var(--primary-hover)]">{dict.messages.send}</button>
         </form>
       </main>
     </div>

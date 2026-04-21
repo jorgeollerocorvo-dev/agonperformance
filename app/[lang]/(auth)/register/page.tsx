@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
 import { getDictionary, hasLocale } from "../../dictionaries";
+import HomeLink from "@/components/HomeLink";
+import { Card, Button } from "@/components/ui/Card";
 
 export default async function RegisterPage({ params }: PageProps<"/[lang]/register">) {
   const { lang } = await params;
@@ -29,7 +31,7 @@ export default async function RegisterPage({ params }: PageProps<"/[lang]/regist
         passwordHash,
         fullName,
         displayName: fullName,
-        preferredLanguage: lang === "en" ? "EN" : "ES",
+        preferredLanguage: lang === "en" ? "EN" : lang === "ar" ? "AR" : "ES",
         roles: { create: [{ role: roleChoice }] },
         ...(roleChoice === "COACH"
           ? {
@@ -49,34 +51,51 @@ export default async function RegisterPage({ params }: PageProps<"/[lang]/regist
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <form action={register} className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-2xl font-semibold">{dict.auth.signUp}</h1>
-        <label className="block text-sm">
-          <span className="mb-1 block">{dict.auth.name}</span>
-          <input name="fullName" className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block">{dict.auth.email}</span>
-          <input name="email" type="email" required className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block">{dict.auth.password}</span>
-          <input name="password" type="password" minLength={6} required className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800" />
-        </label>
-        <fieldset className="text-sm">
-          <legend className="mb-1">{dict.auth.role}</legend>
-          <label className="mr-4"><input type="radio" name="role" value="COACH" defaultChecked /> {dict.auth.coach}</label>
-          <label><input type="radio" name="role" value="CLIENT" /> {dict.auth.athlete}</label>
-        </fieldset>
-        <button type="submit" className="w-full rounded-md bg-zinc-900 text-white py-2.5 font-medium hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">
-          {dict.auth.signUp}
-        </button>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {dict.auth.alreadyHaveAccount}{" "}
-          <Link href={`/${lang}/login`} className="underline">{dict.auth.signIn}</Link>
-        </p>
-      </form>
-    </main>
+    <div className="min-h-screen">
+      <header className="px-4 sm:px-6 py-3 flex items-center gap-3">
+        <HomeLink href={`/${lang}`} label="Home" />
+        <Link href={`/${lang}`} className="font-semibold tracking-tight">{dict.brand}</Link>
+      </header>
+      <main className="flex items-center justify-center p-4 sm:p-6">
+        <Card className="w-full max-w-sm">
+          <form action={register} className="space-y-4">
+            <h1 className="text-2xl font-bold">{dict.auth.signUp}</h1>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.auth.name}</span>
+              <input name="fullName" className={inputCls} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.auth.email}</span>
+              <input name="email" type="email" required className={inputCls} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.auth.password}</span>
+              <input name="password" type="password" minLength={6} required className={inputCls} />
+            </label>
+            <fieldset className="text-sm">
+              <legend className="mb-1 text-[var(--ink-muted)]">{dict.auth.role}</legend>
+              <div className="flex gap-2">
+                <label className="flex-1 rounded-xl border border-[var(--border)] bg-white px-3 py-2 has-[:checked]:border-[var(--primary)] has-[:checked]:bg-[var(--primary-soft)] has-[:checked]:text-[var(--primary)] cursor-pointer">
+                  <input type="radio" name="role" value="COACH" defaultChecked className="mr-2" />
+                  {dict.auth.coach}
+                </label>
+                <label className="flex-1 rounded-xl border border-[var(--border)] bg-white px-3 py-2 has-[:checked]:border-[var(--primary)] has-[:checked]:bg-[var(--primary-soft)] has-[:checked]:text-[var(--primary)] cursor-pointer">
+                  <input type="radio" name="role" value="CLIENT" className="mr-2" />
+                  {dict.auth.athlete}
+                </label>
+              </div>
+            </fieldset>
+            <Button type="submit" className="w-full" size="lg">{dict.auth.signUp}</Button>
+            <p className="text-sm text-[var(--ink-muted)]">
+              {dict.auth.alreadyHaveAccount}{" "}
+              <Link href={`/${lang}/login`} className="underline text-[var(--primary)]">{dict.auth.signIn}</Link>
+            </p>
+          </form>
+        </Card>
+      </main>
+    </div>
   );
 }
+
+const inputCls =
+  "w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]";

@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
+import PublicHeader from "@/components/ui/PublicHeader";
+import { Card, Pill, Button } from "@/components/ui/Card";
 
 export default async function PublicCoachProfile({ params }: PageProps<"/[lang]/coaches/[handle]">) {
   const { lang, handle } = await params;
@@ -52,72 +54,77 @@ export default async function PublicCoachProfile({ params }: PageProps<"/[lang]/
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 py-3 flex items-center gap-4">
-          <Link href={`/${lang}`} className="font-semibold">{dict.brand}</Link>
-          <Link href={`/${lang}/coaches`} className="text-sm text-zinc-500 hover:underline">← {dict.directory.browseCoaches}</Link>
-        </div>
-      </header>
+      <PublicHeader
+        lang={lang}
+        brand={dict.brand}
+        rightSlot={
+          <Link href={`/${lang}/coaches`} className="text-sm text-[var(--ink-muted)] hover:underline px-3 py-1.5">← {dict.directory.browseCoaches}</Link>
+        }
+      />
 
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-6 space-y-8">
-        <section className="flex flex-col sm:flex-row gap-6 items-start">
-          <div className="w-24 h-24 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center font-semibold text-3xl text-zinc-700 dark:text-zinc-200">
+      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+        <Card className="flex flex-col sm:flex-row gap-6 items-start">
+          <div className="w-24 h-24 rounded-3xl bg-[var(--primary-soft)] text-[var(--primary)] grid place-items-center font-bold text-3xl shrink-0">
             {(coach.user.displayName ?? coach.user.fullName ?? "?").charAt(0)}
           </div>
-          <div className="flex-1 space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-semibold">{coach.user.displayName ?? coach.user.fullName}</h1>
-            {coach.headline && <p className="text-zinc-600 dark:text-zinc-400">{coach.headline}</p>}
-            <div className="flex flex-wrap gap-1">
+          <div className="flex-1 space-y-2 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{coach.user.displayName ?? coach.user.fullName}</h1>
+            {coach.headline && <p className="text-[var(--ink-muted)]">{coach.headline}</p>}
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {coach.specialties.map((s) => (
-                <span key={s.specialtyId} className="text-xs rounded bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5">
-                  {lang === "es" ? s.specialty.labelEs : s.specialty.labelEn}
-                </span>
+                <Pill key={s.specialtyId} color="primary">
+                  {lang === "es" ? s.specialty.labelEs : lang === "ar" ? (s.specialty.labelAr ?? s.specialty.labelEn) : s.specialty.labelEn}
+                </Pill>
               ))}
             </div>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400 flex flex-wrap gap-4">
+            <div className="text-sm text-[var(--ink-muted)] flex flex-wrap gap-4 mt-2">
               {coach.homeBaseCity && <span>📍 {coach.homeBaseCity}</span>}
               {coach.yearsExperience && <span>{coach.yearsExperience} {dict.directory.yearsExp}</span>}
               {coach.languagesSpoken.length > 0 && <span>{coach.languagesSpoken.join(" · ")}</span>}
             </div>
             {(coach.pricePerSessionMin || coach.pricePerSessionMax) && (
-              <div className="text-lg font-medium">
+              <div className="text-xl font-bold mt-2">
                 {dict.directory.from} {coach.pricePerSessionMin?.toString()} {coach.currency}
-                {coach.pricePerSessionMax && ` – ${coach.pricePerSessionMax.toString()} ${coach.currency}`}
+                {coach.pricePerSessionMax && <span className="text-[var(--ink-muted)] font-normal text-base"> – {coach.pricePerSessionMax.toString()} {coach.currency}</span>}
               </div>
             )}
           </div>
-        </section>
+        </Card>
 
         {bio && (
-          <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <h2 className="text-lg font-medium mb-2">{dict.directory.about}</h2>
-            <p className="whitespace-pre-wrap text-sm">{bio}</p>
-          </section>
+          <Card>
+            <h2 className="text-lg font-semibold mb-2">{dict.directory.about}</h2>
+            <p className="whitespace-pre-wrap">{bio}</p>
+          </Card>
         )}
 
-        <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="text-lg font-medium mb-3">{dict.directory.contact}</h2>
+        <Card>
+          <h2 className="text-lg font-semibold mb-3">{dict.directory.contact}</h2>
           <form action={startConversation} className="space-y-3">
-            <textarea name="body" rows={4} required placeholder={dict.directory.contactPlaceholder} className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800" />
-            <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.directory.sendMessage}</button>
+            <textarea name="body" rows={4} required placeholder={dict.directory.contactPlaceholder} className="w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]" />
+            <Button type="submit">{dict.directory.sendMessage}</Button>
           </form>
-        </section>
+        </Card>
 
         {coach.reviews.length > 0 && (
-          <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <h2 className="text-lg font-medium mb-3">{dict.directory.reviews}</h2>
-            <ul className="space-y-3">
+          <Card>
+            <h2 className="text-lg font-semibold mb-3">{dict.directory.reviews}</h2>
+            <ul className="space-y-4">
               {coach.reviews.map((r) => {
-                const body = lang === "es" ? r.bodyEs : r.bodyEn;
+                const body = lang === "es" ? r.bodyEs : lang === "ar" ? (r.bodyAr ?? r.bodyEn) : r.bodyEn;
                 return (
-                  <li key={r.id} className="text-sm">
-                    <div className="font-medium">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)} · {r.clientUser.displayName ?? r.clientUser.fullName}</div>
-                    {body && <p className="text-zinc-600 dark:text-zinc-400 mt-1">{body}</p>}
+                  <li key={r.id}>
+                    <div className="font-medium text-sm">
+                      <span className="text-[var(--primary)]">{"★".repeat(r.rating)}</span>
+                      <span className="text-[var(--ink-subtle)]">{"☆".repeat(5 - r.rating)}</span>
+                      <span className="text-[var(--ink-muted)]"> · {r.clientUser.displayName ?? r.clientUser.fullName}</span>
+                    </div>
+                    {body && <p className="text-[var(--ink-muted)] mt-1 text-sm">{body}</p>}
                   </li>
                 );
               })}
             </ul>
-          </section>
+          </Card>
         )}
       </main>
     </div>

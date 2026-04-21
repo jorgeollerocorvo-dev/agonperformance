@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
 import CoachDirectory, { type CoachDirItem } from "@/components/CoachDirectory";
+import PublicHeader from "@/components/ui/PublicHeader";
 
 export default async function CoachesDirectoryPage({ params, searchParams }: PageProps<"/[lang]/coaches">) {
   const { lang } = await params;
@@ -52,27 +53,32 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
     lng: c.homeBaseLng ? Number(c.homeBaseLng) : null,
     radiusKm: c.serviceAreaRadiusKm ?? null,
     photoInitial: (c.user.displayName ?? c.user.fullName ?? "?").charAt(0).toUpperCase(),
+    rating: c.ratingAvg ? Number(c.ratingAvg) : null,
+    ratingCount: c.ratingCount,
   }));
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center gap-4">
-          <Link href={`/${lang}`} className="font-semibold">{dict.brand}</Link>
-          <Link href={`/${lang}/find-my-coach`} className="ml-auto text-sm text-zinc-700 dark:text-zinc-300 hover:underline">{dict.directory.findMyCoach}</Link>
-          <Link href={`/${lang}/login`} className="text-sm rounded-md border border-zinc-300 px-3 py-1.5 dark:border-zinc-700">{dict.auth.signIn}</Link>
-        </div>
-      </header>
+      <PublicHeader
+        lang={lang}
+        brand={dict.brand}
+        rightSlot={
+          <>
+            <Link href={`/${lang}/find-my-coach`} className="text-sm text-[var(--ink)] hover:underline px-3 py-1.5">{dict.directory.findMyCoach}</Link>
+            <Link href={`/${lang}/login`} className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-sm hover:bg-[var(--surface-2)]">{dict.auth.signIn}</Link>
+          </>
+        }
+      />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">{dict.directory.browseCoaches}</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{dict.directory.tagline}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{dict.directory.browseCoaches}</h1>
+          <p className="text-[var(--ink-muted)] mt-1">{dict.directory.tagline}</p>
         </div>
 
-        <form method="GET" className="grid gap-2 sm:grid-cols-4 items-end">
+        <form method="GET" className="grid gap-2 sm:grid-cols-4 items-end bg-white rounded-3xl border border-[var(--border)] p-4">
           <label className="text-sm">
-            <span className="block mb-1">{dict.coach.specialty}</span>
+            <span className="block mb-1 text-[var(--ink-muted)]">{dict.coach.specialty}</span>
             <select name="specialty" defaultValue={specialtyFilter} className={inputCls}>
               <option value="">—</option>
               {specialties.map((s) => (
@@ -83,27 +89,31 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
             </select>
           </label>
           <label className="text-sm">
-            <span className="block mb-1">{dict.directory.city}</span>
+            <span className="block mb-1 text-[var(--ink-muted)]">{dict.directory.city}</span>
             <input name="city" defaultValue={cityFilter} className={inputCls} />
           </label>
           <label className="text-sm">
-            <span className="block mb-1">{dict.directory.gender}</span>
+            <span className="block mb-1 text-[var(--ink-muted)]">{dict.directory.gender}</span>
             <select name="gender" defaultValue={genderFilter} className={inputCls}>
               <option value="">—</option>
               <option value="female">{dict.directory.female}</option>
               <option value="male">{dict.directory.male}</option>
             </select>
           </label>
-          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.directory.filter}</button>
+          <button className="rounded-full bg-[var(--primary)] text-white px-4 py-2 hover:bg-[var(--primary-hover)]">{dict.directory.filter}</button>
         </form>
 
         {dirItems.length === 0 ? (
-          <p className="text-sm text-zinc-500">{dict.directory.noCoaches}</p>
+          <p className="text-sm text-[var(--ink-muted)]">{dict.directory.noCoaches}</p>
         ) : (
           <CoachDirectory
             coaches={dirItems}
             lang={lang}
-            labels={{ noMapLoc: dict.directory.noMapLocations, from: dict.directory.from }}
+            labels={{
+              noMapLoc: dict.directory.noMapLocations,
+              from: dict.directory.from,
+              perSession: dict.directory.perSession ?? "session",
+            }}
           />
         )}
       </main>
@@ -112,4 +122,4 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
 }
 
 const inputCls =
-  "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800";
+  "w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]";

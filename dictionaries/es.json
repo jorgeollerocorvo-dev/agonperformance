@@ -26,10 +26,13 @@
   },
   "landing": {
     "tagline": "Encuentra tu entrenador y lleva tu rendimiento al siguiente nivel.",
+    "heroLine1": "Encuentra al entrenador que te entrena como mereces.",
+    "heroLine2": "CrossFit, culturismo, entrenamiento femenino, rehabilitación y más — reserva a quien entiende tus objetivos.",
     "cta": "Empezar"
   },
   "coach": {
     "dashboard": "Panel del entrenador",
+    "hello": "Bienvenido,",
     "noAthletes": "Aún no tienes atletas.",
     "addAthlete": "Añadir atleta",
     "phone": "Teléfono",
@@ -103,7 +106,8 @@
     "contactPlaceholder": "Cuéntale a este entrenador qué buscas...",
     "sendMessage": "Enviar mensaje",
     "reviews": "Reseñas",
-    "noMapLocations": "Ningún entrenador ha fijado su ubicación aún. Consulta la lista o vuelve más tarde."
+    "noMapLocations": "Ningún entrenador ha fijado su ubicación aún. Consulta la lista o vuelve más tarde.",
+    "perSession": "sesión"
   },
   "leadForm": {
     "goal": "¿Cuál es tu objetivo?",

@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Warm cream palette inspired by the reference design */
+  --bg:         #FBF2EC;
+  --bg-peach:   #F5DACC;
+  --surface:    #FFFFFF;
+  --surface-2:  #F6EDE6;
+  --ink:        #121212;
+  --ink-muted:  #6B6560;
+  --ink-subtle: #9A948E;
+  --border:     #ECE0D5;
+
+  --primary:        #E85A3C;  /* coral */
+  --primary-hover:  #D84A2D;
+  --primary-soft:   #FCE3DA;
+  --primary-ink:    #FFFFFF;
+
+  --accent-blue:  #2B3FC8;
+  --success:      #2F9E6A;
+  --warn:         #D99B1F;
+  --danger:       #C63A3A;
+
+  --radius-card: 20px;
+  --radius-pill: 999px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent-blue: var(--accent-blue);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-ink-muted: var(--ink-muted);
+  --font-sans: var(--font-sans);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg:         #141210;
+    --bg-peach:   #2a211d;
+    --surface:    #1D1A17;
+    --surface-2:  #241F1B;
+    --ink:        #F5EFE8;
+    --ink-muted:  #B0A8A0;
+    --ink-subtle: #746D66;
+    --border:     #2B2520;
+    --primary-soft: #3B1F17;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+/* Subtle warm radial gradient on main app background — like the mockups */
+body {
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, var(--bg-peach) 0%, transparent 60%),
+    radial-gradient(900px 500px at 0% 110%, color-mix(in oklab, var(--primary-soft) 45%, transparent) 0%, transparent 55%);
+  background-attachment: fixed;
+}
+
+/* Leaflet dark-mode fix */
+.leaflet-container { background: var(--surface-2); }

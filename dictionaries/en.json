@@ -26,10 +26,13 @@
   },
   "landing": {
     "tagline": "Find your coach and take your performance to the next level.",
+    "heroLine1": "Find the coach that trains you how you deserve.",
+    "heroLine2": "CrossFit, bodybuilding, women-specific, rehab, and more — book someone who gets your goals.",
     "cta": "Get started"
   },
   "coach": {
     "dashboard": "Coach dashboard",
+    "hello": "Welcome back,",
     "noAthletes": "No athletes yet.",
     "addAthlete": "Add athlete",
     "phone": "Phone",
@@ -103,7 +106,8 @@
     "contactPlaceholder": "Tell this coach what you're looking for...",
     "sendMessage": "Send message",
     "reviews": "Reviews",
-    "noMapLocations": "No coaches have set their location on the map yet. Browse the list or check back soon."
+    "noMapLocations": "No coaches have set their location on the map yet. Browse the list or check back soon.",
+    "perSession": "session"
   },
   "leadForm": {
     "goal": "What's your goal?",

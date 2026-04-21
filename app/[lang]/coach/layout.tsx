@@ -15,35 +15,44 @@ export default async function CoachLayout({
   const session = await auth();
   if (!session?.user) redirect(`/${lang}/login`);
   if (!Array.isArray(session.user.roles) || session.user.roles.length === 0) {
-    // Stale session from pre-rewrite — force re-login
     redirect(`/${lang}/login`);
   }
   if (!hasRole(session, "COACH")) redirect(`/${lang}/athlete`);
 
   const dict = await getDictionary(lang);
 
+  const navLink = "px-3 py-1.5 rounded-full text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]";
+
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+      <header className="sticky top-0 z-30 bg-[color-mix(in_oklab,var(--bg)_85%,transparent)] backdrop-blur border-b border-[var(--border)]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center gap-3">
           <HomeLink href={`/${lang}`} label="Home" />
-          <Link href={`/${lang}/coach`} className="font-semibold">{dict.brand}</Link>
-          <nav className="flex gap-3 sm:gap-4 text-sm flex-wrap">
-            <Link href={`/${lang}/coach/athletes`}>{dict.nav.athletes}</Link>
-            <Link href={`/${lang}/coach/programs`}>{dict.nav.programs}</Link>
-            <Link href={`/${lang}/messages`}>{dict.nav.messages}</Link>
-            <Link href={`/${lang}/coach/profile`}>{dict.nav.profile}</Link>
-            <Link href={`/${lang}/account`}>{dict.nav.account}</Link>
+          <Link href={`/${lang}/coach`} className="font-semibold tracking-tight">{dict.brand}</Link>
+          <nav className="hidden sm:flex gap-1 ml-2">
+            <Link href={`/${lang}/coach/athletes`} className={navLink}>{dict.nav.athletes}</Link>
+            <Link href={`/${lang}/coach/programs`} className={navLink}>{dict.nav.programs}</Link>
+            <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
+            <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
+            <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
           </nav>
           <form
             action={async () => { "use server"; await signOut({ redirect: false }); }}
             className="ml-auto"
           >
-            <button className="text-sm text-zinc-600 dark:text-zinc-400 hover:underline">{dict.nav.logout}</button>
+            <button className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] px-3 py-1.5">{dict.nav.logout}</button>
           </form>
         </div>
+        {/* mobile tabs */}
+        <nav className="sm:hidden flex gap-1 px-3 pb-2 overflow-x-auto">
+          <Link href={`/${lang}/coach/athletes`} className={navLink}>{dict.nav.athletes}</Link>
+          <Link href={`/${lang}/coach/programs`} className={navLink}>{dict.nav.programs}</Link>
+          <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
+          <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
+          <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
+        </nav>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 py-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 py-6 sm:py-10">{children}</main>
     </div>
   );
 }

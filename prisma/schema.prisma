@@ -167,6 +167,7 @@ model CoachProfile {
   homeBaseCity           String?
   serviceAreaCities      String[]            @default([])
   serviceAreaRadiusKm    Int?
+  serviceAreaPolygon     Json?
   willTravel             Boolean             @default(false)
 
   currency               String              @default("EUR")

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
 import { ytEmbed } from "@/lib/youtube";
+import { Card, Pill, Button } from "@/components/ui/Card";
 
 export default async function AthleteToday({ params }: PageProps<"/[lang]/athlete">) {
   const { lang } = await params;
@@ -16,10 +17,10 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
   });
   if (!link) {
     return (
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">{dict.athlete.todayHeader}</h1>
-        <p className="text-sm text-zinc-500">{dict.athlete.notLinked}</p>
-      </div>
+      <Card>
+        <h1 className="text-2xl font-bold mb-2">{dict.athlete.todayHeader}</h1>
+        <p className="text-sm text-[var(--ink-muted)]">{dict.athlete.notLinked}</p>
+      </Card>
     );
   }
 
@@ -51,28 +52,36 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
 
   if (!programSession) {
     return (
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">{dict.athlete.todayHeader}</h1>
-        <p className="text-sm text-zinc-500">{dict.athlete.noWorkout}</p>
-      </div>
+      <Card>
+        <h1 className="text-2xl font-bold mb-2">{dict.athlete.todayHeader}</h1>
+        <p className="text-sm text-[var(--ink-muted)]">{dict.athlete.noWorkout}</p>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">{programSession.programWeek.program.title}</h1>
-        <p className="text-sm text-zinc-500">{programSession.day} · {programSession.date.toISOString().slice(0, 10)} — {programSession.focus}</p>
+      <header className="flex items-baseline justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-sm text-[var(--ink-muted)]">{dict.athlete.todayHeader}</p>
+          <h1 className="text-3xl font-bold">{programSession.programWeek.program.title}</h1>
+          <p className="text-sm text-[var(--ink-muted)] mt-1">
+            {programSession.day} · {programSession.date.toISOString().slice(0, 10)} — {programSession.focus}
+          </p>
+        </div>
+        {programSession.intensity && (
+          <Pill color={programSession.intensity === "Hard" ? "primary" : "soft"}>{programSession.intensity}</Pill>
+        )}
       </header>
 
       {programSession.blocks.map((b) => (
-        <section key={b.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-3">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-semibold">{b.blockCode}</span>
-            <span className="text-sm">{b.label}</span>
-            {b.format && <span className="text-xs text-zinc-500">· {b.format}</span>}
+        <Card key={b.id} className="space-y-3">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="w-7 h-7 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] grid place-items-center text-sm font-bold">{b.blockCode}</span>
+            <span className="font-semibold">{b.label}</span>
+            {b.format && <span className="text-xs text-[var(--ink-muted)]">{b.format}</span>}
           </div>
-          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="divide-y divide-[var(--border)]">
             {b.movements.map((m) => {
               const p = (m.prescription ?? {}) as Record<string, unknown>;
               const name = m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—";
@@ -87,28 +96,25 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
               return (
                 <li key={m.id} className="py-3">
                   <div className="font-medium">{name}</div>
-                  {bits && <div className="text-sm text-zinc-600 dark:text-zinc-400">{bits}</div>}
-                  {typeof p.notes === "string" && <div className="text-xs text-zinc-500 italic">{p.notes}</div>}
+                  {bits && <div className="text-sm text-[var(--ink-muted)]">{bits}</div>}
+                  {typeof p.notes === "string" && <div className="text-xs text-[var(--ink-subtle)] italic mt-1">{p.notes}</div>}
                   {embed && (
                     <div className="mt-2 aspect-video max-w-md">
-                      <iframe src={embed} className="w-full h-full rounded-md" allow="encrypted-media" allowFullScreen />
+                      <iframe src={embed} className="w-full h-full rounded-xl" allow="encrypted-media" allowFullScreen />
                     </div>
                   )}
                 </li>
               );
             })}
           </ul>
-          {b.restSec && <div className="text-xs text-zinc-500">Rest: {b.restSec}s</div>}
-        </section>
+          {b.restSec && <div className="text-xs text-[var(--ink-muted)]">Rest: {b.restSec}s</div>}
+        </Card>
       ))}
 
       <form action={markDone}>
-        <button
-          disabled={!!programSession.sessionLog}
-          className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900 disabled:opacity-50"
-        >
+        <Button disabled={!!programSession.sessionLog} size="lg">
           {programSession.sessionLog ? dict.athlete.completed : dict.athlete.markDone}
-        </button>
+        </Button>
       </form>
     </div>
   );

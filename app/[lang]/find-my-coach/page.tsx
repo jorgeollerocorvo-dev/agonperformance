@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
+import PublicHeader from "@/components/ui/PublicHeader";
+import { Card, Button } from "@/components/ui/Card";
 
 export default async function FindMyCoach({ params }: PageProps<"/[lang]/find-my-coach">) {
   const { lang } = await params;
@@ -58,20 +60,21 @@ export default async function FindMyCoach({ params }: PageProps<"/[lang]/find-my
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 py-3 flex items-center gap-4">
-          <Link href={`/${lang}`} className="font-semibold">{dict.brand}</Link>
-          <Link href={`/${lang}/coaches`} className="ml-auto text-sm text-zinc-500 hover:underline">{dict.directory.browseCoaches}</Link>
-        </div>
-      </header>
+      <PublicHeader
+        lang={lang}
+        brand={dict.brand}
+        rightSlot={
+          <Link href={`/${lang}/coaches`} className="text-sm text-[var(--ink-muted)] hover:underline px-3 py-1.5">{dict.directory.browseCoaches}</Link>
+        }
+      />
 
-      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         <header>
-          <h1 className="text-2xl sm:text-3xl font-semibold">{dict.directory.findMyCoach}</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{dict.directory.leadFormTagline}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{dict.directory.findMyCoach}</h1>
+          <p className="text-[var(--ink-muted)] mt-1">{dict.directory.leadFormTagline}</p>
         </header>
 
-        <form action={submitInquiry} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-4">
+        <form action={submitInquiry} className="rounded-3xl border border-[var(--border)] bg-white p-5 sm:p-6 space-y-4">
           <Select name="goal" label={dict.leadForm.goal} options={[
             ["lose_weight", dict.leadForm.goalOptions.loseWeight],
             ["tone", dict.leadForm.goalOptions.tone],
@@ -130,7 +133,7 @@ export default async function FindMyCoach({ params }: PageProps<"/[lang]/find-my
               <input name="phone" className={inputCls} />
             </label>
           </div>
-          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.leadForm.submit}</button>
+          <Button type="submit" size="lg">{dict.leadForm.submit}</Button>
         </form>
       </main>
     </div>
@@ -138,7 +141,7 @@ export default async function FindMyCoach({ params }: PageProps<"/[lang]/find-my
 }
 
 const inputCls =
-  "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800";
+  "w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]";
 
 function Select({ name, label, options }: { name: string; label: string; options: [string, string][] }) {
   return (

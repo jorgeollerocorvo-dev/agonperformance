@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { signIn } from "@/auth";
 import { getDictionary, hasLocale } from "../../dictionaries";
+import HomeLink from "@/components/HomeLink";
+import { Card, Button } from "@/components/ui/Card";
 
 export default async function LoginPage({
   params,
@@ -27,28 +28,35 @@ export default async function LoginPage({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <form action={login} className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-2xl font-semibold">{dict.auth.signIn}</h1>
-        {err && <p className="text-sm text-red-600">{dict.auth.invalid}</p>}
-        <label className="block text-sm">
-          <span className="mb-1 block">{dict.auth.email}</span>
-          <input name="email" type="email" required className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block">{dict.auth.password}</span>
-          <input name="password" type="password" required className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800" />
-        </label>
-        <button type="submit" className="w-full rounded-md bg-zinc-900 text-white py-2.5 font-medium hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">
-          {dict.auth.signIn}
-        </button>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {dict.auth.needAccount}{" "}
-          <Link href={`/${lang}/register`} className="underline">
-            {dict.auth.signUp}
-          </Link>
-        </p>
-      </form>
-    </main>
+    <div className="min-h-screen">
+      <header className="px-4 sm:px-6 py-3 flex items-center gap-3">
+        <HomeLink href={`/${lang}`} label="Home" />
+        <Link href={`/${lang}`} className="font-semibold tracking-tight">{dict.brand}</Link>
+      </header>
+      <main className="flex items-center justify-center p-4 sm:p-6">
+        <Card className="w-full max-w-sm">
+          <form action={login} className="space-y-4">
+            <h1 className="text-2xl font-bold">{dict.auth.signIn}</h1>
+            {err && <p className="text-sm text-[var(--danger)]">{dict.auth.invalid}</p>}
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.auth.email}</span>
+              <input name="email" type="email" required className={inputCls} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.auth.password}</span>
+              <input name="password" type="password" required className={inputCls} />
+            </label>
+            <Button type="submit" className="w-full" size="lg">{dict.auth.signIn}</Button>
+            <p className="text-sm text-[var(--ink-muted)]">
+              {dict.auth.needAccount}{" "}
+              <Link href={`/${lang}/register`} className="underline text-[var(--primary)]">{dict.auth.signUp}</Link>
+            </p>
+          </form>
+        </Card>
+      </main>
+    </div>
   );
 }
+
+const inputCls =
+  "w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]";

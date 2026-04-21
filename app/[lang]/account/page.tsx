@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
+import PublicHeader from "@/components/ui/PublicHeader";
+import { Card, Button } from "@/components/ui/Card";
 
 export default async function AccountPage({ params, searchParams }: PageProps<"/[lang]/account">) {
   const { lang } = await params;
@@ -49,48 +51,47 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="mx-auto max-w-2xl px-4 sm:px-6 py-3 flex items-center gap-4">
-          <Link href={`/${lang}`} className="font-semibold">{dict.brand}</Link>
-          <span className="ml-auto text-sm">{dict.account.title}</span>
-        </div>
-      </header>
-      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 space-y-6">
-        <section>
-          <h1 className="text-2xl font-semibold">{dict.account.title}</h1>
-          <p className="text-sm text-zinc-500 mt-1">{user.email}</p>
-        </section>
+      <PublicHeader lang={lang} brand={dict.brand} rightSlot={<span className="text-sm text-[var(--ink-muted)]">{dict.account.title}</span>} />
+      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+        <header>
+          <h1 className="text-3xl font-bold">{dict.account.title}</h1>
+          <p className="text-sm text-[var(--ink-muted)] mt-1">{user.email}</p>
+        </header>
 
-        {sp?.saved && <div className="rounded-md bg-green-50 text-green-900 px-3 py-2 text-sm">{dict.account.saved}</div>}
-        {sp?.error === "wrong" && <div className="rounded-md bg-red-50 text-red-900 px-3 py-2 text-sm">{dict.account.wrongPassword}</div>}
-        {sp?.error === "short" && <div className="rounded-md bg-red-50 text-red-900 px-3 py-2 text-sm">{dict.account.passwordTooShort}</div>}
+        {sp?.saved && <div className="rounded-xl bg-[var(--success)]/10 text-[var(--success)] px-4 py-2 text-sm border border-[var(--success)]/20">{dict.account.saved}</div>}
+        {sp?.error === "wrong" && <div className="rounded-xl bg-[var(--danger)]/10 text-[var(--danger)] px-4 py-2 text-sm border border-[var(--danger)]/20">{dict.account.wrongPassword}</div>}
+        {sp?.error === "short" && <div className="rounded-xl bg-[var(--danger)]/10 text-[var(--danger)] px-4 py-2 text-sm border border-[var(--danger)]/20">{dict.account.passwordTooShort}</div>}
 
-        <form action={changePassword} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
-          <h2 className="text-lg font-medium">{dict.account.changePassword}</h2>
-          <label className="block text-sm">
-            <span className="mb-1 block">{dict.account.currentPassword}</span>
-            <input type="password" name="current" required className={inputCls} />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block">{dict.account.newPassword}</span>
-            <input type="password" name="next" minLength={6} required className={inputCls} />
-          </label>
-          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.coach.save}</button>
-        </form>
+        <Card>
+          <form action={changePassword} className="space-y-3">
+            <h2 className="text-lg font-semibold">{dict.account.changePassword}</h2>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.account.currentPassword}</span>
+              <input type="password" name="current" required className={inputCls} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.account.newPassword}</span>
+              <input type="password" name="next" minLength={6} required className={inputCls} />
+            </label>
+            <Button type="submit">{dict.coach.save}</Button>
+          </form>
+        </Card>
 
-        <form action={deleteAccount} className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4 space-y-3">
-          <h2 className="text-lg font-medium text-red-900 dark:text-red-300">{dict.account.deleteAccount}</h2>
-          <p className="text-sm text-red-800 dark:text-red-300">{dict.account.deleteWarning}</p>
-          <label className="block text-sm">
-            <span className="mb-1 block">{dict.account.deleteConfirm}</span>
-            <input name="confirm" placeholder="DELETE" className={inputCls} />
-          </label>
-          <button className="rounded-md bg-red-700 text-white px-4 py-2">{dict.account.deleteAccount}</button>
-        </form>
+        <Card className="bg-[var(--danger)]/5 border-[var(--danger)]/30">
+          <form action={deleteAccount} className="space-y-3">
+            <h2 className="text-lg font-semibold text-[var(--danger)]">{dict.account.deleteAccount}</h2>
+            <p className="text-sm text-[var(--danger)]">{dict.account.deleteWarning}</p>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.account.deleteConfirm}</span>
+              <input name="confirm" placeholder="DELETE" className={inputCls} />
+            </label>
+            <Button type="submit" variant="danger">{dict.account.deleteAccount}</Button>
+          </form>
+        </Card>
       </main>
     </div>
   );
 }
 
 const inputCls =
-  "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800";
+  "w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]";
