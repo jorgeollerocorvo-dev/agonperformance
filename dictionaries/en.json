@@ -28,6 +28,12 @@
     "tagline": "Find your coach and take your performance to the next level.",
     "heroLine1": "Find the coach that trains you how you deserve.",
     "heroLine2": "CrossFit, bodybuilding, women-specific, rehab, and more — book someone who gets your goals.",
+    "feat1Title": "Browse by map",
+    "feat1Sub": "See coaches who cover your area.",
+    "feat2Title": "Real programming",
+    "feat2Sub": "Weekly plans, video demos, check-ins.",
+    "feat3Title": "Talk to your coach",
+    "feat3Sub": "In-app chat, no phone-tag.",
     "cta": "Get started"
   },
   "coach": {

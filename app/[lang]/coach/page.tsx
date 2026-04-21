@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
-import { Card, StatCard, Pill, Button } from "@/components/ui/Card";
+import { Card, StatCard, Pill, Button, AccentCard } from "@/components/ui/Card";
 
 export default async function CoachDashboard({ params }: PageProps<"/[lang]/coach">) {
   const { lang } = await params;
@@ -44,13 +44,18 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <AccentCard className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-[var(--ink-muted)]">{dict.coach.hello}</p>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{greeting}</h1>
+          <p className="text-sm text-white/80">{dict.coach.hello}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight display mt-1">{greeting}</h1>
+          <p className="text-sm text-white/80 mt-2">
+            {coachProfile._count.athletes} {dict.nav.athletes.toLowerCase()} · {programCount} {dict.nav.programs.toLowerCase()}
+          </p>
         </div>
-        <Pill color={statusColor}>{dict.coach.listingStatus}: {coachProfile.listingStatus}</Pill>
-      </header>
+        <span className="rounded-full bg-white/15 text-white px-3 py-1 text-xs font-semibold">
+          {coachProfile.listingStatus}
+        </span>
+      </AccentCard>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard

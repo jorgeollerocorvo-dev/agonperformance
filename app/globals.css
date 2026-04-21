@@ -1,25 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  /* Warm cream palette inspired by the reference design */
-  --bg:         #FBF2EC;
-  --bg-peach:   #F5DACC;
+  /* Revolut-inspired palette: pure white + black + Revolut blue */
+  --bg:         #FFFFFF;
+  --bg-alt:     #F5F6F7;      /* section alt backgrounds */
   --surface:    #FFFFFF;
-  --surface-2:  #F6EDE6;
-  --ink:        #121212;
-  --ink-muted:  #6B6560;
-  --ink-subtle: #9A948E;
-  --border:     #ECE0D5;
+  --surface-2:  #F5F6F7;
+  --ink:        #0A0A0B;
+  --ink-muted:  #6B6B70;
+  --ink-subtle: #A0A0A6;
+  --border:     #EAEAEF;
+  --border-strong: #D9D9DE;
 
-  --primary:        #E85A3C;  /* coral */
-  --primary-hover:  #D84A2D;
-  --primary-soft:   #FCE3DA;
+  --primary:        #0075EB;  /* Revolut blue */
+  --primary-hover:  #0063C7;
+  --primary-soft:   #E5F0FD;
   --primary-ink:    #FFFFFF;
 
-  --accent-blue:  #2B3FC8;
-  --success:      #2F9E6A;
-  --warn:         #D99B1F;
-  --danger:       #C63A3A;
+  --accent-black:   #0A0A0B;
+  --accent-purple:  #7A5CFF;
+  --accent-pink:    #FF4F8B;
+
+  --success:      #1EAD6B;
+  --success-soft: #E4F6EC;
+  --warn:         #F6A11A;
+  --danger:       #E23A3A;
+  --danger-soft:  #FCE8E8;
+
+  --shadow-sm: 0 1px 2px rgba(10, 10, 11, 0.04), 0 0 1px rgba(10, 10, 11, 0.06);
+  --shadow-md: 0 4px 16px rgba(10, 10, 11, 0.06), 0 1px 2px rgba(10, 10, 11, 0.04);
+  --shadow-lg: 0 12px 32px rgba(10, 10, 11, 0.10), 0 2px 6px rgba(10, 10, 11, 0.06);
 
   --radius-card: 20px;
   --radius-pill: 999px;
@@ -34,7 +44,9 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
-  --color-accent-blue: var(--accent-blue);
+  --color-accent-black: var(--accent-black);
+  --color-accent-purple: var(--accent-purple);
+  --color-accent-pink: var(--accent-pink);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-ink-muted: var(--ink-muted);
@@ -43,33 +55,48 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg:         #141210;
-    --bg-peach:   #2a211d;
-    --surface:    #1D1A17;
-    --surface-2:  #241F1B;
-    --ink:        #F5EFE8;
-    --ink-muted:  #B0A8A0;
-    --ink-subtle: #746D66;
-    --border:     #2B2520;
-    --primary-soft: #3B1F17;
+    --bg:         #0A0A0B;
+    --bg-alt:     #131316;
+    --surface:    #131316;
+    --surface-2:  #1A1A1E;
+    --ink:        #FAFAFB;
+    --ink-muted:  #9C9CA3;
+    --ink-subtle: #5E5E66;
+    --border:     #25252B;
+    --border-strong: #3A3A42;
+
+    --primary:        #3A92FF;
+    --primary-hover:  #5BA5FF;
+    --primary-soft:   rgba(58, 146, 255, 0.15);
+
+    --success-soft: rgba(30, 173, 107, 0.15);
+    --danger-soft:  rgba(226, 58, 58, 0.15);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
   }
 }
 
 html, body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
 }
 
-/* Subtle warm radial gradient on main app background — like the mockups */
-body {
-  background-image:
-    radial-gradient(1200px 600px at 85% -10%, var(--bg-peach) 0%, transparent 60%),
-    radial-gradient(900px 500px at 0% 110%, color-mix(in oklab, var(--primary-soft) 45%, transparent) 0%, transparent 55%);
-  background-attachment: fixed;
+/* Tight display typography for big numbers and hero lines */
+h1, h2, h3, .display {
+  letter-spacing: -0.025em;
 }
 
-/* Leaflet dark-mode fix */
+/* Tailwind is configured via @theme — this is just the Leaflet override */
 .leaflet-container { background: var(--surface-2); }
+
+/* Focus ring: soft blue */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
