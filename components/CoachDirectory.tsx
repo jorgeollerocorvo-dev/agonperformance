@@ -30,10 +30,12 @@ export default function CoachDirectory({
   coaches,
   lang,
   labels,
+  defaultCenter,
 }: {
   coaches: CoachDirItem[];
   lang: string;
   labels: { noMapLoc: string; from: string; perSession: string; viewProfile: string };
+  defaultCenter?: [number, number];
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export default function CoachDirectory({
               selectedId={selectedId}
               hoveredId={hoveredId}
               onSelect={setSelectedId}
+              defaultCenter={defaultCenter}
             />
           </div>
         )}

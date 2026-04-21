@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
 import CoachDirectory, { type CoachDirItem } from "@/components/CoachDirectory";
 import PublicHeader from "@/components/ui/PublicHeader";
+import { detectGeo } from "@/lib/geolocation";
 
 export default async function CoachesDirectoryPage({ params, searchParams }: PageProps<"/[lang]/coaches">) {
   const { lang } = await params;
@@ -15,6 +16,7 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
   const cityFilter = typeof sp?.city === "string" ? sp.city.trim() : "";
   const genderFilter = typeof sp?.gender === "string" ? sp.gender : "";
 
+  const geo = await detectGeo();
   const specialties = await prisma.specialty.findMany({ where: { isActive: true }, orderBy: { labelEn: "asc" } });
 
   const coaches = await prisma.coachProfile.findMany({
@@ -109,6 +111,7 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
           <CoachDirectory
             coaches={dirItems}
             lang={lang}
+            defaultCenter={[geo.lat, geo.lng]}
             labels={{
               noMapLoc: dict.directory.noMapLocations,
               from: dict.directory.from,

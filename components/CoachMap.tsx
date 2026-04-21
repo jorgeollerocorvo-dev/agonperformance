@@ -62,11 +62,13 @@ export default function CoachMap({
   selectedId,
   hoveredId,
   onSelect,
+  defaultCenter,
 }: {
   items: CoachMapItem[];
   selectedId: string | null;
   hoveredId: string | null;
   onSelect: (id: string) => void;
+  defaultCenter?: [number, number];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const selectedItem = useMemo(
@@ -75,7 +77,7 @@ export default function CoachMap({
   );
 
   const center: [number, number] =
-    items.length > 0 ? [items[0].lat, items[0].lng] : [25.286, 51.534]; // default Doha
+    items.length > 0 ? [items[0].lat, items[0].lng] : (defaultCenter ?? [25.286, 51.534]);
 
   return (
     <div ref={containerRef} className="w-full h-full rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800">

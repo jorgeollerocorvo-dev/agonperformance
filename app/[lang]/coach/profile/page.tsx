@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import LocationPicker from "@/components/LocationPicker";
+import { detectGeo } from "@/lib/geolocation";
 
 export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/coach/profile">) {
   const { lang } = await params;
@@ -18,6 +19,7 @@ export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/
 
   const allSpecialties = await prisma.specialty.findMany({ where: { isActive: true }, orderBy: { labelEn: "asc" } });
   const selectedIds = new Set(coach.specialties.map((s) => s.specialtyId));
+  const geo = await detectGeo();
 
   async function save(formData: FormData) {
     "use server";
@@ -151,6 +153,7 @@ export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/
             initialLat={coach.homeBaseLat ? Number(coach.homeBaseLat) : null}
             initialLng={coach.homeBaseLng ? Number(coach.homeBaseLng) : null}
             initialRadiusKm={coach.serviceAreaRadiusKm ?? 10}
+            defaultCenter={[geo.lat, geo.lng]}
             labels={{
               lat: dict.coach.lat,
               lng: dict.coach.lng,

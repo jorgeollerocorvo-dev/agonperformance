@@ -10,11 +10,13 @@ export default function LocationPicker({
   initialLat,
   initialLng,
   initialRadiusKm,
+  defaultCenter,
   labels,
 }: {
   initialLat: number | null;
   initialLng: number | null;
   initialRadiusKm: number | null;
+  defaultCenter?: [number, number];
   labels: { lat: string; lng: string; radius: string; instruction: string };
 }) {
   const [lat, setLat] = useState<number | null>(initialLat);
@@ -22,7 +24,7 @@ export default function LocationPicker({
   const [radius, setRadius] = useState<number>(initialRadiusKm ?? 10);
 
   const center: LatLngExpression =
-    lat != null && lng != null ? [lat, lng] : [25.286, 51.534];
+    lat != null && lng != null ? [lat, lng] : (defaultCenter ?? [25.286, 51.534]);
 
   return (
     <div className="space-y-3" dir="ltr">
