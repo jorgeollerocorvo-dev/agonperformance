@@ -146,46 +146,48 @@ export default function WorkoutEditor({
             <button onClick={() => removeSection(si)} className="text-sm text-red-600">✕</button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {sec.exercises.map((ex, ei) => (
-              <div key={ei} className="grid grid-cols-12 gap-2 items-center">
+              <div key={ei} className="rounded-md border border-zinc-200 dark:border-zinc-800 p-3 md:p-0 md:border-0 md:grid md:grid-cols-12 md:gap-2 md:items-center flex flex-col gap-2">
                 <input
                   placeholder={dict.exercise.name}
                   value={ex.name}
                   onChange={(e) => updateExercise(si, ei, { name: e.target.value })}
-                  className="col-span-3 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                  className="md:col-span-3 rounded-md border border-zinc-300 px-3 py-2 text-base md:text-sm md:py-1 dark:border-zinc-700 dark:bg-zinc-800"
                 />
-                <input
-                  placeholder={dict.exercise.sets}
-                  value={ex.sets ?? ""}
-                  onChange={(e) => updateExercise(si, ei, { sets: e.target.value })}
-                  className="col-span-1 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                />
-                <input
-                  placeholder={dict.exercise.reps}
-                  value={ex.reps ?? ""}
-                  onChange={(e) => updateExercise(si, ei, { reps: e.target.value })}
-                  className="col-span-2 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                />
-                <input
-                  placeholder={dict.exercise.load}
-                  value={ex.load ?? ""}
-                  onChange={(e) => updateExercise(si, ei, { load: e.target.value })}
-                  className="col-span-1 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                />
-                <input
-                  placeholder={dict.exercise.rest}
-                  value={ex.rest ?? ""}
-                  onChange={(e) => updateExercise(si, ei, { rest: e.target.value })}
-                  className="col-span-1 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                />
+                <div className="grid grid-cols-4 gap-2 md:contents">
+                  <input
+                    placeholder={dict.exercise.sets}
+                    value={ex.sets ?? ""}
+                    onChange={(e) => updateExercise(si, ei, { sets: e.target.value })}
+                    className="md:col-span-1 rounded-md border border-zinc-300 px-3 py-2 text-base md:text-sm md:py-1 dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                  <input
+                    placeholder={dict.exercise.reps}
+                    value={ex.reps ?? ""}
+                    onChange={(e) => updateExercise(si, ei, { reps: e.target.value })}
+                    className="md:col-span-2 rounded-md border border-zinc-300 px-3 py-2 text-base md:text-sm md:py-1 dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                  <input
+                    placeholder={dict.exercise.load}
+                    value={ex.load ?? ""}
+                    onChange={(e) => updateExercise(si, ei, { load: e.target.value })}
+                    className="md:col-span-1 rounded-md border border-zinc-300 px-3 py-2 text-base md:text-sm md:py-1 dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                  <input
+                    placeholder={dict.exercise.rest}
+                    value={ex.rest ?? ""}
+                    onChange={(e) => updateExercise(si, ei, { rest: e.target.value })}
+                    className="md:col-span-1 rounded-md border border-zinc-300 px-3 py-2 text-base md:text-sm md:py-1 dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                </div>
                 <input
                   placeholder={dict.exercise.youtube}
                   value={ex.youtubeUrl ?? ""}
                   onChange={(e) => updateExercise(si, ei, { youtubeUrl: e.target.value })}
-                  className="col-span-3 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                  className="md:col-span-3 rounded-md border border-zinc-300 px-3 py-2 text-base md:text-sm md:py-1 dark:border-zinc-700 dark:bg-zinc-800"
                 />
-                <button onClick={() => removeExercise(si, ei)} className="col-span-1 text-sm text-red-600">✕</button>
+                <button onClick={() => removeExercise(si, ei)} className="md:col-span-1 text-sm text-red-600 self-end md:self-center">✕ Remove</button>
               </div>
             ))}
             <button onClick={() => addExercise(si)} className="text-sm text-zinc-600 hover:underline">

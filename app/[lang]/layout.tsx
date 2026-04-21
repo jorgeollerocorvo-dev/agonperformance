@@ -11,6 +11,12 @@ export const metadata: Metadata = {
   description: "Coaching platform — editable workouts, YouTube demos, athlete tracking.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
 }
