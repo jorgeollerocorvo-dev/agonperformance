@@ -44,6 +44,19 @@
     "create": "Crear",
     "editProfile": "Editar perfil",
     "newProgram": "Nuevo programa",
+    "addBlock": "Añadir bloque",
+    "addMovement": "Añadir ejercicio",
+    "addWeek": "Añadir semana",
+    "duplicateDay": "Copiar día a…",
+    "clear": "Limpiar día",
+    "findVideo": "Buscar demo en YouTube",
+    "blockLabel": "Etiqueta del bloque (ej. Calentamiento)",
+    "blockFormat": "Formato (ej. 3×5 @ RPE 8)",
+    "dayFocus": "Foco",
+    "dayIntensity": "Intensidad",
+    "week": "Semana",
+    "day": "Día",
+    "restDay": "Día de descanso — déjalo vacío o añade bloques.",
     "specialty": "Especialidad",
     "crossfit": "CrossFit",
     "women": "Mujer (glúteo / abdomen / pierna)",
@@ -129,6 +142,13 @@
     "empty": "Aún no tienes conversaciones.",
     "placeholder": "Escribe un mensaje...",
     "send": "Enviar"
+  },
+  "exercise": {
+    "name": "Ejercicio",
+    "reps": "Reps",
+    "sets": "Series",
+    "load": "Peso",
+    "rest": "Descanso"
   },
   "account": {
     "title": "Cuenta",
