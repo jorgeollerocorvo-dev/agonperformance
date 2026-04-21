@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const LOCALES = ["es", "en"] as const;
-const DEFAULT_LOCALE = "es";
+const LOCALES = ["en", "es"] as const;
+const DEFAULT_LOCALE = "en";
 
 function detectLocale(request: NextRequest): string {
   const cookie = request.cookies.get("locale")?.value;
