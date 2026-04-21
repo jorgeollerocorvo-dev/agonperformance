@@ -55,21 +55,22 @@ export default function CoachDirectory({
 
   return (
     <div className="space-y-4">
-      {/* Map on top */}
-      <div className="h-[40vh] sm:h-[45vh]" dir="ltr">
-        {mapItems.length === 0 ? (
-          <div className="w-full h-full rounded-3xl border border-[var(--border)] bg-white grid place-items-center text-sm text-[var(--ink-muted)] p-6 text-center">
-            {labels.noMapLoc}
-          </div>
-        ) : (
-          <div className="w-full h-full rounded-3xl overflow-hidden border border-[var(--border)]">
-            <CoachMap
-              items={mapItems}
-              selectedId={selectedId}
-              hoveredId={hoveredId}
-              onSelect={setSelectedId}
-              defaultCenter={defaultCenter}
-            />
+      {/* Map on top — always visible, centered on Qatar */}
+      <div className="h-[40vh] sm:h-[45vh] relative" dir="ltr">
+        <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--border)]">
+          <CoachMap
+            items={mapItems}
+            selectedId={selectedId}
+            hoveredId={hoveredId}
+            onSelect={setSelectedId}
+            defaultCenter={defaultCenter}
+          />
+        </div>
+        {mapItems.length === 0 && (
+          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center">
+            <div className="rounded-full bg-white/90 backdrop-blur border border-[var(--border)] px-4 py-2 text-xs text-[var(--ink-muted)] shadow-[var(--shadow-sm)]">
+              {labels.noMapLoc}
+            </div>
           </div>
         )}
       </div>
