@@ -79,6 +79,7 @@ async function ensureDemoCoach() {
   const coachProfile = await prisma.coachProfile.create({
     data: {
       userId: user.id,
+      handle: "jorge-ollero",
       providerType: "CROSSFIT_COACH",
       listingStatus: "APPROVED",
       headline: "CrossFit and strength coach",

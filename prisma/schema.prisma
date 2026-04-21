@@ -141,6 +141,7 @@ model CoachProfile {
   id                     String              @id @default(cuid())
   userId                 String              @unique
   user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle                 String?             @unique
 
   providerType           ProviderType        @default(PERSONAL_TRAINER)
   listingStatus          ListingStatus       @default(DRAFT)

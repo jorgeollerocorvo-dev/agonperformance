@@ -6,7 +6,9 @@
     "athletes": "Athletes",
     "programs": "Programs",
     "today": "Today",
-    "history": "History"
+    "history": "History",
+    "messages": "Messages",
+    "profile": "My profile"
   },
   "auth": {
     "email": "Email",
@@ -17,13 +19,12 @@
     "role": "I am a",
     "coach": "Coach",
     "athlete": "Athlete",
-    "inviteCode": "Invite code (optional)",
     "invalid": "Invalid email or password",
     "alreadyHaveAccount": "Already have an account?",
     "needAccount": "Need an account?"
   },
   "landing": {
-    "tagline": "Train your clients online. Editable workouts, YouTube videos, zero friction.",
+    "tagline": "Find your coach and take your performance to the next level.",
     "cta": "Get started"
   },
   "coach": {
@@ -36,7 +37,6 @@
     "weight": "Weight (kg)",
     "goals": "Goals",
     "notes": "Notes",
-    "tempPassword": "Temporary password",
     "create": "Create",
     "editProfile": "Edit profile",
     "newProgram": "New program",
@@ -46,9 +46,6 @@
     "bodybuilding": "Bodybuilding",
     "other": "Other",
     "assign": "Assign",
-    "editWorkout": "Edit workout",
-    "addSection": "Add section",
-    "addExercise": "Add exercise",
     "save": "Save",
     "saved": "Saved",
     "listingStatus": "Listing status",
@@ -57,25 +54,69 @@
     "age": "Age",
     "division": "Division / Category",
     "weeks": "weeks",
-    "recentTests": "Recent tests"
+    "recentTests": "Recent tests",
+    "editListing": "Edit public listing",
+    "editListingHint": "This is what athletes see when browsing coaches.",
+    "handle": "Profile URL",
+    "headline": "Headline",
+    "bioEs": "Bio (Spanish)",
+    "bioEn": "Bio (English)",
+    "yearsExp": "Years of experience",
+    "city": "City",
+    "currency": "Currency",
+    "languages": "Languages (comma-separated ISO codes)",
+    "priceMin": "Min price/session",
+    "priceMax": "Max price/session",
+    "specialties": "Specialties",
+    "myListing": "My public profile"
   },
   "athlete": {
     "todayHeader": "Today's workout",
-    "noWorkout": "No workout assigned for today.",
+    "noWorkout": "No workout for today.",
     "markDone": "Mark complete",
     "completed": "Completed",
     "notes": "Notes",
     "youtube": "Watch demo",
     "notLinked": "You're not yet linked to an athlete. Ask your coach to add you."
   },
-  "exercise": {
-    "name": "Exercise",
-    "reps": "Reps",
-    "sets": "Sets",
-    "load": "Load",
-    "rest": "Rest",
-    "tempo": "Tempo",
-    "youtube": "YouTube URL",
-    "notes": "Notes"
+  "directory": {
+    "browseCoaches": "Find your coach",
+    "tagline": "Verified coaches near you.",
+    "findMyCoach": "Help me choose",
+    "leadFormTagline": "Answer a few questions and we'll recommend matching coaches.",
+    "city": "City",
+    "gender": "Gender",
+    "female": "Female",
+    "male": "Male",
+    "filter": "Filter",
+    "noCoaches": "No coaches match.",
+    "from": "From",
+    "yearsExp": "years experience",
+    "about": "About",
+    "contact": "Contact",
+    "contactPlaceholder": "Tell this coach what you're looking for...",
+    "sendMessage": "Send message",
+    "reviews": "Reviews"
+  },
+  "leadForm": {
+    "goal": "What's your goal?",
+    "goalOptions": { "loseWeight": "Lose weight", "tone": "Tone up", "buildMuscle": "Build muscle", "flexibility": "Flexibility / mobility", "endurance": "Endurance", "other": "Other" },
+    "frequencyCurrent": "How much do you train now?",
+    "freqOptions": { "none": "None", "oneTwo": "1-2x/week", "threeFour": "3-4x/week", "daily": "Almost daily" },
+    "frequencyDesired": "How often do you want to train?",
+    "ageRange": "Age",
+    "preferredLocation": "Where do you want to train?",
+    "locOptions": { "coachChoice": "Coach's choice", "coachGym": "Coach's gym", "home": "At home", "outdoor": "Outdoor", "online": "Online" },
+    "urgency": "When do you want to start?",
+    "urgencyOptions": { "flexible": "Flexible", "month": "This month", "days": "This week", "urgent": "Urgent" },
+    "injuryOrConcern": "Any injury or concern?",
+    "daysAndTimes": "Preferred days and times",
+    "submit": "Submit"
+  },
+  "messages": {
+    "title": "Messages",
+    "empty": "No conversations yet.",
+    "placeholder": "Write a message...",
+    "send": "Send"
   }
 }

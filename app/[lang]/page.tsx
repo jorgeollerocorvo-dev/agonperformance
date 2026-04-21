@@ -18,19 +18,24 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
       <div className="w-full max-w-xl text-center space-y-8">
         <h1 className="text-5xl font-bold tracking-tight">{dict.brand}</h1>
         <p className="text-lg text-zinc-600 dark:text-zinc-400">{dict.landing.tagline}</p>
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-3 justify-center flex-wrap">
           <Link
-            href={`/${lang}/login`}
+            href={`/${lang}/coaches`}
             className="rounded-md bg-zinc-900 text-white px-5 py-2.5 font-medium hover:bg-zinc-700 dark:bg-white dark:text-zinc-900"
           >
-            {dict.auth.signIn}
+            {dict.directory.browseCoaches}
           </Link>
           <Link
-            href={`/${lang}/register`}
+            href={`/${lang}/find-my-coach`}
             className="rounded-md border border-zinc-300 px-5 py-2.5 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            {dict.landing.cta}
+            {dict.directory.findMyCoach}
           </Link>
+        </div>
+        <div className="text-xs text-zinc-500 flex gap-3 justify-center">
+          <Link href={`/${lang}/login`} className="hover:underline">{dict.auth.signIn}</Link>
+          <span>·</span>
+          <Link href={`/${lang}/register`} className="hover:underline">{dict.auth.signUp}</Link>
         </div>
         <div className="pt-6 text-xs text-zinc-500 flex justify-center gap-3">
           <Link href="/es">ES</Link>

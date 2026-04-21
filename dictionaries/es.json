@@ -6,7 +6,9 @@
     "athletes": "Atletas",
     "programs": "Programas",
     "today": "Hoy",
-    "history": "Historial"
+    "history": "Historial",
+    "messages": "Mensajes",
+    "profile": "Mi perfil"
   },
   "auth": {
     "email": "Correo",
@@ -17,13 +19,12 @@
     "role": "Soy",
     "coach": "Entrenador",
     "athlete": "Atleta",
-    "inviteCode": "Código de invitación (opcional)",
     "invalid": "Correo o contraseña incorrectos",
     "alreadyHaveAccount": "¿Ya tienes cuenta?",
     "needAccount": "¿Necesitas una cuenta?"
   },
   "landing": {
-    "tagline": "Entrena a tus clientes online. Rutinas editables, vídeos de YouTube, sin fricción.",
+    "tagline": "Encuentra tu entrenador y lleva tu rendimiento al siguiente nivel.",
     "cta": "Empezar"
   },
   "coach": {
@@ -36,7 +37,6 @@
     "weight": "Peso (kg)",
     "goals": "Objetivos",
     "notes": "Notas",
-    "tempPassword": "Contraseña temporal",
     "create": "Crear",
     "editProfile": "Editar perfil",
     "newProgram": "Nuevo programa",
@@ -46,9 +46,6 @@
     "bodybuilding": "Culturismo",
     "other": "Otro",
     "assign": "Asignar",
-    "editWorkout": "Editar entrenamiento",
-    "addSection": "Añadir sección",
-    "addExercise": "Añadir ejercicio",
     "save": "Guardar",
     "saved": "Guardado",
     "listingStatus": "Estado del perfil",
@@ -57,25 +54,69 @@
     "age": "Edad",
     "division": "Categoría / División",
     "weeks": "semanas",
-    "recentTests": "Tests recientes"
+    "recentTests": "Tests recientes",
+    "editListing": "Editar perfil público",
+    "editListingHint": "Esto es lo que los atletas ven cuando buscan un entrenador.",
+    "handle": "URL del perfil",
+    "headline": "Eslogan",
+    "bioEs": "Biografía (Español)",
+    "bioEn": "Biografía (Inglés)",
+    "yearsExp": "Años de experiencia",
+    "city": "Ciudad",
+    "currency": "Moneda",
+    "languages": "Idiomas (códigos ISO separados por coma)",
+    "priceMin": "Precio mínimo/sesión",
+    "priceMax": "Precio máximo/sesión",
+    "specialties": "Especialidades",
+    "myListing": "Mi perfil público"
   },
   "athlete": {
     "todayHeader": "Entrenamiento de hoy",
-    "noWorkout": "No hay entrenamiento asignado para hoy.",
+    "noWorkout": "No hay entrenamiento para hoy.",
     "markDone": "Marcar completado",
     "completed": "Completado",
     "notes": "Notas",
     "youtube": "Ver vídeo",
     "notLinked": "Aún no estás vinculado a un atleta. Pide a tu entrenador que te añada."
   },
-  "exercise": {
-    "name": "Ejercicio",
-    "reps": "Reps",
-    "sets": "Series",
-    "load": "Peso",
-    "rest": "Descanso",
-    "tempo": "Tempo",
-    "youtube": "URL de YouTube",
-    "notes": "Notas"
+  "directory": {
+    "browseCoaches": "Encuentra tu entrenador",
+    "tagline": "Entrenadores verificados cerca de ti.",
+    "findMyCoach": "Ayúdame a elegir",
+    "leadFormTagline": "Responde unas preguntas y te recomendamos entrenadores que encajen.",
+    "city": "Ciudad",
+    "gender": "Género",
+    "female": "Mujer",
+    "male": "Hombre",
+    "filter": "Filtrar",
+    "noCoaches": "No hay entrenadores que coincidan.",
+    "from": "Desde",
+    "yearsExp": "años de experiencia",
+    "about": "Sobre mí",
+    "contact": "Contactar",
+    "contactPlaceholder": "Cuéntale a este entrenador qué buscas...",
+    "sendMessage": "Enviar mensaje",
+    "reviews": "Reseñas"
+  },
+  "leadForm": {
+    "goal": "¿Cuál es tu objetivo?",
+    "goalOptions": { "loseWeight": "Perder peso", "tone": "Tonificar", "buildMuscle": "Ganar músculo", "flexibility": "Flexibilidad / movilidad", "endurance": "Resistencia", "other": "Otro" },
+    "frequencyCurrent": "¿Cuánto entrenas ahora?",
+    "freqOptions": { "none": "Nada", "oneTwo": "1-2 veces/semana", "threeFour": "3-4 veces/semana", "daily": "Casi a diario" },
+    "frequencyDesired": "¿Cuánto quieres entrenar?",
+    "ageRange": "Edad",
+    "preferredLocation": "¿Dónde prefieres entrenar?",
+    "locOptions": { "coachChoice": "Lo que elija el coach", "coachGym": "En su gimnasio", "home": "En casa", "outdoor": "Exterior", "online": "Online" },
+    "urgency": "¿Cuándo quieres empezar?",
+    "urgencyOptions": { "flexible": "Sin prisa", "month": "Este mes", "days": "Esta semana", "urgent": "Urgente" },
+    "injuryOrConcern": "¿Alguna lesión o preocupación?",
+    "daysAndTimes": "Días y horas preferidos",
+    "submit": "Enviar"
+  },
+  "messages": {
+    "title": "Mensajes",
+    "empty": "Aún no tienes conversaciones.",
+    "placeholder": "Escribe un mensaje...",
+    "send": "Enviar"
   }
 }

@@ -22,9 +22,11 @@ export default async function CoachLayout({
       <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center gap-4 sm:gap-6">
           <Link href={`/${lang}/coach`} className="font-semibold">{dict.brand}</Link>
-          <nav className="flex gap-3 sm:gap-4 text-sm">
+          <nav className="flex gap-3 sm:gap-4 text-sm flex-wrap">
             <Link href={`/${lang}/coach/athletes`}>{dict.nav.athletes}</Link>
             <Link href={`/${lang}/coach/programs`}>{dict.nav.programs}</Link>
+            <Link href={`/${lang}/messages`}>{dict.nav.messages}</Link>
+            <Link href={`/${lang}/coach/profile`}>{dict.nav.profile}</Link>
           </nav>
           <form
             action={async () => { "use server"; await signOut({ redirect: false }); }}
