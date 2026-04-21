@@ -8,7 +8,8 @@
     "today": "Hoy",
     "history": "Historial",
     "messages": "Mensajes",
-    "profile": "Mi perfil"
+    "profile": "Mi perfil",
+    "account": "Cuenta"
   },
   "auth": {
     "email": "Correo",
@@ -118,5 +119,17 @@
     "empty": "Aún no tienes conversaciones.",
     "placeholder": "Escribe un mensaje...",
     "send": "Enviar"
+  },
+  "account": {
+    "title": "Cuenta",
+    "changePassword": "Cambiar contraseña",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña (mínimo 6)",
+    "saved": "Guardado.",
+    "wrongPassword": "La contraseña actual no es correcta.",
+    "passwordTooShort": "La nueva contraseña debe tener al menos 6 caracteres.",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteWarning": "Esto elimina permanentemente tu cuenta y todos los datos asociados. No se puede deshacer.",
+    "deleteConfirm": "Escribe DELETE para confirmar"
   }
 }

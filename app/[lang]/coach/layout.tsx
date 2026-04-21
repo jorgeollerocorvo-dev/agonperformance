@@ -31,6 +31,7 @@ export default async function CoachLayout({
             <Link href={`/${lang}/coach/programs`}>{dict.nav.programs}</Link>
             <Link href={`/${lang}/messages`}>{dict.nav.messages}</Link>
             <Link href={`/${lang}/coach/profile`}>{dict.nav.profile}</Link>
+            <Link href={`/${lang}/account`}>{dict.nav.account}</Link>
           </nav>
           <form
             action={async () => { "use server"; await signOut({ redirect: false }); }}

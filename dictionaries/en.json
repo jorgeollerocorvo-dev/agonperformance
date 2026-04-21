@@ -8,7 +8,8 @@
     "today": "Today",
     "history": "History",
     "messages": "Messages",
-    "profile": "My profile"
+    "profile": "My profile",
+    "account": "Account"
   },
   "auth": {
     "email": "Email",
@@ -118,5 +119,17 @@
     "empty": "No conversations yet.",
     "placeholder": "Write a message...",
     "send": "Send"
+  },
+  "account": {
+    "title": "Account",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password (min 6 chars)",
+    "saved": "Saved.",
+    "wrongPassword": "Current password is incorrect.",
+    "passwordTooShort": "New password must be at least 6 characters.",
+    "deleteAccount": "Delete account",
+    "deleteWarning": "This permanently removes your account and all associated data. Cannot be undone.",
+    "deleteConfirm": "Type DELETE to confirm"
   }
 }

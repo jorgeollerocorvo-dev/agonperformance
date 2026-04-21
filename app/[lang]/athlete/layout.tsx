@@ -29,6 +29,7 @@ export default async function AthleteLayout({
             <Link href={`/${lang}/athlete`}>{dict.nav.today}</Link>
             <Link href={`/${lang}/athlete/history`}>{dict.nav.history}</Link>
             <Link href={`/${lang}/messages`}>{dict.nav.messages}</Link>
+            <Link href={`/${lang}/account`}>{dict.nav.account}</Link>
           </nav>
           <form
             action={async () => { "use server"; await signOut({ redirect: false }); }}
