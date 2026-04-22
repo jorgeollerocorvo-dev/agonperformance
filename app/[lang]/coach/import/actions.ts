@@ -14,22 +14,29 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
   if (!coach) return { error: "no coach profile" };
 
   const file = formData.get("file") as File | null;
+  const pastedText = String(formData.get("pastedText") ?? "").trim();
   const athleteId = String(formData.get("athleteId") ?? "");
   const startDateRaw = String(formData.get("startDate") ?? new Date().toISOString().slice(0, 10));
 
-  if (!file || file.size === 0) return { error: "Pick a file to upload" };
   if (!athleteId) return { error: "Pick an athlete to assign this program to" };
+  if ((!file || file.size === 0) && !pastedText) {
+    return { error: "Pick a file to upload or paste your program text" };
+  }
 
   const athlete = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: coach.id } });
   if (!athlete) return { error: "Athlete not found" };
 
   let rawText: string;
-  try {
-    rawText = await extractText(file);
-  } catch (e) {
-    return { error: `Could not read file: ${(e as Error).message}` };
+  if (pastedText) {
+    rawText = pastedText;
+  } else {
+    try {
+      rawText = await extractText(file!);
+    } catch (e) {
+      return { error: `Could not read file: ${(e as Error).message}` };
+    }
   }
-  if (!rawText.trim()) return { error: "Document appears to be empty" };
+  if (!rawText.trim()) return { error: "Document / text appears to be empty" };
 
   let parsed: ParsedProgram;
   try {

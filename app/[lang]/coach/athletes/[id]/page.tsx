@@ -135,28 +135,42 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
               ✕ {importError}
             </div>
           )}
-          <form action={importProgramForAthlete} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-[1fr_auto_auto] items-end">
+          <form action={importProgramForAthlete} encType="multipart/form-data" className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+              <label className="block text-sm">
+                <span className="mb-1 block text-[var(--ink-muted)]">{dict.coach.uploadFile ?? "Upload a file (PDF / Word / Excel / text)"}</span>
+                <input
+                  type="file"
+                  name="file"
+                  accept={ACCEPTED_MIME_TYPES}
+                  className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-[var(--ink)] file:text-[var(--bg)] file:px-4 file:py-2 file:font-semibold hover:file:opacity-90 file:cursor-pointer"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-[var(--ink-muted)]">{dict.coach.startDate ?? "Start date"}</span>
+                <input
+                  type="date"
+                  name="startDate"
+                  defaultValue={new Date().toISOString().slice(0, 10)}
+                  required
+                  className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-[var(--ink-muted)]">
+              <span className="flex-1 border-t border-[var(--border)]"></span>
+              <span>{dict.coach.orPasteText ?? "or paste text"}</span>
+              <span className="flex-1 border-t border-[var(--border)]"></span>
+            </div>
             <label className="block text-sm">
-              <span className="mb-1 block text-[var(--ink-muted)]">{dict.coach.uploadFile ?? "Upload file"}</span>
-              <input
-                type="file"
-                name="file"
-                accept={ACCEPTED_MIME_TYPES}
-                required
-                className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-[var(--ink)] file:text-[var(--bg)] file:px-4 file:py-2 file:font-semibold hover:file:opacity-90 file:cursor-pointer"
+              <textarea
+                name="pastedText"
+                rows={5}
+                placeholder={dict.coach.pastePlaceholder ?? "Paste the program here — from Notes, WhatsApp, email, anywhere. Claude will structure it."}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
               />
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-[var(--ink-muted)]">{dict.coach.startDate ?? "Start date"}</span>
-              <input
-                type="date"
-                name="startDate"
-                defaultValue={new Date().toISOString().slice(0, 10)}
-                required
-                className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"
-              />
-            </label>
-            <Button type="submit">{dict.coach.importAndCreate ?? "Create"}</Button>
+            <Button type="submit" size="lg">{dict.coach.importAndCreate ?? "Create program"}</Button>
           </form>
         </Card>
 

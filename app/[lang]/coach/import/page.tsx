@@ -89,12 +89,26 @@ export default async function ImportProgramPage({ params, searchParams }: PagePr
               type="file"
               name="file"
               accept={ACCEPTED_MIME_TYPES}
-              required
               className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-[var(--ink)] file:text-[var(--bg)] file:px-4 file:py-2 file:font-semibold hover:file:opacity-90 file:cursor-pointer"
             />
             <span className="text-xs text-[var(--ink-subtle)] mt-1 block">
               PDF, Word (.docx), Excel (.xlsx), CSV, or plain text. Up to ~10 MB.
             </span>
+          </label>
+
+          <div className="flex items-center gap-3 text-xs text-[var(--ink-muted)]">
+            <span className="flex-1 border-t border-[var(--border)]"></span>
+            <span>{dict.coach.orPasteText ?? "or paste text"}</span>
+            <span className="flex-1 border-t border-[var(--border)]"></span>
+          </div>
+
+          <label className="block text-sm">
+            <textarea
+              name="pastedText"
+              rows={8}
+              placeholder={dict.coach.pastePlaceholder ?? "Paste the program here — from Notes, WhatsApp, email, anywhere. Claude will structure it."}
+              className={inputCls}
+            />
           </label>
 
           <Button type="submit" size="lg">
