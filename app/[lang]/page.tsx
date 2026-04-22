@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getDictionary, hasLocale } from "./dictionaries";
 import { primaryRole } from "@/lib/roles";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default async function LandingPage({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -21,16 +22,17 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
   return (
     <div className="min-h-screen">
       {/* Nav */}
-      <header className="px-4 sm:px-8 py-5 flex items-center">
+      <header className="px-4 sm:px-8 py-5 flex items-center gap-2">
         <Link href={`/${lang}`} className="font-bold text-lg tracking-tight">{dict.brand}</Link>
         <nav className="ml-auto flex items-center gap-2">
+          <LanguageSwitcher current={lang} compact />
           {dashboardHref ? (
             <Link href={dashboardHref} className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90">
               {dict.nav.profile} →
             </Link>
           ) : (
             <>
-              <Link href={`/${lang}/login`} className="text-sm px-4 py-2 hover:opacity-70">{dict.auth.signIn}</Link>
+              <Link href={`/${lang}/login`} className="text-sm px-3 py-2 hover:opacity-70 hidden sm:inline">{dict.auth.signIn}</Link>
               <Link href={`/${lang}/register`} className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90">
                 {dict.auth.signUp}
               </Link>
@@ -74,12 +76,12 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
         <div className="mt-16 sm:mt-24 grid gap-5 sm:grid-cols-3">
           <Link
             href={`/${lang}/coaches`}
-            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--primary)] to-[var(--accent-purple)] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
+            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--primary)] to-[#5B3FE0] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
           >
-            <div className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">🗺️</div>
+            <div className="w-9 h-9 rounded-full bg-white/25 grid place-items-center">🗺️</div>
             <div>
               <div className="text-xl font-bold">{dict.landing.feat1Title ?? "Browse by map"}</div>
-              <div className="text-sm text-white/80 mt-1">{dict.landing.feat1Sub ?? "See coaches who cover your area."}</div>
+              <div className="text-sm text-white font-medium mt-1 opacity-95">{dict.landing.feat1Sub ?? "See coaches who cover your area."}</div>
             </div>
           </Link>
           <Link
@@ -98,12 +100,12 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
               : role === "COACH" ? `/${lang}/messages`
               : `/${lang}/register`
             }
-            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--ink)] to-[var(--accent-purple)] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
+            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[#1D1D20] to-[#432880] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
           >
-            <div className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">💬</div>
+            <div className="w-9 h-9 rounded-full bg-white/25 grid place-items-center">💬</div>
             <div>
               <div className="text-xl font-bold">{dict.landing.feat3Title ?? "Talk to your coach"}</div>
-              <div className="text-sm text-white/80 mt-1">{dict.landing.feat3Sub ?? "In-app chat, no phone-tag."}</div>
+              <div className="text-sm text-white font-medium mt-1 opacity-95">{dict.landing.feat3Sub ?? "In-app chat, no phone-tag."}</div>
             </div>
           </Link>
         </div>

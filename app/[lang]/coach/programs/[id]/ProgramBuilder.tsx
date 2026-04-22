@@ -237,11 +237,16 @@ export default function ProgramBuilder({
         className="w-full text-[var(--ink-muted)] bg-transparent outline-none border-b border-transparent hover:border-[var(--border)] focus:border-[var(--primary)]"
       />
 
-      {/* Clipboard indicator */}
+      {/* Clipboard indicator (inline, not floating) */}
       {clip && (
-        <div className="sticky top-16 z-20 flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-1.5 text-sm w-fit shadow-[var(--shadow-md)]">
-          <span>📋 {clip.kind === "block" ? dict.addBlock.replace("Add ", "Block: ") : dict.movementName}: <span className="font-semibold">{clip.kind === "block" ? (clip.data.label || clip.data.blockCode) : clip.data.name}</span></span>
-          <button onClick={clearClip} className="opacity-60 hover:opacity-100">×</button>
+        <div className="flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-1.5 text-sm w-fit shadow-[var(--shadow-sm)]">
+          <span>
+            📋 {clip.kind === "block" ? "Block" : "Movement"}:{" "}
+            <span className="font-semibold">
+              {clip.kind === "block" ? (clip.data.label || clip.data.blockCode) : clip.data.name}
+            </span>
+          </span>
+          <button onClick={clearClip} className="opacity-60 hover:opacity-100 text-base leading-none">×</button>
         </div>
       )}
 

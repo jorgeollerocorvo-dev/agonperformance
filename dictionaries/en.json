@@ -148,7 +148,9 @@
     "urgencyOptions": { "flexible": "Flexible", "month": "This month", "days": "This week", "urgent": "Urgent" },
     "injuryOrConcern": "Any injury or concern?",
     "daysAndTimes": "Preferred days and times",
-    "submit": "Submit"
+    "submit": "Submit",
+    "thanks": "Thanks — we've got your request!",
+    "thanksSub": "We'll match you with coaches that fit. In the meantime, start browsing."
   },
   "messages": {
     "title": "Messages",

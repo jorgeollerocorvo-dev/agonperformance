@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import HomeLink from "@/components/HomeLink";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Card, Button } from "@/components/ui/Card";
 
 export default async function RegisterPage({ params }: PageProps<"/[lang]/register">) {
@@ -47,7 +48,7 @@ export default async function RegisterPage({ params }: PageProps<"/[lang]/regist
     });
 
     await signIn("credentials", { email, password, redirect: false });
-    redirect(`/${lang}`);
+    redirect(roleChoice === "COACH" ? `/${lang}/coach` : `/${lang}/athlete`);
   }
 
   return (
@@ -55,6 +56,7 @@ export default async function RegisterPage({ params }: PageProps<"/[lang]/regist
       <header className="px-4 sm:px-6 py-3 flex items-center gap-3">
         <HomeLink href={`/${lang}`} label="Home" />
         <Link href={`/${lang}`} className="font-semibold tracking-tight">{dict.brand}</Link>
+        <div className="ml-auto"><LanguageSwitcher current={lang} compact /></div>
       </header>
       <main className="flex items-center justify-center p-4 sm:p-6">
         <Card className="w-full max-w-sm">

@@ -5,11 +5,12 @@ import { getDictionary, hasLocale } from "../../dictionaries";
 import LocationPicker from "@/components/LocationPicker";
 import { detectGeo } from "@/lib/geolocation";
 
-export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/coach/profile">) {
+export default async function CoachProfileEditor({ params, searchParams }: PageProps<"/[lang]/coach/profile">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const session = await auth();
+  const sp = await searchParams;
 
   const coach = await prisma.coachProfile.findUnique({
     where: { userId: session!.user.id },
@@ -81,12 +82,32 @@ export default async function CoachProfileEditor({ params }: PageProps<"/[lang]/
     redirect(`/${lang}/coach/profile?saved=1`);
   }
 
+  const publicUrl = `/${lang}/coaches/${coach.handle ?? coach.id}`;
+
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">{dict.coach.editListing}</h1>
-        <p className="text-sm text-zinc-500">{dict.coach.editListingHint}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{dict.coach.editListing}</h1>
+          <p className="text-sm text-[var(--ink-muted)]">{dict.coach.editListingHint}</p>
+        </div>
+        {coach.listingStatus === "APPROVED" && (
+          <a href={publicUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[var(--border-strong)] bg-white px-4 py-2 text-sm font-medium hover:bg-[var(--surface-2)]">
+            {dict.coach.myListing} ↗
+          </a>
+        )}
       </header>
+
+      {sp?.saved && (
+        <div className="rounded-xl bg-[var(--success-soft)] border border-[var(--success)]/30 text-[var(--success)] px-4 py-2 text-sm">
+          ✓ {dict.coach.saved}
+        </div>
+      )}
+      {sp?.error === "handle" && (
+        <div className="rounded-xl bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[var(--danger)] px-4 py-2 text-sm">
+          That handle is already taken. Pick another.
+        </div>
+      )}
 
       <form action={save} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
         <Field label={dict.coach.handle} full>

@@ -46,14 +46,14 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
     <div className="space-y-8">
       <AccentCard className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-white/80">{dict.coach.hello}</p>
+          <p className="text-sm text-white/95 font-medium">{dict.coach.hello}</p>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight display mt-1">{greeting}</h1>
-          <p className="text-sm text-white/80 mt-2">
+          <p className="text-sm text-white/95 font-medium mt-2">
             {coachProfile._count.athletes} {dict.nav.athletes.toLowerCase()} · {programCount} {dict.nav.programs.toLowerCase()}
           </p>
         </div>
-        <span className="rounded-full bg-white/15 text-white px-3 py-1 text-xs font-semibold">
-          {coachProfile.listingStatus}
+        <span className="rounded-full bg-white/25 text-white px-3 py-1 text-xs font-semibold">
+          {listingLabelFor(coachProfile.listingStatus)}
         </span>
       </AccentCard>
 
@@ -116,6 +116,17 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
       </section>
     </div>
   );
+}
+
+function listingLabelFor(status: string): string {
+  const map: Record<string, string> = {
+    DRAFT: "Draft",
+    PENDING_REVIEW: "Pending review",
+    APPROVED: "Live",
+    REJECTED: "Rejected",
+    SUSPENDED: "Suspended",
+  };
+  return map[status] ?? status;
 }
 
 function IconUsers() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15 20c0-2.5 2-4.5 4.5-4.5"/></svg>; }

@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { signIn } from "@/auth";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import HomeLink from "@/components/HomeLink";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Card, Button } from "@/components/ui/Card";
 
 export default async function LoginPage({
@@ -14,17 +15,19 @@ export default async function LoginPage({
   const sp = await searchParams;
   const dict = await getDictionary(lang);
   const err = typeof sp?.error === "string";
+  const nextParam = typeof sp?.next === "string" && sp.next.startsWith("/") ? sp.next : `/${lang}`;
 
   async function login(formData: FormData) {
     "use server";
     const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
+    const next = String(formData.get("next") ?? `/${lang}`);
     try {
       await signIn("credentials", { email, password, redirect: false });
     } catch {
-      redirect(`/${lang}/login?error=1`);
+      redirect(`/${lang}/login?error=1&next=${encodeURIComponent(next)}`);
     }
-    redirect(`/${lang}`);
+    redirect(next);
   }
 
   return (
@@ -32,12 +35,14 @@ export default async function LoginPage({
       <header className="px-4 sm:px-6 py-3 flex items-center gap-3">
         <HomeLink href={`/${lang}`} label="Home" />
         <Link href={`/${lang}`} className="font-semibold tracking-tight">{dict.brand}</Link>
+        <div className="ml-auto"><LanguageSwitcher current={lang} compact /></div>
       </header>
       <main className="flex items-center justify-center p-4 sm:p-6">
         <Card className="w-full max-w-sm">
           <form action={login} className="space-y-4">
             <h1 className="text-2xl font-bold">{dict.auth.signIn}</h1>
             {err && <p className="text-sm text-[var(--danger)]">{dict.auth.invalid}</p>}
+            <input type="hidden" name="next" value={nextParam} />
             <label className="block text-sm">
               <span className="mb-1 block text-[var(--ink-muted)]">{dict.auth.email}</span>
               <input name="email" type="email" required className={inputCls} />

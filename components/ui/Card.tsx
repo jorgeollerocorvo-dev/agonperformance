@@ -120,7 +120,7 @@ export function AccentCard({ children, className }: { children: React.ReactNode;
     <div
       className={clsx(
         "rounded-2xl p-6 text-white overflow-hidden relative",
-        "bg-gradient-to-br from-[var(--primary)] via-[var(--accent-purple)] to-[var(--accent-pink)]",
+        "bg-gradient-to-br from-[var(--primary)] to-[#3A1E8F]",
         "shadow-[var(--shadow-lg)]",
         className,
       )}

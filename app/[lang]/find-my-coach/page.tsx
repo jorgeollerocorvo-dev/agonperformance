@@ -6,10 +6,12 @@ import { getDictionary, hasLocale } from "../dictionaries";
 import PublicHeader from "@/components/ui/PublicHeader";
 import { Card, Button } from "@/components/ui/Card";
 
-export default async function FindMyCoach({ params }: PageProps<"/[lang]/find-my-coach">) {
+export default async function FindMyCoach({ params, searchParams }: PageProps<"/[lang]/find-my-coach">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
+  const sp = await searchParams;
+  const sent = sp?.sent === "1";
 
   async function submitInquiry(formData: FormData) {
     "use server";
@@ -73,6 +75,18 @@ export default async function FindMyCoach({ params }: PageProps<"/[lang]/find-my
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{dict.directory.findMyCoach}</h1>
           <p className="text-[var(--ink-muted)] mt-1">{dict.directory.leadFormTagline}</p>
         </header>
+
+        {sent && (
+          <Card className="bg-[var(--success-soft)] border-[var(--success)]/30">
+            <div className="text-[var(--success)] font-semibold text-lg">✓ {dict.leadForm.thanks}</div>
+            <p className="text-sm text-[var(--ink)] mt-1">{dict.leadForm.thanksSub}</p>
+            <div className="mt-3">
+              <Link href={`/${lang}/coaches`} className="inline-flex rounded-full bg-[var(--primary)] text-white px-4 py-2 text-sm font-semibold hover:bg-[var(--primary-hover)]">
+                {dict.directory.browseCoaches}
+              </Link>
+            </div>
+          </Card>
+        )}
 
         <form action={submitInquiry} className="rounded-3xl border border-[var(--border)] bg-white p-5 sm:p-6 space-y-4">
           <Select name="goal" label={dict.leadForm.goal} options={[

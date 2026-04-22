@@ -4,6 +4,7 @@ import { auth, signOut } from "@/auth";
 import { hasRole } from "@/lib/roles";
 import { getDictionary, hasLocale } from "../dictionaries";
 import HomeLink from "@/components/HomeLink";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default async function CoachLayout({
   children,
@@ -25,7 +26,7 @@ export default async function CoachLayout({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 bg-[color-mix(in_oklab,var(--bg)_85%,transparent)] backdrop-blur border-b border-[var(--border)]">
+      <header className="sticky top-0 z-30 bg-[var(--bg)]/95 backdrop-blur border-b border-[var(--border)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center gap-3">
           <HomeLink href={`/${lang}`} label="Home" />
           <Link href={`/${lang}/coach`} className="font-semibold tracking-tight">{dict.brand}</Link>
@@ -36,12 +37,12 @@ export default async function CoachLayout({
             <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
             <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
           </nav>
-          <form
-            action={async () => { "use server"; await signOut({ redirect: false }); }}
-            className="ml-auto"
-          >
-            <button className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] px-3 py-1.5">{dict.nav.logout}</button>
-          </form>
+          <div className="ml-auto flex items-center gap-2">
+            <LanguageSwitcher current={lang} compact />
+            <form action={async () => { "use server"; await signOut({ redirect: false }); }}>
+              <button className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] px-3 py-1.5">{dict.nav.logout}</button>
+            </form>
+          </div>
         </div>
         {/* mobile tabs */}
         <nav className="sm:hidden flex gap-1 px-3 pb-2 overflow-x-auto">

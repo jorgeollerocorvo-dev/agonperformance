@@ -148,7 +148,9 @@
     "urgencyOptions": { "flexible": "Sin prisa", "month": "Este mes", "days": "Esta semana", "urgent": "Urgente" },
     "injuryOrConcern": "¿Alguna lesión o preocupación?",
     "daysAndTimes": "Días y horas preferidos",
-    "submit": "Enviar"
+    "submit": "Enviar",
+    "thanks": "¡Recibido!",
+    "thanksSub": "Te emparejaremos con entrenadores que encajen. Mientras, empieza a explorar."
   },
   "messages": {
     "title": "Mensajes",

@@ -35,7 +35,6 @@ export default async function RootLayout({
     <html lang={lang} dir={dir} className={`${inter.variable} h-full antialiased`} style={{ colorScheme: "light" }}>
       <body className="min-h-full bg-[var(--bg)] text-[var(--ink)]">
         {children}
-        <LanguageSwitcher current={lang} />
       </body>
     </html>
   );
