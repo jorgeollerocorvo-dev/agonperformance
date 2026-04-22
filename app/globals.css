@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Disable Tailwind's auto dark mode. We force light mode always. */
+@custom-variant dark (&:where(.__never__));
+
 :root {
   /* Revolut-inspired palette: pure white + black + Revolut blue */
   --bg:         #FFFFFF;
