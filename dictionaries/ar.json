@@ -133,7 +133,8 @@
     "reviews": "التقييمات",
     "noMapLocations": "لم يحدد أي مدرب موقعه على الخريطة بعد. تصفح القائمة أو عد لاحقًا.",
     "perSession": "جلسة",
-    "viewProfile": "عرض الملف"
+    "viewProfile": "عرض الملف",
+    "serviceArea": "منطقة الخدمة"
   },
   "leadForm": {
     "goal": "ما هدفك؟",

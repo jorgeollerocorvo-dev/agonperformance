@@ -133,7 +133,8 @@
     "reviews": "Reviews",
     "noMapLocations": "No coaches have set their location on the map yet. Browse the list or check back soon.",
     "perSession": "session",
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "serviceArea": "Service area"
   },
   "leadForm": {
     "goal": "What's your goal?",

@@ -133,7 +133,8 @@
     "reviews": "Reseñas",
     "noMapLocations": "Ningún entrenador ha fijado su ubicación aún. Consulta la lista o vuelve más tarde.",
     "perSession": "sesión",
-    "viewProfile": "Ver perfil"
+    "viewProfile": "Ver perfil",
+    "serviceArea": "Zona de servicio"
   },
   "leadForm": {
     "goal": "¿Cuál es tu objetivo?",

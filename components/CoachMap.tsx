@@ -96,7 +96,13 @@ export default function CoachMap({
                 <Circle
                   center={[c.lat, c.lng]}
                   radius={c.radiusKm * 1000}
-                  pathOptions={{ color: "#111", fillColor: "#111", fillOpacity: 0.08, weight: 1 }}
+                  pathOptions={{
+                    color: "#0075EB",
+                    fillColor: "#0075EB",
+                    fillOpacity: 0.18,
+                    weight: 2,
+                    dashArray: "6 4",
+                  }}
                 />
               )}
               <Marker
@@ -108,7 +114,7 @@ export default function CoachMap({
                   <div className="font-medium">{c.name}</div>
                   {c.headline && <div className="text-xs text-zinc-600">{c.headline}</div>}
                   {c.city && <div className="text-xs text-zinc-500">📍 {c.city}</div>}
-                  {c.radiusKm && <div className="text-xs text-zinc-500">{c.radiusKm} km radius</div>}
+                  {c.radiusKm && <div className="text-xs text-[#0075EB] font-medium">{c.radiusKm} km coverage</div>}
                 </Popup>
               </Marker>
             </div>

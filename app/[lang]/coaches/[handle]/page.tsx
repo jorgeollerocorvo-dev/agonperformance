@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import PublicHeader from "@/components/ui/PublicHeader";
 import { Card, Pill, Button } from "@/components/ui/Card";
+import CoverageMap from "@/components/CoverageMap";
 
 export default async function PublicCoachProfile({ params }: PageProps<"/[lang]/coaches/[handle]">) {
   const { lang, handle } = await params;
@@ -95,6 +96,23 @@ export default async function PublicCoachProfile({ params }: PageProps<"/[lang]/
           <Card>
             <h2 className="text-lg font-semibold mb-2">{dict.directory.about}</h2>
             <p className="whitespace-pre-wrap">{bio}</p>
+          </Card>
+        )}
+
+        {coach.homeBaseLat !== null && coach.homeBaseLng !== null && (
+          <Card>
+            <div className="flex items-baseline justify-between gap-2 mb-3">
+              <h2 className="text-lg font-semibold">{dict.directory.serviceArea ?? "Service area"}</h2>
+              {coach.serviceAreaRadiusKm && (
+                <span className="text-sm text-[var(--ink-muted)]">{coach.serviceAreaRadiusKm} km radius</span>
+              )}
+            </div>
+            <CoverageMap
+              lat={Number(coach.homeBaseLat)}
+              lng={Number(coach.homeBaseLng)}
+              radiusKm={coach.serviceAreaRadiusKm ?? null}
+              label={coach.homeBaseCity ?? coach.user.displayName ?? undefined}
+            />
           </Card>
         )}
 
