@@ -3,13 +3,20 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
+import { Card, Button } from "@/components/ui/Card";
+import { hasAIKey } from "@/lib/ai-parse-program";
+import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
+import { importAndCreateProgram } from "../../import/actions";
 
-export default async function AthleteDetail({ params }: PageProps<"/[lang]/coach/athletes/[id]">) {
+export default async function AthleteDetail({ params, searchParams }: PageProps<"/[lang]/coach/athletes/[id]">) {
   const { lang, id } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
+  const sp = await searchParams;
+  const importError = typeof sp?.importError === "string" ? decodeURIComponent(sp.importError) : null;
   const session = await auth();
   const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session!.user.id } });
+  const aiReady = hasAIKey();
 
   const athlete = await prisma.athlete.findFirst({
     where: { id, coachProfileId: coachProfile!.id },
@@ -58,6 +65,19 @@ export default async function AthleteDetail({ params }: PageProps<"/[lang]/coach
     redirect(`/${lang}/coach/athletes/${id}`);
   }
 
+  async function importProgramForAthlete(formData: FormData) {
+    "use server";
+    // Force athleteId to this page's athlete — coach can't accidentally assign to another
+    formData.set("athleteId", id);
+    const result = await importAndCreateProgram(formData);
+    if (result.error) {
+      redirect(`/${lang}/coach/athletes/${id}?importError=${encodeURIComponent(result.error)}`);
+    }
+    if (result.previewId) {
+      redirect(`/${lang}/coach/programs/${result.previewId}?imported=1`);
+    }
+  }
+
   const toDateStr = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
 
   return (
@@ -92,22 +112,67 @@ export default async function AthleteDetail({ params }: PageProps<"/[lang]/coach
       </form>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-medium">{dict.nav.programs}</h2>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold">{dict.nav.programs}</h2>
+          <Link href={`/${lang}/coach/programs/new?athleteId=${id}`} className="text-sm text-[var(--primary)] hover:underline">
+            + {dict.coach.newProgram}
+          </Link>
+        </div>
+
+        {/* Import-from-document card */}
+        <Card>
+          <h3 className="font-semibold text-base mb-1">{dict.coach.importProgram ?? "Import program"}</h3>
+          <p className="text-sm text-[var(--ink-muted)] mb-3">
+            {dict.coach.importIntro ?? "Upload a Word, Excel, or PDF document — we'll turn it into a structured program for this athlete, with YouTube demo search attached to every movement."}
+          </p>
+          {!aiReady && (
+            <div className="mb-3 rounded-xl bg-[var(--primary-soft)] border border-[var(--primary)]/30 text-[var(--primary)] px-3 py-2 text-sm">
+              ⚠️ {dict.coach.aiKeyNeeded ?? "AI import needs setup"} — add <code className="bg-white px-1 rounded">ANTHROPIC_API_KEY</code> to Railway variables.
+            </div>
+          )}
+          {importError && (
+            <div className="mb-3 rounded-xl bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[var(--danger)] px-3 py-2 text-sm">
+              ✕ {importError}
+            </div>
+          )}
+          <form action={importProgramForAthlete} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-[1fr_auto_auto] items-end">
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.coach.uploadFile ?? "Upload file"}</span>
+              <input
+                type="file"
+                name="file"
+                accept={ACCEPTED_MIME_TYPES}
+                required
+                className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-[var(--ink)] file:text-[var(--bg)] file:px-4 file:py-2 file:font-semibold hover:file:opacity-90 file:cursor-pointer"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">{dict.coach.startDate ?? "Start date"}</span>
+              <input
+                type="date"
+                name="startDate"
+                defaultValue={new Date().toISOString().slice(0, 10)}
+                required
+                className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"
+              />
+            </label>
+            <Button type="submit">{dict.coach.importAndCreate ?? "Create"}</Button>
+          </form>
+        </Card>
+
         {athlete.programs.length === 0 ? (
-          <p className="text-sm text-zinc-500">No programs yet.</p>
+          <Card><p className="text-sm text-[var(--ink-muted)]">No programs yet.</p></Card>
         ) : (
-          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+          <Card padded={false} className="divide-y divide-[var(--border)]">
             {athlete.programs.map((p) => (
-              <li key={p.id}>
-                <Link href={`/${lang}/coach/programs/${p.id}`} className="block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                  <div className="font-medium">{p.title}</div>
-                  <div className="text-xs text-zinc-500">
-                    {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
-                  </div>
-                </Link>
-              </li>
+              <Link key={p.id} href={`/${lang}/coach/programs/${p.id}`} className="block px-4 sm:px-5 py-4 hover:bg-[var(--surface-2)]">
+                <div className="font-semibold">{p.title}</div>
+                <div className="text-xs text-[var(--ink-muted)] mt-1">
+                  {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
+                </div>
+              </Link>
             ))}
-          </ul>
+          </Card>
         )}
       </section>
 
