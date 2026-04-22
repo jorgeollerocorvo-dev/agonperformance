@@ -9,7 +9,8 @@
     "history": "Historial",
     "messages": "Mensajes",
     "profile": "Mi perfil",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "import": "Importar"
   },
   "auth": {
     "email": "Correo",
@@ -68,6 +69,13 @@
     "pasteBlock": "Pegar bloque aquí",
     "pasteMovement": "Pegar ejercicio aquí",
     "markRest": "Marcar como día de descanso",
+    "importProgram": "Importar programa",
+    "importIntro": "Sube un Word, Excel o PDF — lo convertimos en un programa estructurado y añadimos búsquedas de vídeo en YouTube para cada ejercicio. Puedes editarlo después.",
+    "aiKeyNeeded": "La importación con IA necesita configuración",
+    "assignToAthlete": "Asignar a atleta",
+    "startDate": "Fecha de inicio",
+    "uploadFile": "Subir archivo",
+    "importAndCreate": "Subir y crear programa",
     "specialty": "Especialidad",
     "crossfit": "CrossFit",
     "women": "Mujer (glúteo / abdomen / pierna)",

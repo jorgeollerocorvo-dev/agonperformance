@@ -9,7 +9,8 @@
     "history": "السجل",
     "messages": "الرسائل",
     "profile": "ملفي الشخصي",
-    "account": "الحساب"
+    "account": "الحساب",
+    "import": "استيراد"
   },
   "auth": {
     "email": "البريد الإلكتروني",
@@ -68,6 +69,13 @@
     "pasteBlock": "الصق البلوك هنا",
     "pasteMovement": "الصق التمرين هنا",
     "markRest": "تعيين كيوم راحة",
+    "importProgram": "استيراد برنامج",
+    "importIntro": "حمّل ملف Word أو Excel أو PDF وسنحوله إلى برنامج منظم مع روابط بحث YouTube لكل تمرين. يمكنك تعديله لاحقًا.",
+    "aiKeyNeeded": "يحتاج الاستيراد بالذكاء الاصطناعي إلى إعداد",
+    "assignToAthlete": "تعيين إلى رياضي",
+    "startDate": "تاريخ البدء",
+    "uploadFile": "رفع ملف",
+    "importAndCreate": "رفع وإنشاء برنامج",
     "specialty": "التخصص",
     "crossfit": "كروس فيت",
     "women": "نساء (أرداف / بطن / أرجل)",

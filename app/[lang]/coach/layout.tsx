@@ -33,6 +33,7 @@ export default async function CoachLayout({
           <nav className="hidden sm:flex gap-1 ml-2">
             <Link href={`/${lang}/coach/athletes`} className={navLink}>{dict.nav.athletes}</Link>
             <Link href={`/${lang}/coach/programs`} className={navLink}>{dict.nav.programs}</Link>
+            <Link href={`/${lang}/coach/import`} className={navLink}>{dict.nav.import ?? "Import"}</Link>
             <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
             <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
             <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
@@ -48,6 +49,7 @@ export default async function CoachLayout({
         <nav className="sm:hidden flex gap-1 px-3 pb-2 overflow-x-auto">
           <Link href={`/${lang}/coach/athletes`} className={navLink}>{dict.nav.athletes}</Link>
           <Link href={`/${lang}/coach/programs`} className={navLink}>{dict.nav.programs}</Link>
+          <Link href={`/${lang}/coach/import`} className={navLink}>{dict.nav.import ?? "Import"}</Link>
           <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
           <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
           <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
