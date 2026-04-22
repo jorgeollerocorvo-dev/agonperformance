@@ -14,6 +14,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   const dict = await getDictionary(lang);
   const sp = await searchParams;
   const importError = typeof sp?.importError === "string" ? decodeURIComponent(sp.importError) : null;
+  const importedId = typeof sp?.importedId === "string" ? sp.importedId : null;
   const session = await auth();
   const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session!.user.id } });
   const aiReady = hasAIKey();
@@ -74,7 +75,8 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
       redirect(`/${lang}/coach/athletes/${id}?importError=${encodeURIComponent(result.error)}`);
     }
     if (result.previewId) {
-      redirect(`/${lang}/coach/programs/${result.previewId}?imported=1`);
+      // Stay on the athlete page so the coach sees the new program appear in the list below
+      redirect(`/${lang}/coach/athletes/${id}?importedId=${result.previewId}#programs`);
     }
   }
 
@@ -111,13 +113,30 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         </div>
       </form>
 
-      <section className="space-y-3">
+      <section id="programs" className="space-y-3 scroll-mt-24">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">{dict.nav.programs}</h2>
           <Link href={`/${lang}/coach/programs/new?athleteId=${id}`} className="text-sm text-[var(--primary)] hover:underline">
             + {dict.coach.newProgram}
           </Link>
         </div>
+
+        {importedId && (
+          <Card className="bg-[var(--success-soft)] border-[var(--success)]/30">
+            <div className="flex items-baseline justify-between gap-3 flex-wrap">
+              <div>
+                <div className="font-semibold text-[var(--success)]">✓ {dict.coach.programCreated ?? "Program created from your upload"}</div>
+                <p className="text-sm text-[var(--ink)] mt-1">{dict.coach.programCreatedHint ?? "Scroll down to see it. Open it to review weeks, days, and movements — every exercise has a YouTube search link ready."}</p>
+              </div>
+              <Link
+                href={`/${lang}/coach/programs/${importedId}`}
+                className="rounded-full bg-[var(--primary)] text-white px-4 py-2 text-sm font-semibold hover:bg-[var(--primary-hover)]"
+              >
+                {dict.coach.openProgram ?? "Open program →"}
+              </Link>
+            </div>
+          </Card>
+        )}
 
         {/* Import-from-document card */}
         <Card>
@@ -178,14 +197,24 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
           <Card><p className="text-sm text-[var(--ink-muted)]">No programs yet.</p></Card>
         ) : (
           <Card padded={false} className="divide-y divide-[var(--border)]">
-            {athlete.programs.map((p) => (
-              <Link key={p.id} href={`/${lang}/coach/programs/${p.id}`} className="block px-4 sm:px-5 py-4 hover:bg-[var(--surface-2)]">
-                <div className="font-semibold">{p.title}</div>
-                <div className="text-xs text-[var(--ink-muted)] mt-1">
-                  {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
-                </div>
-              </Link>
-            ))}
+            {athlete.programs.map((p) => {
+              const isNew = p.id === importedId;
+              return (
+                <Link
+                  key={p.id}
+                  href={`/${lang}/coach/programs/${p.id}`}
+                  className={`block px-4 sm:px-5 py-4 hover:bg-[var(--surface-2)] ${isNew ? "bg-[var(--success-soft)]/60" : ""}`}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <div className="font-semibold">{p.title}</div>
+                    {isNew && <span className="text-xs rounded-full bg-[var(--success)] text-white px-2 py-0.5 font-semibold">NEW</span>}
+                  </div>
+                  <div className="text-xs text-[var(--ink-muted)] mt-1">
+                    {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
+                  </div>
+                </Link>
+              );
+            })}
           </Card>
         )}
       </section>
