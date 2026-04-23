@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { extractText } from "@/lib/parse-document";
-import { parseProgramWithAI, movementYoutubeSearchUrl, type ParsedProgram } from "@/lib/ai-parse-program";
+import { parseProgramWithAI, bestYoutubeUrl, type ParsedProgram } from "@/lib/ai-parse-program";
 
 export async function importAndCreateProgram(formData: FormData): Promise<{ error?: string; previewId?: string }> {
   const session = await auth();
@@ -109,7 +109,7 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
                     load: m.load ?? undefined,
                     rest: m.rest ?? undefined,
                     notes: m.notes ?? undefined,
-                    youtubeUrl: movementYoutubeSearchUrl(m.name),
+                    youtubeUrl: bestYoutubeUrl(m),
                   },
                   order: mi,
                   isTest: !!m.isTest,

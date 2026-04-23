@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type EditorMovement } from "./actions";
+import { ytEmbed as ytEmbedUrl } from "@/lib/youtube";
 
 type Dict = {
   save: string;
@@ -471,45 +472,61 @@ function BlockEditor({
         className="w-full text-xs bg-transparent border-b border-transparent hover:border-[var(--border)] focus:border-[var(--primary)] outline-none text-[var(--ink-muted)]"
       />
 
-      <ul className="space-y-1">
-        {block.movements.map((m, mi) => (
-          <li key={mi} className="rounded-lg bg-white border border-[var(--border)] p-2 space-y-1">
-            <div className="flex gap-1 items-center">
+      <ul className="space-y-2">
+        {block.movements.map((m, mi) => {
+          const embed = ytEmbedUrl(m.youtubeUrl);
+          return (
+            <li key={mi} className="rounded-xl bg-white border border-[var(--border)] p-3 space-y-2">
+              <div className="flex gap-1 items-center">
+                <input
+                  value={m.name}
+                  onChange={(e) => onMovementPatch(mi, (v) => { v.name = e.target.value; })}
+                  placeholder={dict.movementName}
+                  className="flex-1 text-sm font-semibold bg-transparent outline-none"
+                />
+                <a
+                  title={dict.findVideo}
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(m.name + " demo")}`}
+                  target="_blank" rel="noreferrer"
+                  className="text-xs text-[var(--primary)] hover:underline px-1"
+                >🎥</a>
+                <button onClick={() => onMovementCopy(mi)} title={dict.copy} className="text-xs text-[var(--ink-subtle)] hover:text-[var(--primary)] px-1">📋</button>
+                <button onClick={() => onMovementRemove(mi)} title={dict.clear} className="text-xs text-[var(--ink-subtle)] hover:text-[var(--danger)] px-1">✕</button>
+              </div>
+              <div className="grid grid-cols-4 gap-1 text-xs">
+                <input value={m.sets ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.sets = e.target.value; })} placeholder={dict.sets} className={tinyInput} />
+                <input value={m.reps ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.reps = e.target.value; })} placeholder={dict.reps} className={tinyInput} />
+                <input value={m.load ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.load = e.target.value; })} placeholder={dict.load} className={tinyInput} />
+                <input value={m.rest ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.rest = e.target.value; })} placeholder={dict.rest} className={tinyInput} />
+              </div>
               <input
-                value={m.name}
-                onChange={(e) => onMovementPatch(mi, (v) => { v.name = e.target.value; })}
-                placeholder={dict.movementName}
-                className="flex-1 text-sm font-medium bg-transparent outline-none"
+                value={m.youtubeUrl ?? ""}
+                onChange={(e) => onMovementPatch(mi, (v) => { v.youtubeUrl = e.target.value; })}
+                placeholder="YouTube URL or search link"
+                className="w-full text-xs bg-[var(--surface-2)] rounded px-2 py-1 outline-none"
               />
-              <a
-                title={dict.findVideo}
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(m.name + " demo")}`}
-                target="_blank" rel="noreferrer"
-                className="text-xs text-[var(--primary)] hover:underline px-1"
-              >🎥</a>
-              <button onClick={() => onMovementCopy(mi)} title={dict.copy} className="text-xs text-[var(--ink-subtle)] hover:text-[var(--primary)] px-1">📋</button>
-              <button onClick={() => onMovementRemove(mi)} title={dict.clear} className="text-xs text-[var(--ink-subtle)] hover:text-[var(--danger)] px-1">✕</button>
-            </div>
-            <div className="grid grid-cols-4 gap-1 text-xs">
-              <input value={m.sets ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.sets = e.target.value; })} placeholder={dict.sets} className={tinyInput} />
-              <input value={m.reps ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.reps = e.target.value; })} placeholder={dict.reps} className={tinyInput} />
-              <input value={m.load ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.load = e.target.value; })} placeholder={dict.load} className={tinyInput} />
-              <input value={m.rest ?? ""} onChange={(e) => onMovementPatch(mi, (v) => { v.rest = e.target.value; })} placeholder={dict.rest} className={tinyInput} />
-            </div>
-            <input
-              value={m.youtubeUrl ?? ""}
-              onChange={(e) => onMovementPatch(mi, (v) => { v.youtubeUrl = e.target.value; })}
-              placeholder="YouTube URL"
-              className="w-full text-xs bg-[var(--surface-2)] rounded px-2 py-1 outline-none"
-            />
-            <input
-              value={m.notes ?? ""}
-              onChange={(e) => onMovementPatch(mi, (v) => { v.notes = e.target.value; })}
-              placeholder={dict.notes}
-              className="w-full text-xs bg-transparent outline-none text-[var(--ink-muted)]"
-            />
-          </li>
-        ))}
+              {embed ? (
+                <div className="aspect-video rounded-lg overflow-hidden border border-[var(--border)]">
+                  <iframe src={embed} className="w-full h-full" allow="encrypted-media" allowFullScreen />
+                </div>
+              ) : m.youtubeUrl && m.youtubeUrl.includes("results?search_query") ? (
+                <a
+                  href={m.youtubeUrl}
+                  target="_blank" rel="noreferrer"
+                  className="block text-xs text-[var(--primary)] hover:underline"
+                >
+                  🔍 Search YouTube for "{m.name}" — pick a video and paste the URL above
+                </a>
+              ) : null}
+              <input
+                value={m.notes ?? ""}
+                onChange={(e) => onMovementPatch(mi, (v) => { v.notes = e.target.value; })}
+                placeholder={dict.notes}
+                className="w-full text-xs bg-transparent outline-none text-[var(--ink-muted)]"
+              />
+            </li>
+          );
+        })}
       </ul>
 
       <div className="flex gap-2">

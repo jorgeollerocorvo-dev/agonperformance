@@ -11,6 +11,8 @@ export type ParsedMovement = {
   rest?: string | null;
   notes?: string | null;
   isTest?: boolean;
+  /** 11-char YouTube video ID if you know a canonical demo video; otherwise omit. */
+  youtubeVideoId?: string | null;
 };
 export type ParsedBlock = {
   blockCode: string;    // "A", "B", ...
@@ -75,6 +77,7 @@ type ParsedProgram = {
           rest?: string | null;    // ":60", "2 min"
           notes?: string | null;
           isTest?: boolean;        // true if the doc marks it as a test / 1RM / max attempt
+          youtubeVideoId?: string | null;  // 11-char YouTube ID of a canonical demo video, if you're confident. Otherwise omit.
         }>;
       }>;
     }>;
@@ -87,7 +90,32 @@ RULES
 - Preserve coach-written language in \`notes\` and \`focus\`.
 - Normalize exercise names to plain English (e.g. "DB Push Press", "Back Squat"). Keep Spanish if clearly in Spanish.
 - Return AT LEAST one week with AT LEAST one day, even if the doc is sparse.
+- \`youtubeVideoId\`: ONLY set this to a canonical 11-char YouTube ID if you are highly confident it is a correct CrossFit HQ / Squat University / similar authoritative demo for that exact exercise. If in doubt, omit the field (null). Do NOT guess. Better to leave it null and let the coach add a video than to return a broken or wrong video ID.
+
+The document may be in any language (Spanish, English, Arabic). Parse it in its original language but normalize exercise names to standard English.
 `;
+
+const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+
+/** Strip any fields Claude returned that look invalid (e.g. hallucinated video IDs). */
+function sanitize(p: ParsedProgram): ParsedProgram {
+  return {
+    ...p,
+    weeks: (p.weeks ?? []).map((w) => ({
+      ...w,
+      days: (w.days ?? []).map((d) => ({
+        ...d,
+        blocks: (d.blocks ?? []).map((b) => ({
+          ...b,
+          movements: (b.movements ?? []).map((m) => ({
+            ...m,
+            youtubeVideoId: m.youtubeVideoId && YOUTUBE_ID_RE.test(m.youtubeVideoId) ? m.youtubeVideoId : null,
+          })),
+        })),
+      })),
+    })),
+  };
+}
 
 export function hasAIKey(): boolean {
   return !!process.env.ANTHROPIC_API_KEY;
@@ -132,7 +160,7 @@ export async function parseProgramWithAI(rawText: string): Promise<ParsedProgram
   }
 
   try {
-    return JSON.parse(raw) as ParsedProgram;
+    return sanitize(JSON.parse(raw) as ParsedProgram);
   } catch (e) {
     throw new Error(`Claude returned invalid JSON: ${(e as Error).message}\n\nFirst 500 chars: ${raw.slice(0, 500)}`);
   }
@@ -161,4 +189,12 @@ export function attachYouTubeSearchUrls(program: ParsedProgram): ParsedProgram {
 
 export function movementYoutubeSearchUrl(name: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(name + " exercise demo")}`;
+}
+
+/** Given parsed movement info, build the best URL to attach. */
+export function bestYoutubeUrl(m: { name: string; youtubeVideoId?: string | null }): string {
+  if (m.youtubeVideoId && /^[A-Za-z0-9_-]{11}$/.test(m.youtubeVideoId)) {
+    return `https://youtu.be/${m.youtubeVideoId}`;
+  }
+  return movementYoutubeSearchUrl(m.name);
 }
