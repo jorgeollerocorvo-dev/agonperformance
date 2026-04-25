@@ -20,6 +20,9 @@ const ALIASES: Record<string, string> = {
   "/start": "/find-my-coach",
   "/quiz": "/find-my-coach",
   "/match": "/find-my-coach",
+  "/j": "/find/jorge",        // Jorge intake: shortest possible
+  "/jorge": "/find/jorge",
+  "/train": "/find/jorge",
 };
 
 export function proxy(request: NextRequest) {
