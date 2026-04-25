@@ -30,13 +30,42 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
   const sent = sp?.sent === "1";
   const sourceParam = typeof sp?.source === "string" ? sp.source : JORGE_INQUIRY_SOURCE;
 
-  // Pull the public coach name to render in the hero
+  // Pull the public coach name + specialties to render the hero and goal options
   const owner = await prisma.user.findUnique({
     where: { email: JORGE_EMAIL },
-    select: { displayName: true, fullName: true, coachProfile: { select: { headline: true } } },
+    select: {
+      displayName: true,
+      fullName: true,
+      coachProfile: {
+        select: {
+          headline: true,
+          specialties: { include: { specialty: true } },
+        },
+      },
+    },
   });
   const coachName = owner?.displayName ?? owner?.fullName ?? "Jorge";
   const coachHeadline = owner?.coachProfile?.headline ?? null;
+
+  // Goal dropdown is built from Jorge's own specialties so the survey
+  // only offers what he actually trains. Fallback to a generic set if
+  // none configured yet.
+  const specialtyOptions: [string, string][] = (owner?.coachProfile?.specialties ?? []).map((cs) => {
+    const s = cs.specialty;
+    const label = lang === "es" ? s.labelEs : lang === "ar" ? (s.labelAr ?? s.labelEn) : s.labelEn;
+    return [s.code, label];
+  });
+  const goalOptions: [string, string][] =
+    specialtyOptions.length > 0
+      ? [...specialtyOptions, ["other", dict.leadForm.goalOptions.other]]
+      : [
+          ["lose_weight", dict.leadForm.goalOptions.loseWeight],
+          ["tone", dict.leadForm.goalOptions.tone],
+          ["build_muscle", dict.leadForm.goalOptions.buildMuscle],
+          ["flexibility", dict.leadForm.goalOptions.flexibility],
+          ["endurance", dict.leadForm.goalOptions.endurance],
+          ["other", dict.leadForm.goalOptions.other],
+        ];
 
   async function submitInquiry(formData: FormData) {
     "use server";
@@ -129,14 +158,7 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
               <Card>
                 <h2 className="font-semibold mb-4">1. {dict.directory.aboutYourTraining ?? "Your training"}</h2>
                 <div className="space-y-3">
-                  <Select name="goal" label={dict.leadForm.goal} options={[
-                    ["lose_weight", dict.leadForm.goalOptions.loseWeight],
-                    ["tone", dict.leadForm.goalOptions.tone],
-                    ["build_muscle", dict.leadForm.goalOptions.buildMuscle],
-                    ["flexibility", dict.leadForm.goalOptions.flexibility],
-                    ["endurance", dict.leadForm.goalOptions.endurance],
-                    ["other", dict.leadForm.goalOptions.other],
-                  ]} />
+                  <Select name="goal" label={dict.leadForm.goal} options={goalOptions} />
                   <Select name="frequencyCurrent" label={dict.leadForm.frequencyCurrent} options={[
                     ["none", dict.leadForm.freqOptions.none],
                     ["1_2_per_week", dict.leadForm.freqOptions.oneTwo],

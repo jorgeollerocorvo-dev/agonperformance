@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isJorge, JORGE_INQUIRY_SOURCE } from "@/lib/jorge";
+import { isJorge, JORGE_INQUIRY_SOURCE, findJorgeCoachProfileId } from "@/lib/jorge";
 
 function csvEscape(v: string | null | undefined): string {
   if (v === null || v === undefined) return "";
@@ -16,8 +16,11 @@ export async function GET() {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
+  const jorgeCoachId = await findJorgeCoachProfileId();
   const inquiries = await prisma.inquiry.findMany({
-    where: { source: { startsWith: JORGE_INQUIRY_SOURCE } },
+    where: jorgeCoachId
+      ? { recommendedCoachIds: { has: jorgeCoachId } }
+      : { source: { startsWith: JORGE_INQUIRY_SOURCE } },
     orderBy: { createdAt: "desc" },
   });
 

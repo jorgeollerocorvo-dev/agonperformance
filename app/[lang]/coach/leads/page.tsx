@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Pill, Button } from "@/components/ui/Card";
-import { isJorge, JORGE_INQUIRY_SOURCE } from "@/lib/jorge";
+import { isJorge, JORGE_INQUIRY_SOURCE, findJorgeCoachProfileId } from "@/lib/jorge";
 
 export default async function LeadsInbox({ params, searchParams }: PageProps<"/[lang]/coach/leads">) {
   const { lang } = await params;
@@ -16,8 +16,13 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
   const dict = await getDictionary(lang);
   const sp = await searchParams;
 
+  // Jorge sees every inquiry that recommends him as a coach,
+  // regardless of which short-URL source tag (j, jorge, train, anything custom).
+  const jorgeCoachId = await findJorgeCoachProfileId();
   const inquiries = await prisma.inquiry.findMany({
-    where: { source: { startsWith: JORGE_INQUIRY_SOURCE } },
+    where: jorgeCoachId
+      ? { recommendedCoachIds: { has: jorgeCoachId } }
+      : { source: { startsWith: JORGE_INQUIRY_SOURCE } },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
