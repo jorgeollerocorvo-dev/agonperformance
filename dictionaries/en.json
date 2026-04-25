@@ -10,7 +10,8 @@
     "messages": "Messages",
     "profile": "My profile",
     "account": "Account",
-    "import": "Import"
+    "import": "Import",
+    "leads": "Leads"
   },
   "auth": {
     "email": "Email",
@@ -76,6 +77,13 @@
     "startDate": "Start date",
     "uploadFile": "Upload file",
     "importAndCreate": "Create program",
+    "leads": "Leads",
+    "leadsHint": "Inquiries that came in through your private intake form.",
+    "exportCsv": "Export CSV",
+    "shareThisLink": "Share this link on social media",
+    "openForm": "Open form ↗",
+    "shareHint": "Add ?source=instagram or ?source=whatsapp to track where each lead came from.",
+    "noLeadsYet": "No inquiries yet. Share your link to start collecting leads.",
     "programCreated": "Program created from your upload",
     "programCreatedHint": "You'll see it in the list below with a NEW tag. Open it to review weeks, days and movements — every exercise has a YouTube search link attached.",
     "openProgram": "Open program →",
@@ -160,7 +168,12 @@
     "thanksTitle": "Got it — we'll be in touch.",
     "thanksBody": "We've shared your answers with the best-fit coaches. Expect a message within 24h. In the meantime you can browse profiles.",
     "needContact": "Add at least one way to contact you (email, phone, or Instagram).",
-    "budget": "Budget per session"
+    "budget": "Budget per session",
+    "trainWith": "Train with",
+    "jorgeIntakeTagline": "Tell me a bit about you and your goals — I'll personally get back to you.",
+    "jorgeThanks": "Your answers reached me directly. I'll reply within 24h to schedule a first session.",
+    "contactHintJorge": "At least one way is required.",
+    "anythingElse": "Anything else I should know?"
   },
   "leadForm": {
     "goal": "What's your goal?",

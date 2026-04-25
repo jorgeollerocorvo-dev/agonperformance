@@ -10,7 +10,8 @@
     "messages": "Mensajes",
     "profile": "Mi perfil",
     "account": "Cuenta",
-    "import": "Importar"
+    "import": "Importar",
+    "leads": "Contactos"
   },
   "auth": {
     "email": "Correo",
@@ -76,6 +77,13 @@
     "startDate": "Fecha de inicio",
     "uploadFile": "Subir archivo",
     "importAndCreate": "Crear programa",
+    "leads": "Contactos",
+    "leadsHint": "Solicitudes que llegan a través de tu formulario privado.",
+    "exportCsv": "Exportar CSV",
+    "shareThisLink": "Comparte este enlace en redes sociales",
+    "openForm": "Abrir formulario ↗",
+    "shareHint": "Añade ?source=instagram o ?source=whatsapp para saber de dónde viene cada contacto.",
+    "noLeadsYet": "Aún no hay solicitudes. Comparte tu enlace para empezar a recibir contactos.",
     "programCreated": "Programa creado desde tu archivo",
     "programCreatedHint": "Aparece en la lista de abajo con la etiqueta NUEVO. Ábrelo para revisar semanas, días y ejercicios — cada movimiento tiene enlace a YouTube.",
     "openProgram": "Abrir programa →",
@@ -160,7 +168,12 @@
     "thanksTitle": "¡Perfecto! Te contactaremos pronto.",
     "thanksBody": "Compartimos tus respuestas con los entrenadores que mejor encajan. Recibirás un mensaje en 24h. Mientras, puedes ver los perfiles.",
     "needContact": "Añade al menos una forma de contacto (email, teléfono o Instagram).",
-    "budget": "Presupuesto por sesión"
+    "budget": "Presupuesto por sesión",
+    "trainWith": "Entrena con",
+    "jorgeIntakeTagline": "Cuéntame un poco sobre ti y tus objetivos — te respondo personalmente.",
+    "jorgeThanks": "Recibí tus respuestas directamente. Te escribo en 24h para agendar una primera sesión.",
+    "contactHintJorge": "Al menos una forma de contacto es obligatoria.",
+    "anythingElse": "¿Algo más que deba saber?"
   },
   "leadForm": {
     "goal": "¿Cuál es tu objetivo?",

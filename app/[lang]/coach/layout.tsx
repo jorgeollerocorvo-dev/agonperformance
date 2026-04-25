@@ -4,6 +4,7 @@ import { auth, signOut } from "@/auth";
 import { hasRole } from "@/lib/roles";
 import { getDictionary, hasLocale } from "../dictionaries";
 import HomeLink from "@/components/HomeLink";
+import { isJorge } from "@/lib/jorge";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default async function CoachLayout({
@@ -21,6 +22,7 @@ export default async function CoachLayout({
   if (!hasRole(session, "COACH")) redirect(`/${lang}/athlete`);
 
   const dict = await getDictionary(lang);
+  const showLeads = isJorge(session);
 
   const navLink = "px-3 py-1.5 rounded-full text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]";
 
@@ -34,6 +36,11 @@ export default async function CoachLayout({
             <Link href={`/${lang}/coach/athletes`} className={navLink}>{dict.nav.athletes}</Link>
             <Link href={`/${lang}/coach/programs`} className={navLink}>{dict.nav.programs}</Link>
             <Link href={`/${lang}/coach/import`} className={navLink}>{dict.nav.import ?? "Import"}</Link>
+            {showLeads && (
+              <Link href={`/${lang}/coach/leads`} className={`${navLink} text-[var(--primary)]`}>
+                {dict.nav.leads ?? "Leads"}
+              </Link>
+            )}
             <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
             <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
             <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
@@ -50,6 +57,11 @@ export default async function CoachLayout({
           <Link href={`/${lang}/coach/athletes`} className={navLink}>{dict.nav.athletes}</Link>
           <Link href={`/${lang}/coach/programs`} className={navLink}>{dict.nav.programs}</Link>
           <Link href={`/${lang}/coach/import`} className={navLink}>{dict.nav.import ?? "Import"}</Link>
+          {showLeads && (
+            <Link href={`/${lang}/coach/leads`} className={`${navLink} text-[var(--primary)]`}>
+              {dict.nav.leads ?? "Leads"}
+            </Link>
+          )}
           <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
           <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
           <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
