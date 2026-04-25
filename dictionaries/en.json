@@ -147,7 +147,20 @@
     "noMapLocations": "No coaches have set their location on the map yet. Browse the list or check back soon.",
     "perSession": "session",
     "viewProfile": "View profile",
-    "serviceArea": "Service area"
+    "serviceArea": "Service area",
+    "matchInMinutes": "Match in 24h",
+    "either": "Either",
+    "aboutYourTraining": "Your training",
+    "preferences": "Preferences",
+    "contactStep": "How do we reach you?",
+    "contactHint": "At least one is required. We'll only share with the coaches we match you with.",
+    "instagram": "Instagram (optional)",
+    "consent": "I agree to be contacted about coaching and receive occasional updates.",
+    "privacyNote": "Your details only go to the coaches we match you with. You can unsubscribe any time.",
+    "thanksTitle": "Got it — we'll be in touch.",
+    "thanksBody": "We've shared your answers with the best-fit coaches. Expect a message within 24h. In the meantime you can browse profiles.",
+    "needContact": "Add at least one way to contact you (email, phone, or Instagram).",
+    "budget": "Budget per session"
   },
   "leadForm": {
     "goal": "What's your goal?",

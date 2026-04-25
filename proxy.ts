@@ -15,8 +15,25 @@ function detectLocale(request: NextRequest): string {
   return DEFAULT_LOCALE;
 }
 
+// Short shareable aliases → real route
+const ALIASES: Record<string, string> = {
+  "/start": "/find-my-coach",
+  "/quiz": "/find-my-coach",
+  "/match": "/find-my-coach",
+};
+
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+
+  // Resolve shareable aliases first (e.g. /start → /{locale}/find-my-coach?source=...)
+  if (ALIASES[pathname]) {
+    const locale = detectLocale(request);
+    const target = `/${locale}${ALIASES[pathname]}`;
+    request.nextUrl.pathname = target;
+    // Preserve any ?source= or other UTM params already on the URL
+    if (!searchParams.has("source")) searchParams.set("source", pathname.slice(1));
+    return NextResponse.redirect(request.nextUrl);
+  }
 
   const hasLocale = LOCALES.some(
     (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`),

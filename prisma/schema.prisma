@@ -455,15 +455,21 @@ model Inquiry {
   clientUser             User?    @relation(fields: [clientUserId], references: [id], onDelete: SetNull)
   anonymousEmail         String?
   anonymousPhone         String?
+  contactName            String?
+  contactInstagram       String?
+  marketingConsent       Boolean  @default(false)
+  source                 String?  // "instagram", "whatsapp", "direct", etc. — utm-style
 
   goal                   String?
   frequencyCurrent       String?
   frequencyDesired       String?
   numPeople              String?
   ageRange               String?
+  gender                 String?
   injuryOrConcern        String?
   preferredLocation      String?
   preferredDaysAndTimes  String?
+  budget                 String?
   urgency                String?
   notes                  String?
   recommendedCoachIds    String[] @default([])
@@ -471,6 +477,7 @@ model Inquiry {
   createdAt              DateTime @default(now())
 
   @@index([status])
+  @@index([createdAt])
 }
 
 model Review {

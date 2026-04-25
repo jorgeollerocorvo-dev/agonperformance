@@ -147,7 +147,20 @@
     "noMapLocations": "Ningún entrenador ha fijado su ubicación aún. Consulta la lista o vuelve más tarde.",
     "perSession": "sesión",
     "viewProfile": "Ver perfil",
-    "serviceArea": "Zona de servicio"
+    "serviceArea": "Zona de servicio",
+    "matchInMinutes": "Match en 24h",
+    "either": "Cualquiera",
+    "aboutYourTraining": "Tu entrenamiento",
+    "preferences": "Preferencias",
+    "contactStep": "¿Cómo te contactamos?",
+    "contactHint": "Al menos uno es obligatorio. Solo compartimos con los entrenadores que te recomendemos.",
+    "instagram": "Instagram (opcional)",
+    "consent": "Acepto que me contacten sobre coaching y recibir actualizaciones ocasionales.",
+    "privacyNote": "Tus datos solo se comparten con los entrenadores recomendados. Puedes darte de baja cuando quieras.",
+    "thanksTitle": "¡Perfecto! Te contactaremos pronto.",
+    "thanksBody": "Compartimos tus respuestas con los entrenadores que mejor encajan. Recibirás un mensaje en 24h. Mientras, puedes ver los perfiles.",
+    "needContact": "Añade al menos una forma de contacto (email, teléfono o Instagram).",
+    "budget": "Presupuesto por sesión"
   },
   "leadForm": {
     "goal": "¿Cuál es tu objetivo?",
