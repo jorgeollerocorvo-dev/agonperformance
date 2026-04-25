@@ -1,10 +1,9 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
-import PublicHeader from "@/components/ui/PublicHeader";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Card, Button, Pill } from "@/components/ui/Card";
 import { JORGE_EMAIL, JORGE_INQUIRY_SOURCE, findJorgeCoachProfileId } from "@/lib/jorge";
 
@@ -93,7 +92,11 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
 
   return (
     <div className="min-h-screen">
-      <PublicHeader lang={lang} brand={dict.brand} />
+      {/* Locked header — brand text only, no nav links so visitors stay on the survey */}
+      <header className="px-4 sm:px-6 py-4 flex items-center gap-3">
+        <span className="font-semibold tracking-tight">{dict.brand}</span>
+        <div className="ml-auto"><LanguageSwitcher current={lang} compact /></div>
+      </header>
 
       <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         <header className="text-center space-y-3">
@@ -231,7 +234,7 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
       </main>
 
       <footer className="px-4 sm:px-8 py-8 text-xs text-[var(--ink-subtle)] text-center">
-        <Link href={`/${lang}`} className="hover:underline">{dict.brand}</Link>
+        © {dict.brand}
       </footer>
     </div>
   );
