@@ -139,7 +139,7 @@ export async function parseProgramWithAI(rawText: string): Promise<ParsedProgram
   let msg;
   try {
     msg = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: process.env.ANTHROPIC_PARSE_MODEL ?? "claude-haiku-4-5",
       max_tokens: 8000,
       system: [
         {
