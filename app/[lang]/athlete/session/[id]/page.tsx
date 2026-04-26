@@ -1,16 +1,18 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
-import { ytEmbed } from "@/lib/youtube";
-import { Card, Pill } from "@/components/ui/Card";
+import { ytEmbed, ytSearchUrl } from "@/lib/youtube";
+import { Card, Pill, Button } from "@/components/ui/Card";
 
-export default async function SessionDetail({ params }: PageProps<"/[lang]/athlete/session/[id]">) {
+export default async function SessionDetail({ params, searchParams }: PageProps<"/[lang]/athlete/session/[id]">) {
   const { lang, id } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const session = await auth();
+  const sp = await searchParams;
+  const fromCalendar = sp?.from === "calendar";
 
   const link = await prisma.athleteLink.findFirst({
     where: { userId: session!.user.id, active: true },
@@ -30,9 +32,27 @@ export default async function SessionDetail({ params }: PageProps<"/[lang]/athle
   });
   if (!s) notFound();
 
+  async function toggleComplete() {
+    "use server";
+    if (!s || !link) return;
+    if (s.sessionLog) {
+      await prisma.sessionLog.delete({ where: { id: s.sessionLog.id } });
+    } else {
+      await prisma.sessionLog.create({
+        data: { programSessionId: s.id, athleteId: link.athleteId },
+      });
+    }
+    redirect(`/${lang}/athlete/session/${s.id}${fromCalendar ? "?from=calendar" : ""}`);
+  }
+
+  const backHref = fromCalendar
+    ? `/${lang}/athlete/calendar?month=${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, "0")}`
+    : `/${lang}/athlete/history`;
+  const backLabel = fromCalendar ? (dict.athlete.calendarTitle ?? "Calendar") : dict.nav.history;
+
   return (
     <div className="space-y-6">
-      <Link href={`/${lang}/athlete/history`} className="text-sm text-[var(--ink-muted)] hover:underline">← {dict.nav.history}</Link>
+      <Link href={backHref} className="text-sm text-[var(--ink-muted)] hover:underline">← {backLabel}</Link>
 
       <header className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
@@ -50,29 +70,54 @@ export default async function SessionDetail({ params }: PageProps<"/[lang]/athle
             <span className="font-semibold">{b.label}</span>
             {b.format && <span className="text-xs text-[var(--ink-muted)]">{b.format}</span>}
           </div>
-          <ul className="divide-y divide-[var(--border)]">
-            {b.movements.map((m) => {
+          <ul className="space-y-3">
+            {b.movements.map((m, idx) => {
               const p = (m.prescription ?? {}) as Record<string, unknown>;
-              const name = m.movement?.nameEn ?? m.customName ?? "—";
+              const localName = lang === "es"
+                ? (m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—")
+                : lang === "ar"
+                ? (m.movement?.nameAr ?? m.movement?.nameEn ?? m.customName ?? "—")
+                : (m.movement?.nameEn ?? m.customName ?? "—");
               const bits = [
                 p.sets && `${p.sets}×`,
                 p.reps ?? p.reps_range,
                 p.load_kg && `${p.load_kg} kg`,
                 p.load,
                 p.duration_min && `${p.duration_min} min`,
+                p.rest && `rest ${p.rest}`,
                 p.rpe && `RPE ${p.rpe}`,
               ].filter(Boolean).join(" · ");
-              const youtubeUrl = (p.youtubeUrl as string | undefined) ?? m.movement?.videoUrl;
-              const embed = ytEmbed(youtubeUrl);
+              const sourceUrl = (typeof p.youtubeUrl === "string" ? p.youtubeUrl : null) ?? m.movement?.videoUrl ?? null;
+              const embed = ytEmbed(sourceUrl);
+              const fallback = ytSearchUrl(localName);
               return (
-                <li key={m.id} className="py-3">
-                  <div className="font-medium">{name}</div>
-                  {bits && <div className="text-sm text-[var(--ink-muted)]">{bits}</div>}
-                  {typeof p.notes === "string" && <div className="text-xs text-[var(--ink-subtle)] italic mt-1">{p.notes}</div>}
-                  {embed && (
-                    <div className="mt-2 aspect-video max-w-md">
-                      <iframe src={embed} className="w-full h-full rounded-xl" allow="encrypted-media" allowFullScreen />
+                <li key={m.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 p-3 sm:p-4">
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-xs font-bold text-[var(--ink-subtle)]">{b.blockCode}{idx + 1}</span>
+                    <span className="font-semibold flex-1">{localName}</span>
+                  </div>
+                  {bits && <div className="text-sm text-[var(--ink-muted)] mb-2">{bits}</div>}
+                  {embed ? (
+                    <div className="aspect-video max-w-2xl rounded-xl overflow-hidden bg-black">
+                      <iframe
+                        src={embed}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
                     </div>
+                  ) : (
+                    <a
+                      href={fallback}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-3 py-1.5 text-xs font-semibold hover:opacity-90"
+                    >
+                      🎥 {dict.athlete.findDemo ?? "Find demo on YouTube"}
+                    </a>
+                  )}
+                  {typeof p.notes === "string" && p.notes && (
+                    <div className="text-xs text-[var(--ink-subtle)] italic mt-2">{p.notes}</div>
                   )}
                 </li>
               );
@@ -80,6 +125,14 @@ export default async function SessionDetail({ params }: PageProps<"/[lang]/athle
           </ul>
         </Card>
       ))}
+
+      <form action={toggleComplete}>
+        <Button size="lg" variant={s.sessionLog ? "outline" : "primary"}>
+          {s.sessionLog
+            ? `↺ ${dict.athlete.unmark ?? "Mark as not done"}`
+            : `✓ ${dict.athlete.markDone}`}
+        </Button>
+      </form>
     </div>
   );
 }

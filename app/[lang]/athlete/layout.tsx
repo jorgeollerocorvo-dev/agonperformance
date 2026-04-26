@@ -32,6 +32,7 @@ export default async function AthleteLayout({
           <Link href={`/${lang}/athlete`} className="font-semibold tracking-tight">{dict.brand}</Link>
           <nav className="hidden sm:flex gap-1">
             <Link href={`/${lang}/athlete`} className={navLink}>{dict.nav.today}</Link>
+            <Link href={`/${lang}/athlete/calendar`} className={navLink}>{dict.nav.calendar ?? "Calendar"}</Link>
             <Link href={`/${lang}/athlete/history`} className={navLink}>{dict.nav.history}</Link>
             <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
             <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
