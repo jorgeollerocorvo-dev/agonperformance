@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
+import { ensureMovementVideoUrl } from "@/lib/youtube-search";
+import { isYoutubeSearch } from "@/lib/youtube";
 import Link from "next/link";
 import { Card, Pill, Button } from "@/components/ui/Card";
 
@@ -39,6 +41,30 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
       sessionLog: true,
     },
   });
+
+  // Resolve a real YouTube video URL for every movement on this session.
+  // We do it once per render (cached on the Movement row after first hit), in parallel.
+  const resolvedVideoByMovement = new Map<string, string | null>();
+  if (programSession) {
+    type MovementContext = { id: string; movementId: string | null; name: string; userUrl: string | null };
+    const targets: MovementContext[] = [];
+    for (const b of programSession.blocks) {
+      for (const m of b.movements) {
+        const p = (m.prescription ?? {}) as Record<string, unknown>;
+        const userUrl = typeof p.youtubeUrl === "string" ? p.youtubeUrl : null;
+        // If the coach pinned a real video URL, skip the search.
+        if (userUrl && !isYoutubeSearch(userUrl)) continue;
+        const name = m.movement?.nameEn ?? m.customName ?? "exercise";
+        targets.push({ id: m.id, movementId: m.movementId, name, userUrl });
+      }
+    }
+    const resolved = await Promise.allSettled(
+      targets.map(async (t) => ({ id: t.id, url: await ensureMovementVideoUrl(t.movementId, t.name) })),
+    );
+    for (const r of resolved) {
+      if (r.status === "fulfilled") resolvedVideoByMovement.set(r.value.id, r.value.url);
+    }
+  }
 
   async function markDone() {
     "use server";
@@ -114,7 +140,8 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
                 p.rpe && `RPE ${p.rpe}`,
               ].filter(Boolean).join(" · ");
               const prescriptionUrl = typeof p.youtubeUrl === "string" ? p.youtubeUrl : null;
-              const sourceUrl = prescriptionUrl ?? m.movement?.videoUrl ?? null;
+              const coachPinned = prescriptionUrl && !isYoutubeSearch(prescriptionUrl) ? prescriptionUrl : null;
+              const sourceUrl = coachPinned ?? resolvedVideoByMovement.get(m.id) ?? m.movement?.videoUrl ?? prescriptionUrl ?? null;
               return (
                 <li key={m.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 p-3 sm:p-4">
                   <div className="flex items-baseline gap-2 mb-2">
