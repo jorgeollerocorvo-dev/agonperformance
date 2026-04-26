@@ -27,11 +27,18 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
   if (!athlete) return { error: "Athlete not found" };
 
   let rawText: string;
+  let docFilename: string | null = null;
+  let docMime: string | null = null;
+  let docSource: "upload" | "paste";
   if (pastedText) {
     rawText = pastedText;
+    docSource = "paste";
   } else {
     try {
       rawText = await extractText(file!);
+      docFilename = file!.name || null;
+      docMime = file!.type || null;
+      docSource = "upload";
     } catch (e) {
       return { error: `Could not read file: ${(e as Error).message}` };
     }
@@ -124,6 +131,121 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
     return prog;
   }, { timeout: 30_000 });
 
+  // Persist the source document so the coach can re-download or re-generate later.
+  await prisma.programDocument.create({
+    data: {
+      programId: program.id,
+      filename: docFilename,
+      mimeType: docMime,
+      rawText,
+      source: docSource,
+    },
+  });
+
   revalidatePath(`/`, "layout");
   return { previewId: program.id };
+}
+
+// ────────────────────────────────────────────────────────────
+// Regenerate program tree from a stored ProgramDocument
+// ────────────────────────────────────────────────────────────
+
+export async function regenerateProgramFromDocument(programId: string): Promise<{ error?: string; ok?: boolean }> {
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) return { error: "unauthorized" };
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) return { error: "no coach profile" };
+
+  const program = await prisma.program.findFirst({
+    where: { id: programId, athlete: { coachProfileId: coach.id } },
+    include: { documents: { orderBy: { createdAt: "desc" }, take: 1 } },
+  });
+  if (!program) return { error: "Program not found" };
+  if (program.documents.length === 0) {
+    return { error: "No source document is stored for this program. Re-upload or paste the original." };
+  }
+
+  const rawText = program.documents[0].rawText;
+
+  let parsed: ParsedProgram;
+  try {
+    parsed = await parseProgramWithAI(rawText);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const startDate = program.startDate;
+
+  await prisma.$transaction(async (tx) => {
+    // Replace title/goal/duration if Claude returns better values
+    await tx.program.update({
+      where: { id: program.id },
+      data: {
+        title: parsed.title || program.title,
+        goal: parsed.goal ?? program.goal,
+        durationWeeks: parsed.durationWeeks ?? program.durationWeeks,
+      },
+    });
+
+    // Wipe and rebuild the week tree
+    await tx.programWeek.deleteMany({ where: { programId: program.id } });
+
+    for (let wi = 0; wi < parsed.weeks.length; wi++) {
+      const w = parsed.weeks[wi];
+      const createdWeek = await tx.programWeek.create({
+        data: {
+          programId: program.id,
+          weekNumber: w.weekNumber || wi + 1,
+          weekLabel: w.weekLabel ?? null,
+        },
+      });
+      for (let di = 0; di < w.days.length; di++) {
+        const d = w.days[di];
+        const dayDate = new Date(startDate);
+        dayDate.setDate(dayDate.getDate() + (w.weekNumber - 1) * 7 + di);
+        const createdDay = await tx.programSession.create({
+          data: {
+            programWeekId: createdWeek.id,
+            date: d.date ? new Date(d.date) : dayDate,
+            day: d.dayOfWeek ?? dayDate.toLocaleDateString("en-US", { weekday: "long" }),
+            focus: d.isRest ? "Rest day" : (d.focus ?? null),
+            intensity: d.isRest ? null : (d.intensity ?? null),
+            notes: d.notes ?? null,
+          },
+        });
+        for (let bi = 0; bi < (d.blocks ?? []).length; bi++) {
+          const b = d.blocks[bi];
+          await tx.programBlock.create({
+            data: {
+              programSessionId: createdDay.id,
+              blockCode: b.blockCode || String.fromCharCode(65 + bi),
+              label: b.label ?? null,
+              format: b.format ?? null,
+              restSec: b.restSec ?? null,
+              notes: b.notes ?? null,
+              order: bi,
+              movements: {
+                create: b.movements.map((m, mi) => ({
+                  customName: m.name,
+                  prescription: {
+                    sets: m.sets ?? undefined,
+                    reps: m.reps ?? undefined,
+                    load: m.load ?? undefined,
+                    rest: m.rest ?? undefined,
+                    notes: m.notes ?? undefined,
+                    youtubeUrl: bestYoutubeUrl(m),
+                  },
+                  order: mi,
+                  isTest: !!m.isTest,
+                })),
+              },
+            },
+          });
+        }
+      }
+    }
+  }, { timeout: 30_000 });
+
+  revalidatePath(`/`, "layout");
+  return { ok: true };
 }

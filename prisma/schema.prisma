@@ -307,9 +307,25 @@ model Program {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  weeks ProgramWeek[]
+  weeks     ProgramWeek[]
+  documents ProgramDocument[]
 
   @@index([athleteId, startDate])
+}
+
+/// Original document a program was imported from. Stored so the coach can
+/// download it later and so we can re-generate the program tree on demand.
+model ProgramDocument {
+  id         String   @id @default(cuid())
+  programId  String
+  program    Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  filename   String?
+  mimeType   String?
+  rawText    String   // extracted plain text — what we send to Claude
+  source     String?  // "upload" | "paste" | future: "url"
+  createdAt  DateTime @default(now())
+
+  @@index([programId, createdAt])
 }
 
 model ProgramWeek {

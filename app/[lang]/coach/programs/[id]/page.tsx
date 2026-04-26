@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 import ProgramBuilder from "./ProgramBuilder";
 import type { EditorProgram } from "./actions";
+import { Card } from "@/components/ui/Card";
+import { regenerateProgramFromDocument } from "../../import/actions";
 
-export default async function ProgramDetail({ params }: PageProps<"/[lang]/coach/programs/[id]">) {
+export default async function ProgramDetail({ params, searchParams }: PageProps<"/[lang]/coach/programs/[id]">) {
   const { lang, id } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
@@ -17,6 +19,7 @@ export default async function ProgramDetail({ params }: PageProps<"/[lang]/coach
     where: { id, athlete: { coachProfileId: coachProfile!.id } },
     include: {
       athlete: true,
+      documents: { orderBy: { createdAt: "desc" }, take: 1 },
       weeks: {
         orderBy: { weekNumber: "asc" },
         include: {
@@ -34,6 +37,20 @@ export default async function ProgramDetail({ params }: PageProps<"/[lang]/coach
     },
   });
   if (!program) notFound();
+
+  const sp = await searchParams;
+  const regenError = typeof sp?.regenError === "string" ? decodeURIComponent(sp.regenError) : null;
+  const regenerated = sp?.regen === "1";
+
+  async function regenerate() {
+    "use server";
+    const r = await regenerateProgramFromDocument(id);
+    if (r.error) redirect(`/${lang}/coach/programs/${id}?regenError=${encodeURIComponent(r.error)}`);
+    redirect(`/${lang}/coach/programs/${id}?regen=1`);
+  }
+
+  const sourceDoc = program.documents[0] ?? null;
+  const docHref = sourceDoc ? `/api/programs/${program.id}/document` : null;
 
   // Convert to editor shape. If a week has no sessions yet, synthesize 7 empty days from its start dates.
   const startDate = program.startDate;
@@ -115,6 +132,45 @@ export default async function ProgramDetail({ params }: PageProps<"/[lang]/coach
       <div className="flex items-baseline gap-3">
         <Link href={`/${lang}/coach/athletes/${program.athleteId}`} className="text-sm text-[var(--ink-muted)] hover:underline">← {program.athlete.fullName}</Link>
       </div>
+
+      {regenerated && (
+        <Card className="bg-[var(--success-soft)] border-[var(--success)]/30 text-sm">
+          ✓ {dict.coach.regenSuccess ?? "Program rebuilt from your source document."}
+        </Card>
+      )}
+      {regenError && (
+        <Card className="bg-[var(--danger-soft)] border-[var(--danger)]/30 text-sm text-[var(--danger)]">
+          ✕ {regenError}
+        </Card>
+      )}
+
+      {sourceDoc && (
+        <Card className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">{dict.coach.sourceDocument ?? "Source document"}</div>
+            <div className="text-sm font-medium truncate">
+              {sourceDoc.filename ?? (sourceDoc.source === "paste" ? (dict.coach.pastedText ?? "Pasted text") : "Imported document")}
+            </div>
+            <div className="text-xs text-[var(--ink-subtle)]">
+              {dict.coach.savedOn ?? "Saved"} {sourceDoc.createdAt.toISOString().slice(0, 16).replace("T", " ")}
+            </div>
+          </div>
+          {docHref && (
+            <a
+              href={docHref}
+              download
+              className="rounded-full border border-[var(--border-strong)] bg-white px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-2)]"
+            >
+              ⬇ {dict.coach.downloadDocument ?? "Download"}
+            </a>
+          )}
+          <form action={regenerate}>
+            <button className="rounded-full bg-[var(--primary)] text-white px-4 py-2 text-sm font-semibold hover:bg-[var(--primary-hover)]">
+              ⚡ {dict.coach.regenerateProgram ?? "Regenerate program from this document"}
+            </button>
+          </form>
+        </Card>
+      )}
 
       <ProgramBuilder
         initial={initial}
