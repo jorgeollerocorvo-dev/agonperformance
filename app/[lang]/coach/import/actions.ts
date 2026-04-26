@@ -8,15 +8,21 @@ import { extractText } from "@/lib/parse-document";
 import { parseProgramWithAI, bestYoutubeUrl, type ParsedProgram } from "@/lib/ai-parse-program";
 
 export async function importAndCreateProgram(formData: FormData): Promise<{ error?: string; previewId?: string }> {
+  console.log("[import] start", new Date().toISOString());
   const session = await auth();
-  if (!session?.user || !session.user.roles?.includes("COACH")) return { error: "unauthorized" };
+  if (!session?.user || !session.user.roles?.includes("COACH")) {
+    console.log("[import] unauthorized");
+    return { error: "unauthorized" };
+  }
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
-  if (!coach) return { error: "no coach profile" };
+  if (!coach) { console.log("[import] no coach profile"); return { error: "no coach profile" }; }
 
   const file = formData.get("file") as File | null;
   const pastedText = String(formData.get("pastedText") ?? "").trim();
   const athleteId = String(formData.get("athleteId") ?? "");
   const startDateRaw = String(formData.get("startDate") ?? new Date().toISOString().slice(0, 10));
+
+  console.log(`[import] athleteId=${athleteId} fileSize=${file?.size ?? 0} fileName=${file?.name ?? ""} pasteLen=${pastedText.length} startDate=${startDateRaw}`);
 
   if (!athleteId) return { error: "Pick an athlete to assign this program to" };
   if ((!file || file.size === 0) && !pastedText) {
@@ -24,7 +30,7 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
   }
 
   const athlete = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: coach.id } });
-  if (!athlete) return { error: "Athlete not found" };
+  if (!athlete) { console.log(`[import] athlete not found id=${athleteId} coach=${coach.id}`); return { error: "Athlete not found" }; }
 
   let rawText: string;
   let docFilename: string | null = null;
@@ -40,21 +46,34 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
       docMime = file!.type || null;
       docSource = "upload";
     } catch (e) {
+      console.error("[import] extract failed", e);
       return { error: `Could not read file: ${(e as Error).message}` };
     }
   }
-  if (!rawText.trim()) return { error: "Document / text appears to be empty" };
+  if (!rawText.trim()) {
+    console.log("[import] empty text after extract");
+    return { error: "Document / text appears to be empty" };
+  }
+  console.log(`[import] extracted ${rawText.length} chars`);
 
   let parsed: ParsedProgram;
   try {
     parsed = await parseProgramWithAI(rawText);
+    console.log(`[import] parsed: ${parsed.weeks?.length ?? 0} weeks, title="${parsed.title}"`);
   } catch (e) {
+    console.error("[import] AI parse failed", e);
     return { error: (e as Error).message };
+  }
+
+  if (!parsed.weeks || parsed.weeks.length === 0) {
+    console.log("[import] AI returned 0 weeks — refusing to save empty program");
+    return { error: "The AI couldn't find a program structure in this document. Try a clearer format with explicit days and exercises." };
   }
 
   const startDate = new Date(startDateRaw);
 
-  // Create the program tree in one transaction
+  // Create the program tree in one transaction.
+  // Larger timeout because long programs touch hundreds of rows.
   const program = await prisma.$transaction(async (tx) => {
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + parsed.durationWeeks * 7 - 1);
@@ -129,20 +148,29 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
     }
 
     return prog;
-  }, { timeout: 30_000 });
+  }, { timeout: 90_000, maxWait: 10_000 });
+
+  console.log(`[import] program saved id=${program.id}`);
 
   // Persist the source document so the coach can re-download or re-generate later.
-  await prisma.programDocument.create({
-    data: {
-      programId: program.id,
-      filename: docFilename,
-      mimeType: docMime,
-      rawText,
-      source: docSource,
-    },
-  });
+  try {
+    await prisma.programDocument.create({
+      data: {
+        programId: program.id,
+        filename: docFilename,
+        mimeType: docMime,
+        rawText,
+        source: docSource,
+      },
+    });
+    console.log("[import] document saved");
+  } catch (e) {
+    // Don't fail the whole import if doc persist fails — program is already there.
+    console.error("[import] document save failed", e);
+  }
 
   revalidatePath(`/`, "layout");
+  console.log("[import] done");
   return { previewId: program.id };
 }
 
