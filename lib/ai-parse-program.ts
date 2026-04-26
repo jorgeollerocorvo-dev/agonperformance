@@ -166,7 +166,13 @@ export async function parseProgramWithAI(rawText: string): Promise<ParsedProgram
       throw new Error("Anthropic rate limit hit. Wait a minute and try again.");
     }
     if (err.status === 400) {
-      throw new Error(`Anthropic rejected the request: ${err.message ?? "bad request"}.`);
+      const msg = err.message ?? "";
+      if (/credit balance/i.test(msg) || /insufficient/i.test(msg)) {
+        throw new Error(
+          "Your Anthropic account is out of credits. Add at least $5 at console.anthropic.com/settings/billing — then try again. (Or build the program manually using the editor.)",
+        );
+      }
+      throw new Error(`Anthropic rejected the request: ${msg || "bad request"}.`);
     }
     throw new Error(`AI parse failed: ${err.message ?? "unknown error"}`);
   }
