@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type EditorMovement } from "./actions";
 import { ytEmbed as ytEmbedUrl } from "@/lib/youtube";
+import MovementNameInput from "@/components/MovementNameInput";
 
 type Dict = {
   save: string;
@@ -478,12 +479,14 @@ function BlockEditor({
           return (
             <li key={mi} className="rounded-xl bg-white border border-[var(--border)] p-3 space-y-2">
               <div className="flex gap-1 items-center">
-                <input
-                  value={m.name}
-                  onChange={(e) => onMovementPatch(mi, (v) => { v.name = e.target.value; })}
-                  placeholder={dict.movementName}
-                  className="flex-1 text-sm font-semibold bg-transparent outline-none"
-                />
+                <div className="flex-1">
+                  <MovementNameInput
+                    value={m.name}
+                    onChange={(next) => onMovementPatch(mi, (v) => { v.name = next; })}
+                    placeholder={dict.movementName}
+                    className="w-full text-sm font-semibold bg-transparent outline-none"
+                  />
+                </div>
                 <a
                   title={dict.findVideo}
                   href={`https://www.youtube.com/results?search_query=${encodeURIComponent(m.name + " demo")}`}
