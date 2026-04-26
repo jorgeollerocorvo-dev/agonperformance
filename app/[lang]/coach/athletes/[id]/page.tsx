@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
-import { Card, Button } from "@/components/ui/Card";
+import { Card, Button, Pill } from "@/components/ui/Card";
 import { hasAIKey } from "@/lib/ai-parse-program";
 import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
 import { importAndCreateProgram } from "../../import/actions";
@@ -24,11 +25,14 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   const athlete = await prisma.athlete.findFirst({
     where: { id, coachProfileId: coachProfile!.id },
     include: {
+      user: true,
       programs: { orderBy: { startDate: "desc" } },
       testResults: { orderBy: { date: "desc" }, take: 10, include: { movement: true } },
     },
   });
   if (!athlete) notFound();
+  const accountCreated = sp?.accountCreated === "1" || sp?.loginCreated === "1";
+  const passwordReset = sp?.passwordReset === "1";
 
   async function updateAthlete(formData: FormData) {
     "use server";
@@ -66,6 +70,56 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
       },
     });
     redirect(`/${lang}/coach/athletes/${id}`);
+  }
+
+  async function createLoginForAthlete(formData: FormData) {
+    "use server";
+    const s = await auth();
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
+    const a = await prisma.athlete.findFirst({ where: { id, coachProfileId: cp!.id } });
+    if (!a) return;
+
+    const email = String(formData.get("loginEmail") ?? "").toLowerCase().trim();
+    const password = String(formData.get("loginPassword") ?? "");
+    if (!email) redirect(`/${lang}/coach/athletes/${id}?loginErr=email`);
+    if (password.length < 6) redirect(`/${lang}/coach/athletes/${id}?loginErr=short`);
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) redirect(`/${lang}/coach/athletes/${id}?loginErr=taken`);
+
+    const hash = await bcrypt.hash(password, 10);
+    const u = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: hash,
+        fullName: a.fullName,
+        displayName: a.fullName,
+        preferredLanguage: lang === "es" ? "ES" : lang === "ar" ? "AR" : "EN",
+        roles: { create: [{ role: "CLIENT" }] },
+      },
+    });
+
+    await prisma.athlete.update({
+      where: { id: a.id },
+      data: { userId: u.id, email },
+    });
+    await prisma.athleteLink.create({
+      data: { userId: u.id, athleteId: a.id, active: true },
+    });
+
+    redirect(`/${lang}/coach/athletes/${id}?loginCreated=1`);
+  }
+
+  async function resetAthletePassword(formData: FormData) {
+    "use server";
+    const s = await auth();
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
+    const a = await prisma.athlete.findFirst({ where: { id, coachProfileId: cp!.id }, include: { user: true } });
+    if (!a?.user) return;
+    const password = String(formData.get("newPassword") ?? "");
+    if (password.length < 6) redirect(`/${lang}/coach/athletes/${id}?loginErr=short`);
+    const hash = await bcrypt.hash(password, 10);
+    await prisma.user.update({ where: { id: a.user.id }, data: { passwordHash: hash } });
+    redirect(`/${lang}/coach/athletes/${id}?passwordReset=1`);
   }
 
   async function importProgramForAthlete(formData: FormData) {
@@ -114,6 +168,68 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
           <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.coach.save}</button>
         </div>
       </form>
+
+      {/* Login account for the athlete */}
+      <Card>
+        <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+          <h2 className="text-lg font-semibold">{dict.coach.clientLogin ?? "Client login"}</h2>
+          {athlete.user ? (
+            <Pill color="success">✓ {dict.coach.linked ?? "Linked"}</Pill>
+          ) : (
+            <Pill color="soft">{dict.coach.notLinked ?? "Not yet"}</Pill>
+          )}
+        </div>
+
+        {accountCreated && (
+          <div className="mb-3 rounded-xl bg-[var(--success-soft)] border border-[var(--success)]/30 text-[var(--success)] px-3 py-2 text-sm">
+            ✓ {dict.coach.accountCreated ?? "Login created. Tell the athlete to log in with their email and the password you set."}
+          </div>
+        )}
+        {passwordReset && (
+          <div className="mb-3 rounded-xl bg-[var(--success-soft)] border border-[var(--success)]/30 text-[var(--success)] px-3 py-2 text-sm">
+            ✓ {dict.coach.passwordReset ?? "Password reset."}
+          </div>
+        )}
+        {sp?.loginErr === "email" && <div className="mb-3 rounded-xl bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[var(--danger)] px-3 py-2 text-sm">Email is required.</div>}
+        {sp?.loginErr === "short" && <div className="mb-3 rounded-xl bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[var(--danger)] px-3 py-2 text-sm">Password must be at least 6 characters.</div>}
+        {sp?.loginErr === "taken" && <div className="mb-3 rounded-xl bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[var(--danger)] px-3 py-2 text-sm">That email already has an account.</div>}
+
+        {athlete.user ? (
+          <>
+            <p className="text-sm text-[var(--ink-muted)] mb-3">
+              {dict.coach.loginInfo ?? "This athlete already has a login. They can change their password themselves at /account."}
+              <span className="block mt-1">{dict.auth.email}: <code className="bg-[var(--surface-2)] px-1.5 py-0.5 rounded">{athlete.user.email}</code></span>
+            </p>
+            <details>
+              <summary className="cursor-pointer text-sm text-[var(--primary)] hover:underline">{dict.coach.resetPassword ?? "Reset their password"}</summary>
+              <form action={resetAthletePassword} className="mt-3 flex gap-2 items-end flex-wrap">
+                <label className="text-sm flex-1 min-w-44">
+                  <span className="block text-xs text-[var(--ink-muted)] mb-1">{dict.coach.newPassword ?? "New password (min 6)"}</span>
+                  <input type="text" name="newPassword" minLength={6} required className={inputCls} />
+                </label>
+                <Button type="submit" size="sm">{dict.coach.save}</Button>
+              </form>
+            </details>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-[var(--ink-muted)] mb-3">
+              {dict.coach.loginCreateHint ?? "Give this athlete an account so they can log in and see their daily workout. They can change the password themselves once logged in."}
+            </p>
+            <form action={createLoginForAthlete} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
+              <label className="text-sm">
+                <span className="block text-xs text-[var(--ink-muted)] mb-1">{dict.auth.email}</span>
+                <input name="loginEmail" type="email" required defaultValue={athlete.email ?? ""} className={inputCls} />
+              </label>
+              <label className="text-sm">
+                <span className="block text-xs text-[var(--ink-muted)] mb-1">{dict.coach.tempPassword ?? "Password (min 6)"}</span>
+                <input name="loginPassword" type="text" minLength={6} required className={inputCls} />
+              </label>
+              <Button type="submit">{dict.coach.createLogin ?? "Create login"}</Button>
+            </form>
+          </>
+        )}
+      </Card>
 
       <section id="programs" className="space-y-3 scroll-mt-24">
         <div className="flex items-baseline justify-between">

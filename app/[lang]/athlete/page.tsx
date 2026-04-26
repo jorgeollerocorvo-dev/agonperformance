@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
-import { ytEmbed } from "@/lib/youtube";
+import { ytEmbed, ytSearchUrl } from "@/lib/youtube";
 import Link from "next/link";
 import { Card, Pill, Button } from "@/components/ui/Card";
 
@@ -96,27 +96,57 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
             <span className="font-semibold">{b.label}</span>
             {b.format && <span className="text-xs text-[var(--ink-muted)]">{b.format}</span>}
           </div>
-          <ul className="divide-y divide-[var(--border)]">
-            {b.movements.map((m) => {
+          <ul className="space-y-4">
+            {b.movements.map((m, idx) => {
               const p = (m.prescription ?? {}) as Record<string, unknown>;
-              const name = m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—";
+              const localName = lang === "es"
+                ? (m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—")
+                : lang === "ar"
+                ? (m.movement?.nameAr ?? m.movement?.nameEn ?? m.customName ?? "—")
+                : (m.movement?.nameEn ?? m.customName ?? "—");
               const bits = [
                 p.sets && `${p.sets}×`,
                 p.reps ?? p.reps_range,
                 p.load_kg && `${p.load_kg} kg`,
+                p.load,
                 p.duration_min && `${p.duration_min} min`,
+                p.rest && `rest ${p.rest}`,
                 p.rpe && `RPE ${p.rpe}`,
               ].filter(Boolean).join(" · ");
-              const embed = ytEmbed(m.movement?.videoUrl);
+              // Prefer the explicit prescription URL from the program editor; fall back to the
+              // movement-library default; both go through ytEmbed which only succeeds on real videos.
+              const prescriptionUrl = typeof p.youtubeUrl === "string" ? p.youtubeUrl : null;
+              const sourceUrl = prescriptionUrl ?? m.movement?.videoUrl ?? null;
+              const embed = ytEmbed(sourceUrl);
+              const fallbackSearch = ytSearchUrl(localName);
               return (
-                <li key={m.id} className="py-3">
-                  <div className="font-medium">{name}</div>
-                  {bits && <div className="text-sm text-[var(--ink-muted)]">{bits}</div>}
-                  {typeof p.notes === "string" && <div className="text-xs text-[var(--ink-subtle)] italic mt-1">{p.notes}</div>}
-                  {embed && (
-                    <div className="mt-2 aspect-video max-w-md">
-                      <iframe src={embed} className="w-full h-full rounded-xl" allow="encrypted-media" allowFullScreen />
+                <li key={m.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 p-3 sm:p-4">
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-xs font-bold text-[var(--ink-subtle)]">{b.blockCode}{idx + 1}</span>
+                    <span className="font-semibold flex-1">{localName}</span>
+                  </div>
+                  {bits && <div className="text-sm text-[var(--ink-muted)] mb-2">{bits}</div>}
+                  {embed ? (
+                    <div className="aspect-video max-w-2xl rounded-xl overflow-hidden bg-black">
+                      <iframe
+                        src={embed}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
                     </div>
+                  ) : (
+                    <a
+                      href={fallbackSearch}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-3 py-1.5 text-xs font-semibold hover:opacity-90"
+                    >
+                      🎥 {dict.athlete.findDemo ?? "Find demo on YouTube"}
+                    </a>
+                  )}
+                  {typeof p.notes === "string" && p.notes && (
+                    <div className="text-xs text-[var(--ink-subtle)] italic mt-2">{p.notes}</div>
                   )}
                 </li>
               );

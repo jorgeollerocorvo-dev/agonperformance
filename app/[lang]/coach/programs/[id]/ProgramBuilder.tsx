@@ -38,11 +38,13 @@ type Dict = {
   viewCompact?: string;
   viewWide?: string;
   viewFocus?: string;
+  pasteDay?: string;
 };
 
 type Clip =
   | { kind: "block"; data: EditorBlock }
   | { kind: "movement"; data: EditorMovement }
+  | { kind: "day"; data: EditorDay }
   | null;
 
 export default function ProgramBuilder({
@@ -68,7 +70,23 @@ export default function ProgramBuilder({
 
   const copyBlock = (b: EditorBlock) => setClip({ kind: "block", data: structuredClone(b) });
   const copyMovement = (m: EditorMovement) => setClip({ kind: "movement", data: structuredClone(m) });
+  const copyDay = (d: EditorDay) => setClip({ kind: "day", data: structuredClone(d) });
   const clearClip = () => setClip(null);
+
+  const pasteDayInto = (wi: number, di: number) => {
+    if (clip?.kind !== "day") return;
+    patchDay(wi, di, (d) => {
+      const src = structuredClone(clip.data);
+      d.blocks = src.blocks.map((b) => ({
+        ...b,
+        id: null,
+        movements: b.movements.map((m) => ({ ...m, id: null })),
+      }));
+      d.focus = src.focus;
+      d.intensity = src.intensity;
+      d.notes = src.notes;
+    });
+  };
 
   const pasteBlockInto = (wi: number, di: number) => {
     if (clip?.kind !== "block") return;
@@ -253,9 +271,13 @@ export default function ProgramBuilder({
       {clip && (
         <div className="flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-1.5 text-sm w-fit shadow-[var(--shadow-sm)]">
           <span>
-            📋 {clip.kind === "block" ? "Block" : "Movement"}:{" "}
+            📋 {clip.kind === "block" ? "Block" : clip.kind === "day" ? "Day" : "Movement"}:{" "}
             <span className="font-semibold">
-              {clip.kind === "block" ? (clip.data.label || clip.data.blockCode) : clip.data.name}
+              {clip.kind === "block"
+                ? (clip.data.label || clip.data.blockCode)
+                : clip.kind === "day"
+                ? (clip.data.day ?? clip.data.date)
+                : clip.data.name}
             </span>
           </span>
           <button onClick={clearClip} className="opacity-60 hover:opacity-100 text-base leading-none">×</button>
@@ -346,6 +368,8 @@ export default function ProgramBuilder({
               onDuplicate={() => duplicateDay(activeWeek, di)}
               onClear={() => clearDay(activeWeek, di)}
               onMarkRest={() => toggleRest(activeWeek, di)}
+              onCopyDay={() => copyDay(day)}
+              onPasteDay={() => pasteDayInto(activeWeek, di)}
               onPasteBlock={() => pasteBlockInto(activeWeek, di)}
               onBlockPatch={(bi, fn) => patchBlock(activeWeek, di, bi, fn)}
               onBlockRemove={(bi) => removeBlock(activeWeek, di, bi)}
@@ -377,7 +401,7 @@ export default function ProgramBuilder({
 function DayCard({
   day, index, dict, clip,
   onFocus, onNotes, onIntensity,
-  onAddBlock, onDuplicate, onClear, onMarkRest, onPasteBlock,
+  onAddBlock, onDuplicate, onClear, onMarkRest, onCopyDay, onPasteDay, onPasteBlock,
   onBlockPatch, onBlockRemove, onBlockCopy,
   onMovementPatch, onMovementAdd, onMovementRemove, onMovementCopy, onMovementPaste,
 }: {
@@ -392,6 +416,8 @@ function DayCard({
   onDuplicate: () => void;
   onClear: () => void;
   onMarkRest: () => void;
+  onCopyDay: () => void;
+  onPasteDay: () => void;
   onPasteBlock: () => void;
   onBlockPatch: (bi: number, fn: (b: EditorBlock) => void) => void;
   onBlockRemove: (bi: number) => void;
@@ -418,6 +444,14 @@ function DayCard({
           <div className="text-xs text-[var(--ink-subtle)]">{day.day} · {day.date.slice(5)}</div>
         </div>
         <div className="flex gap-1">
+          <IconButton title={dict.copy + " (day)"} onClick={onCopyDay}>
+            <span className="text-xs">📋</span>
+          </IconButton>
+          {clip?.kind === "day" && (
+            <IconButton title={dict.pasteDay ?? "Paste day"} onClick={onPasteDay}>
+              <span className="text-xs text-[var(--primary)]">📋↵</span>
+            </IconButton>
+          )}
           {clip?.kind === "block" && (
             <IconButton title={dict.pasteBlock} onClick={onPasteBlock}>
               <svg viewBox="0 0 24 24" className="w-4 h-4 text-[var(--primary)]" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>

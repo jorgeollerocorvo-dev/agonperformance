@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
@@ -43,10 +44,35 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
       athleteKey = `${base}_${suffix}`;
     }
 
-    await prisma.athlete.create({
+    // Optional client login account (email + password). Coach decides at create-time.
+    const createLogin = formData.get("createLogin") === "on";
+    const loginPassword = String(formData.get("loginPassword") ?? "");
+    let userId: string | null = null;
+
+    if (createLogin) {
+      if (!email) redirect(`/${lang}/coach/athletes?error=login_email`);
+      if (loginPassword.length < 6) redirect(`/${lang}/coach/athletes?error=login_password`);
+      const exists = await prisma.user.findUnique({ where: { email: email! } });
+      if (exists) redirect(`/${lang}/coach/athletes?error=email_taken`);
+      const hash = await bcrypt.hash(loginPassword, 10);
+      const u = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: hash,
+          fullName,
+          displayName: fullName,
+          preferredLanguage: lang === "es" ? "ES" : lang === "ar" ? "AR" : "EN",
+          roles: { create: [{ role: "CLIENT" }] },
+        },
+      });
+      userId = u.id;
+    }
+
+    const athlete = await prisma.athlete.create({
       data: {
         athleteKey,
         coachProfileId: cp.id,
+        userId,
         fullName,
         email,
         phone,
@@ -61,7 +87,14 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
       },
     });
 
-    redirect(`/${lang}/coach/athletes`);
+    // Bridge entry so the athlete's "Today" view finds their program
+    if (userId) {
+      await prisma.athleteLink.create({
+        data: { userId, athleteId: athlete.id, active: true },
+      });
+    }
+
+    redirect(`/${lang}/coach/athletes/${athlete.id}${createLogin ? "?accountCreated=1" : ""}`);
   }
 
   return (
@@ -108,8 +141,23 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
         <Field label={dict.coach.notes} full>
           <textarea name="notes" rows={2} className={inputCls} />
         </Field>
+
+        <fieldset className="sm:col-span-2 rounded-xl border border-[var(--border)] p-4 bg-[var(--surface-2)]/40">
+          <legend className="px-2 text-sm font-semibold">{dict.coach.clientLogin ?? "Client login (optional)"}</legend>
+          <p className="text-xs text-[var(--ink-muted)] mb-3">
+            {dict.coach.clientLoginHint ?? "Tick this to give your athlete an account so they can log in and see their daily workout. The email above is used as the login. They can change the password themselves later."}
+          </p>
+          <label className="flex items-center gap-2 text-sm mb-3">
+            <input type="checkbox" name="createLogin" />
+            {dict.coach.createLogin ?? "Create login account for this athlete"}
+          </label>
+          <Field label={dict.coach.tempPassword ?? "Temporary password (min 6)"}>
+            <input name="loginPassword" type="text" minLength={6} className={inputCls} placeholder="e.g. starter1234" />
+          </Field>
+        </fieldset>
+
         <div className="sm:col-span-2">
-          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">
+          <button className="rounded-full bg-[var(--primary)] text-white px-5 py-2.5 font-semibold hover:bg-[var(--primary-hover)]">
             {dict.coach.create}
           </button>
         </div>
