@@ -1,16 +1,181 @@
 import { prisma } from "@/lib/prisma";
 
-/**
- * Find the first YouTube video matching a query, with no API key.
+/* ──────────────────────────────────────────────────────────────────────────
+ * YouTube no-key search with quality + duration filter.
  *
- * Strategy: scrape https://www.youtube.com/results — the HTML embeds a JSON blob
- * (`var ytInitialData = ...`) that contains the search results. We extract the first
- * 11-character `videoId`. Cached at the Next.js fetch level for 1 day per query.
- *
- * Returns a canonical https://www.youtube.com/watch?v=ID URL, or null on failure.
- */
-export async function findFirstYoutubeVideo(query: string): Promise<string | null> {
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+ * - Scrapes https://www.youtube.com/results — no API key, no cost.
+ * - Parses every `videoRenderer` block in `ytInitialData` and extracts
+ *   id, title, channel, view count, and duration.
+ * - Filters: duration ≤ MAX_DURATION_SEC (45s default per product spec).
+ * - Ranks by trusted-channel whitelist > view count (popularity = quality proxy).
+ * - Falls back to a slightly looser duration if no <=45s candidate exists,
+ *   so users always see *something* rather than the placeholder.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const MAX_DURATION_SEC = 45; // hard preference
+const SOFT_DURATION_SEC = 90; // fallback if nothing ≤ 45s
+
+// Lower-case substrings of trusted fitness channels. If the video's channel name
+// contains any of these, it gets a big quality boost in the ranking.
+const TRUSTED_CHANNELS: string[] = [
+  "crossfit",
+  "squat university",
+  "athlean-x",
+  "athleanx",
+  "barbend",
+  "buff dudes",
+  "calisthenicmovement",
+  "kabuki strength",
+  "atg",
+  "knees over toes",
+  "pamela reif",
+  "chris heria",
+  "jeff nippard",
+  "renaissance periodization",
+  "rp strength",
+  "matt does fitness",
+  "starting strength",
+  "stronger by science",
+  "tier three tactical",
+  "alan thrall",
+  "untamed strength",
+  "scott herman",
+  "strongerrx",
+  "yoga with adriene",
+  "pure barre",
+  "the body coach",
+  "hwpo",
+  "mayhem athlete",
+];
+
+// Title substrings that usually indicate something we don't want
+// (compilations, fail comps, gym tours, transformations).
+const TITLE_BLOCKLIST: string[] = [
+  "compilation",
+  "fail",
+  "transformation",
+  "gym tour",
+  "what i eat",
+  "vlog",
+  "reaction",
+];
+
+type ParsedYouTubeResult = {
+  id: string;
+  title: string;
+  durationSec: number | null;
+  viewCount: number | null;
+  channel: string | null;
+};
+
+function parseDuration(s: string | null | undefined): number | null {
+  if (!s) return null;
+  const parts = s.split(":").map((p) => parseInt(p, 10));
+  if (parts.some((p) => isNaN(p))) return null;
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+function parseViews(s: string | null | undefined): number | null {
+  if (!s) return null;
+  const m = s.match(/([\d,.]+)\s*([KMB])?/i);
+  if (!m) return null;
+  let n = parseFloat(m[1].replace(/,/g, ""));
+  if (isNaN(n)) return null;
+  const suffix = (m[2] ?? "").toUpperCase();
+  if (suffix === "K") n *= 1_000;
+  if (suffix === "M") n *= 1_000_000;
+  if (suffix === "B") n *= 1_000_000_000;
+  return Math.round(n);
+}
+
+/** Find every `"videoRenderer":{...}` block, balancing braces and skipping string contents. */
+function findRendererBlocks(html: string): string[] {
+  const out: string[] = [];
+  let i = 0;
+  const tag = '"videoRenderer":{';
+  while (true) {
+    const start = html.indexOf(tag, i);
+    if (start < 0) break;
+    let j = start + tag.length;
+    let depth = 1;
+    while (j < html.length && depth > 0) {
+      const c = html[j];
+      if (c === '"') {
+        j++;
+        while (j < html.length && html[j] !== '"') {
+          if (html[j] === "\\") j++;
+          j++;
+        }
+      } else if (c === "{") depth++;
+      else if (c === "}") depth--;
+      j++;
+    }
+    out.push(html.slice(start, j));
+    i = j;
+  }
+  return out;
+}
+
+function extract(re: RegExp, src: string): string | null {
+  const m = src.match(re);
+  return m ? m[1] : null;
+}
+
+function parseRenderer(src: string): ParsedYouTubeResult | null {
+  const id = extract(/"videoId":"([A-Za-z0-9_-]{11})"/, src);
+  if (!id) return null;
+  const title =
+    extract(/"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/, src) ??
+    extract(/"title":\{[^}]*?"simpleText":"((?:[^"\\]|\\.)*)"/, src);
+  const lengthText =
+    extract(/"lengthText":\{(?:[^{}]|\{[^{}]*\})*?"simpleText":"((?:[^"\\]|\\.)*)"/, src);
+  const viewCountText =
+    extract(/"viewCountText":\{[^}]*?"simpleText":"((?:[^"\\]|\\.)*)"/, src);
+  const channel =
+    extract(/"longBylineText":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/, src) ??
+    extract(/"ownerText":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/, src);
+
+  return {
+    id,
+    title: title ? title.replace(/\\(.)/g, "$1") : "",
+    durationSec: parseDuration(lengthText),
+    viewCount: parseViews(viewCountText),
+    channel: channel ? channel.replace(/\\(.)/g, "$1") : null,
+  };
+}
+
+function score(r: ParsedYouTubeResult): number {
+  let s = 0;
+  // Big boost for trusted channels
+  if (r.channel) {
+    const lc = r.channel.toLowerCase();
+    if (TRUSTED_CHANNELS.some((t) => lc.includes(t))) s += 10_000;
+  }
+  // Penalize blocked title words
+  const tlc = (r.title ?? "").toLowerCase();
+  if (TITLE_BLOCKLIST.some((b) => tlc.includes(b))) s -= 5_000;
+  // Popularity proxy — diminishing returns
+  if (r.viewCount && r.viewCount > 0) s += Math.log10(r.viewCount) * 100;
+  // Strong preference for short clips: tighter is better
+  if (r.durationSec != null) {
+    if (r.durationSec <= MAX_DURATION_SEC) s += 500;
+    else if (r.durationSec <= SOFT_DURATION_SEC) s += 100;
+    // tiebreak: closer to ideal 25-30s gets a tiny bonus
+    s -= Math.abs(r.durationSec - 27);
+  }
+  return s;
+}
+
+/** Search YouTube and return the best video URL by our quality+duration ranking, or null. */
+export async function findBestYoutubeVideo(query: string): Promise<string | null> {
+  // YouTube's "Short" filter — encoded once, may rotate but stable for years.
+  const shortFilter = "&sp=EgIYAQ%253D%253D";
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+    query,
+  )}${shortFilter}`;
   try {
     const res = await fetch(url, {
       headers: {
@@ -18,15 +183,39 @@ export async function findFirstYoutubeVideo(query: string): Promise<string | nul
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
         "Accept-Language": "en-US,en;q=0.9",
       },
-      next: { revalidate: 60 * 60 * 24 }, // 1 day
+      next: { revalidate: 60 * 60 * 24 },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const html = await res.text();
-    // The first plausible 11-char videoId in ytInitialData is the top result.
-    // Skip mix/playlist results which use different keys.
-    const match = html.match(/"videoId":"([A-Za-z0-9_-]{11})"/);
-    return match ? `https://www.youtube.com/watch?v=${match[1]}` : null;
+
+    const blocks = findRendererBlocks(html);
+    const candidates = blocks
+      .map(parseRenderer)
+      .filter((r): r is ParsedYouTubeResult => r !== null);
+
+    if (candidates.length === 0) return null;
+
+    // Strict pass: duration <= 45s
+    const strict = candidates.filter(
+      (r) => r.durationSec != null && r.durationSec <= MAX_DURATION_SEC,
+    );
+    if (strict.length > 0) {
+      strict.sort((a, b) => score(b) - score(a));
+      return `https://www.youtube.com/watch?v=${strict[0].id}`;
+    }
+
+    // Soft pass: <= 90s (so the athlete still sees a video instead of the placeholder)
+    const soft = candidates.filter(
+      (r) => r.durationSec != null && r.durationSec <= SOFT_DURATION_SEC,
+    );
+    if (soft.length > 0) {
+      soft.sort((a, b) => score(b) - score(a));
+      return `https://www.youtube.com/watch?v=${soft[0].id}`;
+    }
+
+    // Nothing short enough — give up and let the placeholder render.
+    return null;
   } catch {
     return null;
   }
@@ -34,13 +223,7 @@ export async function findFirstYoutubeVideo(query: string): Promise<string | nul
 
 /**
  * Get a video URL for a movement, caching the result on the Movement table.
- *
- * Lookup priority:
- *   1. The Movement library's `videoUrl` if already set (fastest path, no fetch)
- *   2. Scrape YouTube search for `<movementName> exercise demo`, then persist on the row.
- *
- * If the scrape fails or no Movement row exists (custom movement), returns null
- * and the UI falls back to a placeholder card.
+ * Re-uses {@link findBestYoutubeVideo} so cached URLs already pass the filters.
  */
 export async function ensureMovementVideoUrl(
   movementId: string | null,
@@ -49,7 +232,7 @@ export async function ensureMovementVideoUrl(
   if (movementId) {
     const m = await prisma.movement.findUnique({ where: { id: movementId } });
     if (m?.videoUrl) return m.videoUrl;
-    const found = await findFirstYoutubeVideo(`${m?.nameEn ?? fallbackName} exercise demo`);
+    const found = await findBestYoutubeVideo(`${m?.nameEn ?? fallbackName} exercise demo`);
     if (found) {
       await prisma.movement.update({ where: { id: movementId }, data: { videoUrl: found } });
       return found;
@@ -57,5 +240,8 @@ export async function ensureMovementVideoUrl(
     return null;
   }
   // Custom (non-library) movement — search but don't persist
-  return await findFirstYoutubeVideo(`${fallbackName} exercise demo`);
+  return await findBestYoutubeVideo(`${fallbackName} exercise demo`);
 }
+
+// Back-compat: older imports that still use the name
+export { findBestYoutubeVideo as findFirstYoutubeVideo };
