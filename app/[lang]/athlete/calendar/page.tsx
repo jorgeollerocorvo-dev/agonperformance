@@ -78,7 +78,6 @@ export default async function AthleteCalendar({ params, searchParams }: PageProp
       programWeek: { program: { athleteId: link.athleteId } },
       date: { gte: yearStart, lte: yearEnd },
     },
-    include: { sessionLog: true },
     select: { date: true, focus: true, sessionLog: true },
   });
   const totalScheduled = yearAgg.length;
