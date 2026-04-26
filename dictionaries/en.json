@@ -160,7 +160,15 @@
     "youtube": "Watch demo",
     "notLinked": "You're not yet linked to a coach. Browse the directory to find one.",
     "talkToCoach": "Talk to coach",
-    "findDemo": "Find demo on YouTube"
+    "findDemo": "Find demo on YouTube",
+    "calendarTitle": "Your calendar",
+    "todayBtn": "Today",
+    "scheduled": "Scheduled",
+    "completedPill": "Completed",
+    "missed": "Past",
+    "summary": "summary",
+    "completedLower": "completed",
+    "unmark": "Mark as not done"
   },
   "directory": {
     "browseCoaches": "Find your coach",

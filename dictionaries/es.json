@@ -160,7 +160,15 @@
     "youtube": "Ver vídeo",
     "notLinked": "Aún no estás vinculado a un entrenador. Explora el directorio para encontrar uno.",
     "talkToCoach": "Hablar con el coach",
-    "findDemo": "Buscar demo en YouTube"
+    "findDemo": "Buscar demo en YouTube",
+    "calendarTitle": "Tu calendario",
+    "todayBtn": "Hoy",
+    "scheduled": "Programado",
+    "completedPill": "Completado",
+    "missed": "Pasado",
+    "summary": "resumen",
+    "completedLower": "completados",
+    "unmark": "Marcar como no hecho"
   },
   "directory": {
     "browseCoaches": "Encuentra tu entrenador",

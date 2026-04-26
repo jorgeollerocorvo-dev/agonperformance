@@ -160,7 +160,15 @@
     "youtube": "شاهد العرض",
     "notLinked": "لم يتم ربطك بعد بمدرب. تصفح الدليل للعثور على مدرب.",
     "talkToCoach": "تحدث مع مدربك",
-    "findDemo": "ابحث عن العرض في YouTube"
+    "findDemo": "ابحث عن العرض في YouTube",
+    "calendarTitle": "تقويمك",
+    "todayBtn": "اليوم",
+    "scheduled": "مجدول",
+    "completedPill": "مكتمل",
+    "missed": "فات",
+    "summary": "ملخص",
+    "completedLower": "مكتمل",
+    "unmark": "إلغاء الإكمال"
   },
   "directory": {
     "browseCoaches": "اعثر على مدربك",
