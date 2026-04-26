@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";
 import { hasAIKey } from "@/lib/ai-parse-program";
+import { aiImportEnabled } from "@/lib/features";
 import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
 import { importAndCreateProgram } from "./actions";
 
@@ -20,6 +21,24 @@ export default async function ImportProgramPage({ params, searchParams }: PagePr
     include: { athletes: { orderBy: { fullName: "asc" } } },
   });
   if (!coach) notFound();
+
+  // Feature-flagged off — explicit "currently disabled" page so /coach/import isn't broken.
+  if (!aiImportEnabled()) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold">{dict.coach.importProgram ?? "Import program"}</h1>
+        <Card className="bg-[var(--surface-2)]">
+          <h2 className="font-semibold mb-1">{dict.coach.importDisabledTitle ?? "Currently disabled"}</h2>
+          <p className="text-sm text-[var(--ink-muted)]">
+            {dict.coach.importDisabledBody ?? "AI program import is paused. Build programs manually from each athlete's profile — open an athlete → New program → add weeks, days, blocks, and movements. Re-enable AI import any time by setting AI_IMPORT_ENABLED=true on Railway and adding Anthropic credits."}
+          </p>
+        </Card>
+        <Link href={`/${lang}/coach/athletes`} className="inline-block text-sm text-[var(--primary)] hover:underline">
+          → {dict.nav.athletes}
+        </Link>
+      </div>
+    );
+  }
 
   const aiReady = hasAIKey();
 

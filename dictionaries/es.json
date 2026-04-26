@@ -90,6 +90,8 @@
     "downloadDocument": "Descargar",
     "regenerateProgram": "Regenerar el programa desde este documento",
     "regenSuccess": "Programa reconstruido a partir del documento original.",
+    "importDisabledTitle": "Desactivado por ahora",
+    "importDisabledBody": "La importación con IA está pausada. Crea los programas manualmente desde el perfil de cada atleta — abre un atleta → Nuevo programa → añade semanas, días, bloques y ejercicios.",
     "programCreated": "Programa creado desde tu archivo",
     "programCreatedHint": "Aparece en la lista de abajo con la etiqueta NUEVO. Ábrelo para revisar semanas, días y ejercicios — cada movimiento tiene enlace a YouTube.",
     "openProgram": "Abrir programa →",

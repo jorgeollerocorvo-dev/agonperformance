@@ -90,6 +90,8 @@
     "downloadDocument": "Download",
     "regenerateProgram": "Regenerate program from this document",
     "regenSuccess": "Program rebuilt from your source document.",
+    "importDisabledTitle": "Currently disabled",
+    "importDisabledBody": "AI program import is paused. Build programs manually from each athlete's profile — open an athlete → New program → add weeks, days, blocks, and movements.",
     "programCreated": "Program created from your upload",
     "programCreatedHint": "You'll see it in the list below with a NEW tag. Open it to review weeks, days and movements — every exercise has a YouTube search link attached.",
     "openProgram": "Open program →",

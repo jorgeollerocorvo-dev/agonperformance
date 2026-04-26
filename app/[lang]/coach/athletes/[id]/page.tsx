@@ -7,6 +7,7 @@ import { Card, Button } from "@/components/ui/Card";
 import { hasAIKey } from "@/lib/ai-parse-program";
 import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
 import { importAndCreateProgram } from "../../import/actions";
+import { aiImportEnabled } from "@/lib/features";
 
 export default async function AthleteDetail({ params, searchParams }: PageProps<"/[lang]/coach/athletes/[id]">) {
   const { lang, id } = await params;
@@ -18,6 +19,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   const session = await auth();
   const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session!.user.id } });
   const aiReady = hasAIKey();
+  const showImport = aiImportEnabled();
 
   const athlete = await prisma.athlete.findFirst({
     where: { id, coachProfileId: coachProfile!.id },
@@ -138,7 +140,8 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
           </Card>
         )}
 
-        {/* Import-from-document card */}
+        {/* Import-from-document card — hidden when AI import is disabled */}
+        {showImport && (
         <Card>
           <h3 className="font-semibold text-base mb-1">{dict.coach.importProgram ?? "Import program"}</h3>
           <p className="text-sm text-[var(--ink-muted)] mb-3">
@@ -192,6 +195,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
             <Button type="submit" size="lg">{dict.coach.importAndCreate ?? "Create program"}</Button>
           </form>
         </Card>
+        )}
 
         {athlete.programs.length === 0 ? (
           <Card><p className="text-sm text-[var(--ink-muted)]">No programs yet.</p></Card>

@@ -6,8 +6,12 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { extractText } from "@/lib/parse-document";
 import { parseProgramWithAI, bestYoutubeUrl, type ParsedProgram } from "@/lib/ai-parse-program";
+import { aiImportEnabled } from "@/lib/features";
 
 export async function importAndCreateProgram(formData: FormData): Promise<{ error?: string; previewId?: string }> {
+  if (!aiImportEnabled()) {
+    return { error: "AI program import is currently disabled. Build the program manually from the athlete page." };
+  }
   console.log("[import] start", new Date().toISOString());
   const session = await auth();
   if (!session?.user || !session.user.roles?.includes("COACH")) {
@@ -179,6 +183,9 @@ export async function importAndCreateProgram(formData: FormData): Promise<{ erro
 // ────────────────────────────────────────────────────────────
 
 export async function regenerateProgramFromDocument(programId: string): Promise<{ error?: string; ok?: boolean }> {
+  if (!aiImportEnabled()) {
+    return { error: "AI program import is currently disabled." };
+  }
   const session = await auth();
   if (!session?.user || !session.user.roles?.includes("COACH")) return { error: "unauthorized" };
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
