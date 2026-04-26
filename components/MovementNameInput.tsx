@@ -87,24 +87,39 @@ export default function MovementNameInput({
         autoComplete="off"
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full mt-1 z-30 max-h-64 overflow-y-auto rounded-xl border border-[var(--border)] bg-white shadow-[var(--shadow-md)]">
-          {suggestions.map((s, i) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                onMouseEnter={() => setHighlight(i)}
-                onClick={() => pick(s)}
-                className={`block w-full text-left px-3 py-2 text-sm ${
-                  i === highlight ? "bg-[var(--primary-soft)]" : "hover:bg-[var(--surface-2)]"
-                }`}
-              >
-                <div className="font-medium">{s.label}</div>
-                {s.category && (
-                  <div className="text-xs text-[var(--ink-muted)]">{s.category.replace(/_/g, " ")}</div>
-                )}
-              </button>
-            </li>
-          ))}
+        <ul className="absolute left-0 right-0 top-full mt-1 z-30 max-h-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-white shadow-[var(--shadow-md)]">
+          {suggestions.map((s, i) => {
+            // Show whichever name matches what the coach typed, with the other language(s)
+            // as secondary text. Detect by simple substring match against the input.
+            const q = value.toLowerCase().trim();
+            const enHit = s.label.toLowerCase().includes(q);
+            const esHit = s.labelEs?.toLowerCase().includes(q);
+            // Primary = the one that matched. Tie-break: English (default).
+            const primary = !enHit && esHit && s.labelEs ? s.labelEs : s.label;
+            const secondary =
+              primary === s.label
+                ? (s.labelEs && s.labelEs !== s.label ? s.labelEs : null)
+                : s.label;
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onMouseEnter={() => setHighlight(i)}
+                  onClick={() => pick({ ...s, label: primary })}
+                  className={`block w-full text-left px-3 py-2 text-sm ${
+                    i === highlight ? "bg-[var(--primary-soft)]" : "hover:bg-[var(--surface-2)]"
+                  }`}
+                >
+                  <div className="font-medium">{primary}</div>
+                  <div className="text-xs text-[var(--ink-muted)] flex items-center gap-2 mt-0.5">
+                    {secondary && <span>{secondary}</span>}
+                    {secondary && s.category && <span className="text-[var(--ink-subtle)]">·</span>}
+                    {s.category && <span>{s.category.replace(/_/g, " ")}</span>}
+                  </div>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

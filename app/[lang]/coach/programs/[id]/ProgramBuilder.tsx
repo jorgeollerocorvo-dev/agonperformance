@@ -34,6 +34,10 @@ type Dict = {
   pasteMovement: string;
   clipboardEmpty: string;
   markRest: string;
+  viewMode?: string;
+  viewCompact?: string;
+  viewWide?: string;
+  viewFocus?: string;
 };
 
 type Clip =
@@ -55,6 +59,12 @@ export default function ProgramBuilder({
   const [pending, start] = useTransition();
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [clip, setClip] = useState<Clip>(null);
+  // Density mode: how many days fit on screen at once.
+  // "compact" = 7-col week grid (default, lots-at-a-glance)
+  // "wide"    = 3-col grid (more breathing room for inputs)
+  // "focus"   = 1 day at a time, full width
+  const [density, setDensity] = useState<"compact" | "wide" | "focus">("compact");
+  const [focusedDay, setFocusedDay] = useState(0);
 
   const copyBlock = (b: EditorBlock) => setClip({ kind: "block", data: structuredClone(b) });
   const copyMovement = (m: EditorMovement) => setClip({ kind: "movement", data: structuredClone(m) });
@@ -275,33 +285,79 @@ export default function ProgramBuilder({
         </button>
       </div>
 
-      {/* 7-day grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-        {week?.days.map((day, di) => (
-          <DayCard
-            key={di}
-            day={day}
-            index={di}
-            dict={dict}
-            clip={clip}
-            onFocus={(v) => patchDay(activeWeek, di, (d) => { d.focus = v; })}
-            onNotes={(v) => patchDay(activeWeek, di, (d) => { d.notes = v; })}
-            onIntensity={(v) => patchDay(activeWeek, di, (d) => { d.intensity = v; })}
-            onAddBlock={() => addBlock(activeWeek, di)}
-            onDuplicate={() => duplicateDay(activeWeek, di)}
-            onClear={() => clearDay(activeWeek, di)}
-            onMarkRest={() => toggleRest(activeWeek, di)}
-            onPasteBlock={() => pasteBlockInto(activeWeek, di)}
-            onBlockPatch={(bi, fn) => patchBlock(activeWeek, di, bi, fn)}
-            onBlockRemove={(bi) => removeBlock(activeWeek, di, bi)}
-            onBlockCopy={(bi) => copyBlock(day.blocks[bi])}
-            onMovementPatch={(bi, mi, fn) => patchMovement(activeWeek, di, bi, mi, fn)}
-            onMovementAdd={(bi) => addMovement(activeWeek, di, bi)}
-            onMovementRemove={(bi, mi) => removeMovement(activeWeek, di, bi, mi)}
-            onMovementCopy={(bi, mi) => copyMovement(day.blocks[bi].movements[mi])}
-            onMovementPaste={(bi) => pasteMovementInto(activeWeek, di, bi)}
-          />
+      {/* Density toggle */}
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-[var(--ink-muted)] text-xs uppercase tracking-wider">{dict.viewMode ?? "View"}:</span>
+        {(["compact", "wide", "focus"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setDensity(m)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold border ${
+              density === m
+                ? "bg-[var(--ink)] text-white border-[var(--ink)]"
+                : "border-[var(--border)] hover:bg-[var(--surface-2)]"
+            }`}
+          >
+            {m === "compact" ? (dict.viewCompact ?? "Compact (7)") : m === "wide" ? (dict.viewWide ?? "Wide (3)") : (dict.viewFocus ?? "Focus (1)")}
+          </button>
         ))}
+      </div>
+
+      {/* Day picker — only in focus mode */}
+      {density === "focus" && week && (
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {week.days.map((d, i) => (
+            <button
+              key={i}
+              onClick={() => setFocusedDay(i)}
+              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium border ${
+                i === focusedDay
+                  ? "bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary)]"
+                  : "border-[var(--border)] hover:bg-[var(--surface-2)]"
+              }`}
+            >
+              {d.day ? d.day.slice(0, 3) : `D${i + 1}`} · {d.date.slice(5)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Day grid — density-driven */}
+      <div className={
+        density === "focus"
+          ? "grid grid-cols-1 gap-3"
+          : density === "wide"
+          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3"
+      }>
+        {week?.days.map((day, di) => {
+          if (density === "focus" && di !== focusedDay) return null;
+          return (
+            <DayCard
+              key={di}
+              day={day}
+              index={di}
+              dict={dict}
+              clip={clip}
+              onFocus={(v) => patchDay(activeWeek, di, (d) => { d.focus = v; })}
+              onNotes={(v) => patchDay(activeWeek, di, (d) => { d.notes = v; })}
+              onIntensity={(v) => patchDay(activeWeek, di, (d) => { d.intensity = v; })}
+              onAddBlock={() => addBlock(activeWeek, di)}
+              onDuplicate={() => duplicateDay(activeWeek, di)}
+              onClear={() => clearDay(activeWeek, di)}
+              onMarkRest={() => toggleRest(activeWeek, di)}
+              onPasteBlock={() => pasteBlockInto(activeWeek, di)}
+              onBlockPatch={(bi, fn) => patchBlock(activeWeek, di, bi, fn)}
+              onBlockRemove={(bi) => removeBlock(activeWeek, di, bi)}
+              onBlockCopy={(bi) => copyBlock(day.blocks[bi])}
+              onMovementPatch={(bi, mi, fn) => patchMovement(activeWeek, di, bi, mi, fn)}
+              onMovementAdd={(bi) => addMovement(activeWeek, di, bi)}
+              onMovementRemove={(bi, mi) => removeMovement(activeWeek, di, bi, mi)}
+              onMovementCopy={(bi, mi) => copyMovement(day.blocks[bi].movements[mi])}
+              onMovementPaste={(bi) => pasteMovementInto(activeWeek, di, bi)}
+            />
+          );
+        })}
       </div>
 
       {/* Floating save bar for mobile */}
