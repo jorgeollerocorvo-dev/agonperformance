@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
-import { ytEmbed, ytSearchUrl } from "@/lib/youtube";
+import MovementVideoPreview from "@/components/MovementVideoPreview";
 import Link from "next/link";
 import { Card, Pill, Button } from "@/components/ui/Card";
 
@@ -113,38 +113,20 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
                 p.rest && `rest ${p.rest}`,
                 p.rpe && `RPE ${p.rpe}`,
               ].filter(Boolean).join(" · ");
-              // Prefer the explicit prescription URL from the program editor; fall back to the
-              // movement-library default; both go through ytEmbed which only succeeds on real videos.
               const prescriptionUrl = typeof p.youtubeUrl === "string" ? p.youtubeUrl : null;
               const sourceUrl = prescriptionUrl ?? m.movement?.videoUrl ?? null;
-              const embed = ytEmbed(sourceUrl);
-              const fallbackSearch = ytSearchUrl(localName);
               return (
                 <li key={m.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 p-3 sm:p-4">
                   <div className="flex items-baseline gap-2 mb-2">
                     <span className="text-xs font-bold text-[var(--ink-subtle)]">{b.blockCode}{idx + 1}</span>
                     <span className="font-semibold flex-1">{localName}</span>
                   </div>
-                  {bits && <div className="text-sm text-[var(--ink-muted)] mb-2">{bits}</div>}
-                  {embed ? (
-                    <div className="aspect-video max-w-2xl rounded-xl overflow-hidden bg-black">
-                      <iframe
-                        src={embed}
-                        className="w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : (
-                    <a
-                      href={fallbackSearch}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-3 py-1.5 text-xs font-semibold hover:opacity-90"
-                    >
-                      🎥 {dict.athlete.findDemo ?? "Find demo on YouTube"}
-                    </a>
-                  )}
+                  {bits && <div className="text-sm text-[var(--ink-muted)] mb-3">{bits}</div>}
+                  <MovementVideoPreview
+                    url={sourceUrl}
+                    name={localName}
+                    ctaLabel={dict.athlete.findDemo ?? "Find demo"}
+                  />
                   {typeof p.notes === "string" && p.notes && (
                     <div className="text-xs text-[var(--ink-subtle)] italic mt-2">{p.notes}</div>
                   )}

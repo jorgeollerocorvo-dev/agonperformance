@@ -3,8 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
-import { ytEmbed, ytSearchUrl } from "@/lib/youtube";
 import { Card, Pill, Button } from "@/components/ui/Card";
+import MovementVideoPreview from "@/components/MovementVideoPreview";
 
 export default async function SessionDetail({ params, searchParams }: PageProps<"/[lang]/athlete/session/[id]">) {
   const { lang, id } = await params;
@@ -88,34 +88,18 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
                 p.rpe && `RPE ${p.rpe}`,
               ].filter(Boolean).join(" · ");
               const sourceUrl = (typeof p.youtubeUrl === "string" ? p.youtubeUrl : null) ?? m.movement?.videoUrl ?? null;
-              const embed = ytEmbed(sourceUrl);
-              const fallback = ytSearchUrl(localName);
               return (
                 <li key={m.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 p-3 sm:p-4">
                   <div className="flex items-baseline gap-2 mb-1">
                     <span className="text-xs font-bold text-[var(--ink-subtle)]">{b.blockCode}{idx + 1}</span>
                     <span className="font-semibold flex-1">{localName}</span>
                   </div>
-                  {bits && <div className="text-sm text-[var(--ink-muted)] mb-2">{bits}</div>}
-                  {embed ? (
-                    <div className="aspect-video max-w-2xl rounded-xl overflow-hidden bg-black">
-                      <iframe
-                        src={embed}
-                        className="w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : (
-                    <a
-                      href={fallback}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] text-[var(--bg)] px-3 py-1.5 text-xs font-semibold hover:opacity-90"
-                    >
-                      🎥 {dict.athlete.findDemo ?? "Find demo on YouTube"}
-                    </a>
-                  )}
+                  {bits && <div className="text-sm text-[var(--ink-muted)] mb-3">{bits}</div>}
+                  <MovementVideoPreview
+                    url={sourceUrl}
+                    name={localName}
+                    ctaLabel={dict.athlete.findDemo ?? "Find demo"}
+                  />
                   {typeof p.notes === "string" && p.notes && (
                     <div className="text-xs text-[var(--ink-subtle)] italic mt-2">{p.notes}</div>
                   )}
