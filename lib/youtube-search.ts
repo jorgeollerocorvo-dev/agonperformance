@@ -227,8 +227,13 @@ export async function findBestYoutubeVideo(query: string): Promise<string | null
     const res = await fetch(url, {
       headers: {
         "User-Agent":
+          process.env.YT_USER_AGENT ??
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
         "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        // Pretend we already accepted the EU consent so YouTube doesn't redirect us
+        // to consent.youtube.com (which has no search results).
+        "Cookie": "CONSENT=YES+; SOCS=CAI",
       },
       next: { revalidate: 60 * 60 * 24 },
       signal: AbortSignal.timeout(8000),
