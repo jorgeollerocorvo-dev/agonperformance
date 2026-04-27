@@ -13,7 +13,8 @@
     "profile": "My profile",
     "account": "Account",
     "import": "Import",
-    "leads": "Leads"
+    "leads": "Leads",
+    "movements": "Movements"
   },
   "auth": {
     "email": "Email",

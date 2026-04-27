@@ -13,7 +13,8 @@
     "profile": "Mi perfil",
     "account": "Cuenta",
     "import": "Importar",
-    "leads": "Contactos"
+    "leads": "Contactos",
+    "movements": "Ejercicios"
   },
   "auth": {
     "email": "Correo",
