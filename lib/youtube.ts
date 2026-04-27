@@ -1,8 +1,9 @@
 export function ytEmbed(url?: string | null): string | null {
   if (!url) return null;
-  // Always include params: muted (no audio per the user's spec), modestbranding,
-  // disable suggested-from-other-channels at end (rel=0), keep player chrome simple.
-  const params = "mute=1&modestbranding=1&rel=0&playsinline=1";
+  // Always include params: muted (no audio per the user's spec), autoplay (so video
+  // starts the moment the iframe is in view; browsers permit autoplay only when muted),
+  // modestbranding, hide suggested-from-other-channels at end (rel=0), inline on iOS.
+  const params = "autoplay=1&mute=1&modestbranding=1&rel=0&playsinline=1";
   try {
     const u = new URL(url);
     if (u.hostname === "youtu.be") {
