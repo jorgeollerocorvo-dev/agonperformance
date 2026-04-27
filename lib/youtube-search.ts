@@ -119,31 +119,47 @@ function findRendererBlocks(html: string): string[] {
   return out;
 }
 
-function extract(re: RegExp, src: string): string | null {
-  const m = src.match(re);
-  return m ? m[1] : null;
+/**
+ * Find the first `"<key>":` in `src` after `from`, then return the first
+ * `"simpleText":"…"` value that appears within `windowSize` chars after it.
+ * Robust to nested objects (regex with nested-brace counting is brittle).
+ */
+function findSimpleText(src: string, key: string, windowSize = 800): string | null {
+  const k = `"${key}":`;
+  const idx = src.indexOf(k);
+  if (idx < 0) return null;
+  const window = src.slice(idx, idx + windowSize);
+  const m = window.match(/"simpleText":"((?:[^"\\]|\\.)*)"/);
+  return m ? m[1].replace(/\\(.)/g, "$1") : null;
+}
+
+/** Like findSimpleText but pulls the first `runs[0].text` instead. */
+function findRunsText(src: string, key: string, windowSize = 600): string | null {
+  const k = `"${key}":`;
+  const idx = src.indexOf(k);
+  if (idx < 0) return null;
+  const window = src.slice(idx, idx + windowSize);
+  const m = window.match(/"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/);
+  return m ? m[1].replace(/\\(.)/g, "$1") : null;
 }
 
 function parseRenderer(src: string): ParsedYouTubeResult | null {
-  const id = extract(/"videoId":"([A-Za-z0-9_-]{11})"/, src);
-  if (!id) return null;
-  const title =
-    extract(/"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/, src) ??
-    extract(/"title":\{[^}]*?"simpleText":"((?:[^"\\]|\\.)*)"/, src);
-  const lengthText =
-    extract(/"lengthText":\{(?:[^{}]|\{[^{}]*\})*?"simpleText":"((?:[^"\\]|\\.)*)"/, src);
-  const viewCountText =
-    extract(/"viewCountText":\{[^}]*?"simpleText":"((?:[^"\\]|\\.)*)"/, src);
+  const idMatch = src.match(/"videoId":"([A-Za-z0-9_-]{11})"/);
+  if (!idMatch) return null;
+  const id = idMatch[1];
+
+  const title = findRunsText(src, "title") ?? findSimpleText(src, "title");
+  const lengthText = findSimpleText(src, "lengthText");
+  const viewCountText = findSimpleText(src, "viewCountText");
   const channel =
-    extract(/"longBylineText":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/, src) ??
-    extract(/"ownerText":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/, src);
+    findRunsText(src, "longBylineText") ?? findRunsText(src, "ownerText");
 
   return {
     id,
-    title: title ? title.replace(/\\(.)/g, "$1") : "",
+    title: title ?? "",
     durationSec: parseDuration(lengthText),
     viewCount: parseViews(viewCountText),
-    channel: channel ? channel.replace(/\\(.)/g, "$1") : null,
+    channel,
   };
 }
 
@@ -171,11 +187,10 @@ function score(r: ParsedYouTubeResult): number {
 
 /** Search YouTube and return the best video URL by our quality+duration ranking, or null. */
 export async function findBestYoutubeVideo(query: string): Promise<string | null> {
-  // YouTube's "Short" filter — encoded once, may rotate but stable for years.
-  const shortFilter = "&sp=EgIYAQ%253D%253D";
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(
-    query,
-  )}${shortFilter}`;
+  // No "Shorts" filter — that filter changes the renderer to `shortsLockupViewModel`
+  // which doesn't expose duration or channel cleanly. Regular search covers shorts too,
+  // and we filter ≤45s ourselves.
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
   try {
     const res = await fetch(url, {
       headers: {
@@ -205,7 +220,7 @@ export async function findBestYoutubeVideo(query: string): Promise<string | null
       return `https://www.youtube.com/watch?v=${strict[0].id}`;
     }
 
-    // Soft pass: <= 90s (so the athlete still sees a video instead of the placeholder)
+    // Soft pass: <= 90s
     const soft = candidates.filter(
       (r) => r.durationSec != null && r.durationSec <= SOFT_DURATION_SEC,
     );
@@ -214,8 +229,9 @@ export async function findBestYoutubeVideo(query: string): Promise<string | null
       return `https://www.youtube.com/watch?v=${soft[0].id}`;
     }
 
-    // Nothing short enough — give up and let the placeholder render.
-    return null;
+    // Last resort: any duration. Better to show a video than a gradient placeholder.
+    candidates.sort((a, b) => score(b) - score(a));
+    return `https://www.youtube.com/watch?v=${candidates[0].id}`;
   } catch {
     return null;
   }
