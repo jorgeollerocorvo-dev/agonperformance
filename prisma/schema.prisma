@@ -280,6 +280,7 @@ model Movement {
   nameAr      String?
   category    String?  // "squat", "pressing", "olympic_lifting", etc.
   videoUrl    String?
+  videoLocked Boolean  @default(false)  // when true, auto-resolver leaves videoUrl alone
   demoUrl     String?
   attributes  Json?    // { calf_loading: "low", overhead_demand: false, ... }
   isActive    Boolean  @default(true)

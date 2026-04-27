@@ -1,0 +1,1 @@
+ALTER TABLE "Movement" ADD COLUMN "videoLocked" BOOLEAN NOT NULL DEFAULT false;

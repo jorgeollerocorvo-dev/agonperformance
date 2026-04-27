@@ -185,6 +185,38 @@ function score(r: ParsedYouTubeResult): number {
   return s;
 }
 
+/**
+ * Search YouTube and return up to N best video candidates ranked by our quality+duration scoring.
+ * Used by the admin panel to offer alternatives ("X" reroll button).
+ */
+export async function findYoutubeCandidates(query: string, limit = 6): Promise<{ id: string; title: string; durationSec: number | null; channel: string | null }[]> {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      next: { revalidate: 60 * 60 * 24 },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return [];
+    const html = await res.text();
+    const blocks = findRendererBlocks(html);
+    const candidates = blocks.map(parseRenderer).filter((r): r is ParsedYouTubeResult => r !== null);
+    candidates.sort((a, b) => score(b) - score(a));
+    return candidates.slice(0, limit).map((c) => ({
+      id: c.id,
+      title: c.title,
+      durationSec: c.durationSec,
+      channel: c.channel,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /** Search YouTube and return the best video URL by our quality+duration ranking, or null. */
 export async function findBestYoutubeVideo(query: string): Promise<string | null> {
   // No "Shorts" filter — that filter changes the renderer to `shortsLockupViewModel`
@@ -240,6 +272,9 @@ export async function findBestYoutubeVideo(query: string): Promise<string | null
 /**
  * Get a video URL for a movement, caching the result on the Movement table.
  * Re-uses {@link findBestYoutubeVideo} so cached URLs already pass the filters.
+ *
+ * Locked URLs (videoLocked = true) are returned unchanged — the admin can pin a
+ * curated demo and the auto-resolver leaves it alone forever.
  */
 export async function ensureMovementVideoUrl(
   movementId: string | null,
@@ -247,7 +282,7 @@ export async function ensureMovementVideoUrl(
 ): Promise<string | null> {
   if (movementId) {
     const m = await prisma.movement.findUnique({ where: { id: movementId } });
-    if (m?.videoUrl) return m.videoUrl;
+    if (m?.videoUrl) return m.videoUrl;            // already cached (locked or not)
     const found = await findBestYoutubeVideo(`${m?.nameEn ?? fallbackName} exercise demo`);
     if (found) {
       await prisma.movement.update({ where: { id: movementId }, data: { videoUrl: found } });
