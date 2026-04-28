@@ -49,15 +49,20 @@ export async function generateText(opts: AiCallOptions): Promise<string> {
 
 async function callGemini(opts: AiCallOptions): Promise<string> {
   const key = (process.env.GEMINI_API_KEY ?? "").trim();
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  // `gemini-flash-latest` resolves to whatever free-tier flash model is current
+  // (gemini-3-flash-preview as of 2026-04). Override via GEMINI_MODEL if needed.
+  const model = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
 
   const body: Record<string, unknown> = {
     system_instruction: { parts: [{ text: opts.systemPrompt }] },
     contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],
     generationConfig: {
-      maxOutputTokens: opts.maxTokens ?? 8000,
+      // Bigger headroom + disable "thinking" tokens so the budget all goes to
+      // the real answer (this is structured-output extraction, no CoT needed).
+      maxOutputTokens: opts.maxTokens ?? 16_000,
       temperature: 0.4,
+      thinkingConfig: { thinkingBudget: 0 },
       ...(opts.expectJson ? { responseMimeType: "application/json" } : {}),
     },
   };
