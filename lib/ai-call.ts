@@ -1,0 +1,132 @@
+/**
+ * Provider-agnostic AI text-generation wrapper.
+ *
+ * Picks a provider in this order:
+ *   1. Google Gemini   — if  GEMINI_API_KEY  is set  (FREE tier: 15 req/min, 1500 req/day)
+ *   2. Anthropic Claude — if  ANTHROPIC_API_KEY  is set
+ *
+ * Both providers are called via REST so we don't need a heavyweight SDK.
+ *
+ * Get a free Gemini key:  https://aistudio.google.com/app/apikey
+ *   railway variables --set "GEMINI_API_KEY=AIza..."
+ *
+ * Optional model overrides:
+ *   GEMINI_MODEL=gemini-2.0-flash         (default; fast + cheap + JSON-mode)
+ *   ANTHROPIC_GEN_MODEL=claude-haiku-4-5  (default fallback)
+ */
+
+import Anthropic from "@anthropic-ai/sdk";
+
+export type AiCallOptions = {
+  systemPrompt: string;
+  userPrompt: string;
+  /** When true, ask the model for valid JSON. Both providers honor this. */
+  expectJson?: boolean;
+  /** Soft cap on output tokens (Gemini & Anthropic both respect it). */
+  maxTokens?: number;
+};
+
+export function activeProvider(): "gemini" | "anthropic" | null {
+  if ((process.env.GEMINI_API_KEY ?? "").trim()) return "gemini";
+  if ((process.env.ANTHROPIC_API_KEY ?? "").trim()) return "anthropic";
+  return null;
+}
+
+export async function generateText(opts: AiCallOptions): Promise<string> {
+  const provider = activeProvider();
+  if (!provider) {
+    throw new Error(
+      "No AI provider configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY on Railway.",
+    );
+  }
+  if (provider === "gemini") return callGemini(opts);
+  return callAnthropic(opts);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Google Gemini
+ * ────────────────────────────────────────────────────────────────────────── */
+
+async function callGemini(opts: AiCallOptions): Promise<string> {
+  const key = (process.env.GEMINI_API_KEY ?? "").trim();
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+
+  const body: Record<string, unknown> = {
+    system_instruction: { parts: [{ text: opts.systemPrompt }] },
+    contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],
+    generationConfig: {
+      maxOutputTokens: opts.maxTokens ?? 8000,
+      temperature: 0.4,
+      ...(opts.expectJson ? { responseMimeType: "application/json" } : {}),
+    },
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(90_000),
+    });
+  } catch (e) {
+    throw new Error(`Gemini network error: ${(e as Error).message}`);
+  }
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    if (res.status === 429) throw new Error("Gemini rate limit hit (free tier: 15 req/min). Wait a minute.");
+    if (res.status === 400 && /API key/i.test(errText)) {
+      throw new Error("Gemini rejected the API key. Get a free one at https://aistudio.google.com/app/apikey and update GEMINI_API_KEY on Railway.");
+    }
+    throw new Error(`Gemini error ${res.status}: ${errText.slice(0, 300)}`);
+  }
+
+  type GeminiResponse = { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>; promptFeedback?: { blockReason?: string } };
+  const json = (await res.json()) as GeminiResponse;
+  if (json.promptFeedback?.blockReason) {
+    throw new Error(`Gemini blocked the prompt: ${json.promptFeedback.blockReason}`);
+  }
+  const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("");
+  if (!text) throw new Error("Gemini returned an empty response.");
+  return text.trim();
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Anthropic Claude (fallback)
+ * ────────────────────────────────────────────────────────────────────────── */
+
+async function callAnthropic(opts: AiCallOptions): Promise<string> {
+  const key = (process.env.ANTHROPIC_API_KEY ?? "").trim();
+  const model = process.env.ANTHROPIC_GEN_MODEL ?? "claude-haiku-4-5";
+  const client = new Anthropic({ apiKey: key });
+
+  let msg;
+  try {
+    msg = await client.messages.create({
+      model,
+      max_tokens: opts.maxTokens ?? 8000,
+      system: [{ type: "text", text: opts.systemPrompt, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: opts.userPrompt }],
+    });
+  } catch (e) {
+    const err = e as { status?: number; message?: string };
+    if (err.status === 401) throw new Error("Anthropic rejected the API key.");
+    if (err.status === 429) throw new Error("Anthropic rate limit hit. Wait a minute.");
+    if (err.status === 400 && /credit balance/i.test(err.message ?? "")) {
+      throw new Error("Anthropic out of credits. Add at console.anthropic.com or set GEMINI_API_KEY for free.");
+    }
+    throw new Error(`Anthropic error: ${err.message ?? "unknown"}`);
+  }
+  const block = msg.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") throw new Error("No text response from Anthropic");
+  return block.text.trim();
+}
+
+/** Strip leading ```json fences if a model added them despite asking for JSON. */
+export function stripJsonFences(text: string): string {
+  let raw = text.trim();
+  if (raw.startsWith("```")) raw = raw.replace(/^```(?:json)?\s*/, "").replace(/```$/, "").trim();
+  return raw;
+}

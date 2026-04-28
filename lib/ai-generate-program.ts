@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { generateText, stripJsonFences, activeProvider } from "@/lib/ai-call";
 import type { ParsedProgram } from "@/lib/ai-parse-program";
 
 /**
@@ -81,15 +81,14 @@ DESIGN RULES
 `;
 
 export function hasGenKey(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return activeProvider() !== null;
 }
 
 export async function generateProgramFromBrief(brief: ProgramBrief): Promise<ParsedProgram> {
-  const key = (process.env.ANTHROPIC_API_KEY ?? "").trim();
-  if (!key) throw new Error("ANTHROPIC_API_KEY is not set on Railway.");
-  if (!key.startsWith("sk-ant-")) throw new Error("ANTHROPIC_API_KEY looks malformed (should start with sk-ant-).");
+  if (!hasGenKey()) {
+    throw new Error("No AI provider configured. Set GEMINI_API_KEY (free) at https://aistudio.google.com/app/apikey or ANTHROPIC_API_KEY on Railway.");
+  }
 
-  const client = new Anthropic({ apiKey: key });
   const userMessage = `Build a training program for the following athlete and brief.
 
 <athlete>
@@ -108,32 +107,16 @@ Specific needs / focus: ${brief.needs || "general progressive training"}
 
 Return ONLY the JSON.`;
 
-  let msg;
-  try {
-    msg = await client.messages.create({
-      model: process.env.ANTHROPIC_GEN_MODEL ?? "claude-haiku-4-5",
-      max_tokens: 8000,
-      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: userMessage }],
-    });
-  } catch (e) {
-    const err = e as { status?: number; message?: string };
-    if (err.status === 401) throw new Error("Anthropic rejected the API key. Refresh it at console.anthropic.com.");
-    if (err.status === 429) throw new Error("Anthropic rate limit hit. Wait a minute and try again.");
-    if (err.status === 400 && /credit balance/i.test(err.message ?? "")) {
-      throw new Error("Anthropic account out of credits. Add at least $5 at console.anthropic.com/settings/billing.");
-    }
-    throw new Error(`AI generation failed: ${err.message ?? "unknown error"}`);
-  }
-
-  const block = msg.content.find((b) => b.type === "text");
-  if (!block || block.type !== "text") throw new Error("No text response from Claude");
-
-  let raw = block.text.trim();
-  if (raw.startsWith("```")) raw = raw.replace(/^```(?:json)?\s*/, "").replace(/```$/, "").trim();
+  const text = await generateText({
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt: userMessage,
+    expectJson: true,
+    maxTokens: 8000,
+  });
+  const raw = stripJsonFences(text);
   try {
     return JSON.parse(raw) as ParsedProgram;
   } catch (e) {
-    throw new Error(`Claude returned invalid JSON: ${(e as Error).message}\n\nFirst 500 chars: ${raw.slice(0, 500)}`);
+    throw new Error(`AI returned invalid JSON: ${(e as Error).message}\n\nFirst 500 chars: ${raw.slice(0, 500)}`);
   }
 }

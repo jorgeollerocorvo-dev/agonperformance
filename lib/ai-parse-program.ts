@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { generateText, stripJsonFences, activeProvider } from "@/lib/ai-call";
 
 /**
  * Parsed program shape matching our EditorProgram / ProgramBuilder input.
@@ -118,80 +118,28 @@ function sanitize(p: ParsedProgram): ParsedProgram {
 }
 
 export function hasAIKey(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return activeProvider() !== null;
 }
 
 export async function parseProgramWithAI(rawText: string): Promise<ParsedProgram> {
-  const key = (process.env.ANTHROPIC_API_KEY ?? "").trim();
-  if (!key) {
-    throw new Error(
-      "ANTHROPIC_API_KEY is not set. Add it to Railway environment variables.",
-    );
-  }
-  if (!key.startsWith("sk-ant-")) {
-    throw new Error(
-      "ANTHROPIC_API_KEY doesn't look right — it should start with sk-ant-api03-. Check Railway → Variables and paste a fresh key from console.anthropic.com/settings/keys.",
-    );
+  if (!hasAIKey()) {
+    throw new Error("No AI provider configured. Set GEMINI_API_KEY (free) at https://aistudio.google.com/app/apikey or ANTHROPIC_API_KEY on Railway.");
   }
 
-  const client = new Anthropic({ apiKey: key });
+  const userPrompt = `Parse this coach's program document:\n\n<document>\n${rawText.slice(0, 80_000)}\n</document>\n\nReturn only the JSON.`;
 
-  let msg;
-  try {
-    msg = await client.messages.create({
-      model: process.env.ANTHROPIC_PARSE_MODEL ?? "claude-haiku-4-5",
-      max_tokens: 8000,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: `Parse this coach's program document:\n\n<document>\n${rawText.slice(0, 80_000)}\n</document>\n\nReturn only the JSON.`,
-        },
-      ],
-    });
-  } catch (e) {
-    const err = e as { status?: number; message?: string };
-    if (err.status === 401) {
-      throw new Error(
-        "Anthropic rejected the API key (401). Regenerate it at console.anthropic.com/settings/keys and update ANTHROPIC_API_KEY on Railway. Tip: when copying the key, make sure there's no trailing space or newline.",
-      );
-    }
-    if (err.status === 429) {
-      throw new Error("Anthropic rate limit hit. Wait a minute and try again.");
-    }
-    if (err.status === 400) {
-      const msg = err.message ?? "";
-      if (/credit balance/i.test(msg) || /insufficient/i.test(msg)) {
-        throw new Error(
-          "Your Anthropic account is out of credits. Add at least $5 at console.anthropic.com/settings/billing — then try again. (Or build the program manually using the editor.)",
-        );
-      }
-      throw new Error(`Anthropic rejected the request: ${msg || "bad request"}.`);
-    }
-    throw new Error(`AI parse failed: ${err.message ?? "unknown error"}`);
-  }
-
-  const textBlock = msg.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("No text response from Claude");
-  }
-
-  let raw = textBlock.text.trim();
-  // Strip accidental markdown fences
-  if (raw.startsWith("```")) {
-    raw = raw.replace(/^```(?:json)?\s*/, "").replace(/```$/, "").trim();
-  }
+  const text = await generateText({
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt,
+    expectJson: true,
+    maxTokens: 8000,
+  });
+  const raw = stripJsonFences(text);
 
   try {
     return sanitize(JSON.parse(raw) as ParsedProgram);
   } catch (e) {
-    throw new Error(`Claude returned invalid JSON: ${(e as Error).message}\n\nFirst 500 chars: ${raw.slice(0, 500)}`);
+    throw new Error(`AI returned invalid JSON: ${(e as Error).message}\n\nFirst 500 chars: ${raw.slice(0, 500)}`);
   }
 }
 
