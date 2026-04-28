@@ -13,3 +13,8 @@ export function aiImportEnabled(): boolean {
   // with a button that fails because the Anthropic account is out of credits.
   return process.env.AI_IMPORT_ENABLED === "true";
 }
+
+/** AI program generation from a brief. Independent flag from import. */
+export function aiProgramGenEnabled(): boolean {
+  return process.env.AI_PROGRAM_GEN_ENABLED === "true";
+}
