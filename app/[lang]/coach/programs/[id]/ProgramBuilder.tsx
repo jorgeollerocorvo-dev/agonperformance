@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type EditorMovement } from "./actions";
 import { ytEmbed as ytEmbedUrl } from "@/lib/youtube";
@@ -61,12 +61,41 @@ export default function ProgramBuilder({
   const [pending, start] = useTransition();
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [clip, setClip] = useState<Clip>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Density mode: how many days fit on screen at once.
   // "compact" = 7-col week grid (default, lots-at-a-glance)
   // "wide"    = 3-col grid (more breathing room for inputs)
   // "focus"   = 1 day at a time, full width
   const [density, setDensity] = useState<"compact" | "wide" | "focus">("compact");
   const [focusedDay, setFocusedDay] = useState(0);
+
+  // Auto-save with debouncing (2s delay)
+  useEffect(() => {
+    if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+
+    const timeout = setTimeout(() => {
+      setAutoSaveStatus("saving");
+      start(async () => {
+        try {
+          await saveProgram(prog);
+          setAutoSaveStatus("saved");
+          setSavedAt(Date.now());
+          // Clear "saved" status after 2 seconds
+          setTimeout(() => setAutoSaveStatus("idle"), 2000);
+        } catch (err) {
+          setAutoSaveStatus("error");
+          console.error("Auto-save failed:", err);
+          setTimeout(() => setAutoSaveStatus("idle"), 3000);
+        }
+      });
+    }, 2000);
+
+    autoSaveTimeoutRef.current = timeout;
+    return () => {
+      if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+    };
+  }, [prog]);
 
   const copyBlock = (b: EditorBlock) => setClip({ kind: "block", data: structuredClone(b) });
   const copyMovement = (m: EditorMovement) => setClip({ kind: "movement", data: structuredClone(m) });
@@ -254,10 +283,21 @@ export default function ProgramBuilder({
           onClick={save}
           disabled={pending}
           className="rounded-full bg-[var(--primary)] text-white px-5 py-2 font-medium hover:bg-[var(--primary-hover)] disabled:opacity-60"
+          title="Save now (changes auto-save after 2 seconds)"
         >
           {pending ? "…" : dict.save}
         </button>
-        {savedAt && !pending && <span className="text-sm text-[var(--success)]">✓ {dict.saved}</span>}
+
+        {/* Auto-save status indicator */}
+        {autoSaveStatus === "saving" && (
+          <span className="text-sm text-[var(--ink-muted)] animate-pulse">💾 Auto-saving…</span>
+        )}
+        {autoSaveStatus === "saved" && (
+          <span className="text-sm text-[var(--success)]">✓ Auto-saved</span>
+        )}
+        {autoSaveStatus === "error" && (
+          <span className="text-sm text-red-500">✗ Auto-save failed</span>
+        )}
       </div>
 
       <input
