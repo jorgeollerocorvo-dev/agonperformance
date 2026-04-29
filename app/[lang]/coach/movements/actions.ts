@@ -73,11 +73,13 @@ export async function clearMovementVideo(movementId: string): Promise<void> {
   revalidatePath(`/`, "layout");
 }
 
-/** Create a new movement with optional auto-searched video. */
+/** Create a new movement with optional auto-searched or custom video, and optional lock. */
 export async function createMovement(
   nameEn: string,
   nameEs?: string | null,
-  autoSearchVideo?: boolean
+  autoSearchVideo?: boolean,
+  customVideoUrl?: string | null,
+  lockVideo?: boolean
 ): Promise<{ id: string; videoUrl: string | null; error?: string }> {
   await assertJorge();
 
@@ -93,9 +95,13 @@ export async function createMovement(
     .replace(/\s+/g, "_");
 
   let videoUrl: string | null = null;
+  let shouldLock = false;
 
-  // Auto-search for video if requested
-  if (autoSearchVideo) {
+  // Prefer custom URL if provided, otherwise auto-search
+  if (customVideoUrl) {
+    videoUrl = customVideoUrl.trim();
+    shouldLock = lockVideo ?? false;
+  } else if (autoSearchVideo) {
     const cands = await findYoutubeCandidates(`${trimmedEn} exercise demo`, 3);
     if (cands.length > 0) {
       videoUrl = `https://www.youtube.com/watch?v=${cands[0].id}`;
@@ -108,7 +114,7 @@ export async function createMovement(
       nameEs: trimmedEs,
       code,
       videoUrl,
-      videoLocked: false,
+      videoLocked: shouldLock,
       isActive: true,
     },
   });

@@ -76,7 +76,9 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
     const nameEn = String(formData.get("nameEn") ?? "").trim();
     const nameEs = String(formData.get("nameEs") ?? "").trim() || null;
     const autoSearch = formData.get("autoSearch") === "on";
-    if (nameEn) await createMovement(nameEn, nameEs, autoSearch);
+    const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
+    const lockVideo = formData.get("lockVideo") === "on" && !!videoUrl;
+    if (nameEn) await createMovement(nameEn, nameEs, autoSearch, videoUrl, lockVideo);
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -123,12 +125,29 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
               className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" name="autoSearch" id="autoSearch" defaultChecked className="rounded w-4 h-4" />
-            <label htmlFor="autoSearch" className="text-sm text-[var(--ink-muted)]">
-              Auto-search YouTube for video demo
-            </label>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" name="autoSearch" id="autoSearch" defaultChecked className="rounded w-4 h-4" />
+              <label htmlFor="autoSearch" className="text-sm text-[var(--ink-muted)]">
+                Auto-search YouTube for video demo
+              </label>
+            </div>
+            <div className="text-xs text-[var(--ink-subtle)] ml-6">Or paste a custom URL instead:</div>
+            <input
+              type="url"
+              name="videoUrl"
+              placeholder="https://youtu.be/… (optional)"
+              className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
+            />
+            <div className="flex items-center gap-2">
+              <input type="checkbox" name="lockVideo" id="lockVideo" className="rounded w-4 h-4" />
+              <label htmlFor="lockVideo" className="text-sm text-[var(--ink-muted)]">
+                🔒 Lock video (prevent auto-reroll)
+              </label>
+            </div>
           </div>
+
           <Button type="submit">Create movement</Button>
         </form>
       </Card>
