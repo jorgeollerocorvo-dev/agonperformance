@@ -6,7 +6,7 @@ import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import { isJorge } from "@/lib/jorge";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
-import { rerollMovementVideo, toggleMovementLock, setMovementVideoUrl, clearMovementVideo } from "./actions";
+import { rerollMovementVideo, toggleMovementLock, setMovementVideoUrl, clearMovementVideo, createMovement } from "./actions";
 
 const PAGE_SIZE = 30;
 
@@ -71,6 +71,13 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
     const url = String(formData.get("url") ?? "");
     if (id && url) await setMovementVideoUrl(id, url);
   }
+  async function createAction(formData: FormData) {
+    "use server";
+    const nameEn = String(formData.get("nameEn") ?? "").trim();
+    const nameEs = String(formData.get("nameEs") ?? "").trim() || null;
+    const autoSearch = formData.get("autoSearch") === "on";
+    if (nameEn) await createMovement(nameEn, nameEs, autoSearch);
+  }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const buildHref = (overrides: Record<string, string | undefined>) => {
@@ -97,6 +104,34 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
           </p>
         </div>
       </header>
+
+      <Card padded className="bg-[var(--surface-2)]">
+        <h2 className="text-lg font-semibold mb-4">Add new exercise</h2>
+        <form action={createAction} className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input
+              type="text"
+              name="nameEn"
+              placeholder="Exercise name (English)"
+              required
+              className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
+            />
+            <input
+              type="text"
+              name="nameEs"
+              placeholder="Nombre del ejercicio (Español, opcional)"
+              className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" name="autoSearch" id="autoSearch" defaultChecked className="rounded w-4 h-4" />
+            <label htmlFor="autoSearch" className="text-sm text-[var(--ink-muted)]">
+              Auto-search YouTube for video demo
+            </label>
+          </div>
+          <Button type="submit">Create movement</Button>
+        </form>
+      </Card>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Total</div><div className="text-3xl font-bold mt-0.5">{totalActive}</div></Card>

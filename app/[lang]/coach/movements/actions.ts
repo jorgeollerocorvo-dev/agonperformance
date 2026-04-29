@@ -72,3 +72,47 @@ export async function clearMovementVideo(movementId: string): Promise<void> {
   });
   revalidatePath(`/`, "layout");
 }
+
+/** Create a new movement with optional auto-searched video. */
+export async function createMovement(
+  nameEn: string,
+  nameEs?: string | null,
+  autoSearchVideo?: boolean
+): Promise<{ id: string; videoUrl: string | null; error?: string }> {
+  await assertJorge();
+
+  const trimmedEn = nameEn.trim();
+  const trimmedEs = nameEs?.trim() ?? null;
+
+  if (!trimmedEn) return { id: "", videoUrl: null, error: "Exercise name required" };
+
+  // Generate a code from the English name (lowercase, spaces → underscores)
+  const code = trimmedEn
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, "_");
+
+  let videoUrl: string | null = null;
+
+  // Auto-search for video if requested
+  if (autoSearchVideo) {
+    const cands = await findYoutubeCandidates(`${trimmedEn} exercise demo`, 3);
+    if (cands.length > 0) {
+      videoUrl = `https://www.youtube.com/watch?v=${cands[0].id}`;
+    }
+  }
+
+  const movement = await prisma.movement.create({
+    data: {
+      nameEn: trimmedEn,
+      nameEs: trimmedEs,
+      code,
+      videoUrl,
+      videoLocked: false,
+      isActive: true,
+    },
+  });
+
+  revalidatePath(`/`, "layout");
+  return { id: movement.id, videoUrl };
+}
