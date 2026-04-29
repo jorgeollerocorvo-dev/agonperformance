@@ -1,18 +1,25 @@
 /**
- * Provider-agnostic AI text-generation wrapper.
+ * Provider-agnostic AI text-generation wrapper with automatic fallback.
  *
- * Picks a provider in this order:
- *   1. Google Gemini   — if  GEMINI_API_KEY  is set  (FREE tier: 15 req/min, 1500 req/day)
+ * Primary provider:
+ *   1. Google Gemini (FREE tier: 15 req/min, 1500 req/day)  — if  GEMINI_API_KEY  is set
+ *
+ * Fallback provider (triggered if primary hits quota/rate-limit):
  *   2. Anthropic Claude — if  ANTHROPIC_API_KEY  is set
  *
- * Both providers are called via REST so we don't need a heavyweight SDK.
+ * Both providers are called via REST. If Gemini quota is exhausted, the system
+ * automatically retries with Anthropic—no manual intervention needed.
  *
- * Get a free Gemini key:  https://aistudio.google.com/app/apikey
+ * Setup (on Railway):
+ *   # For free Gemini (recommended):
  *   railway variables --set "GEMINI_API_KEY=AIza..."
  *
+ *   # For fallback (optional but recommended):
+ *   railway variables --set "ANTHROPIC_API_KEY=sk-ant-..."
+ *
  * Optional model overrides:
- *   GEMINI_MODEL=gemini-2.0-flash         (default; fast + cheap + JSON-mode)
- *   ANTHROPIC_GEN_MODEL=claude-haiku-4-5  (default fallback)
+ *   GEMINI_MODEL=gemini-flash-latest     (default; resolves to current free model)
+ *   ANTHROPIC_GEN_MODEL=claude-haiku-4-5 (default fallback model)
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -32,15 +39,47 @@ export function activeProvider(): "gemini" | "anthropic" | null {
   return null;
 }
 
+export function secondaryProvider(): "gemini" | "anthropic" | null {
+  const primary = activeProvider();
+  // Return the other one if primary exists, null otherwise
+  if (primary === "gemini" && (process.env.ANTHROPIC_API_KEY ?? "").trim()) return "anthropic";
+  if (primary === "anthropic" && (process.env.GEMINI_API_KEY ?? "").trim()) return "gemini";
+  return null;
+}
+
+/**
+ * Generate text with automatic fallback.
+ * If the primary provider fails with quota/rate-limit, tries the secondary.
+ */
 export async function generateText(opts: AiCallOptions): Promise<string> {
-  const provider = activeProvider();
-  if (!provider) {
+  const primary = activeProvider();
+  if (!primary) {
     throw new Error(
       "No AI provider configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY on Railway.",
     );
   }
-  if (provider === "gemini") return callGemini(opts);
-  return callAnthropic(opts);
+
+  try {
+    if (primary === "gemini") {
+      return await callGemini(opts);
+    }
+    return await callAnthropic(opts);
+  } catch (e) {
+    const err = e as Error;
+    const isQuotaError = err.message.includes("rate limit") || err.message.includes("quota") || err.message.includes("429");
+
+    if (!isQuotaError) throw e; // Only fallback for quota/rate-limit errors
+
+    const fallback = secondaryProvider();
+    if (!fallback) throw e; // No fallback available
+
+    console.warn(`⚠️  ${primary} hit quota limit, falling back to ${fallback}...`);
+
+    if (fallback === "gemini") {
+      return await callGemini(opts);
+    }
+    return await callAnthropic(opts);
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -81,7 +120,12 @@ async function callGemini(opts: AiCallOptions): Promise<string> {
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
-    if (res.status === 429) throw new Error("Gemini rate limit hit (free tier: 15 req/min). Wait a minute.");
+    if (res.status === 429) {
+      throw new Error("Gemini rate limit hit (free tier: 15 req/min, 1500 req/day). System will automatically try Anthropic if available.");
+    }
+    if (res.status === 400 && /quota|exceeded/i.test(errText)) {
+      throw new Error("Gemini quota exhausted (free tier daily limit). System will automatically try Anthropic if available.");
+    }
     if (res.status === 400 && /API key/i.test(errText)) {
       throw new Error("Gemini rejected the API key. Get a free one at https://aistudio.google.com/app/apikey and update GEMINI_API_KEY on Railway.");
     }
