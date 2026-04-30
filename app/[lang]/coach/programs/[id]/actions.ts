@@ -211,3 +211,94 @@ export async function deleteProgram(programId: string) {
   await prisma.program.delete({ where: { id: program.id } });
   revalidatePath(`/`, "layout");
 }
+
+// ────────────────────────────────────────────────────────────
+// Delete a specific session/workout from a program
+// ────────────────────────────────────────────────────────────
+
+export async function deleteSession(sessionId: string, programId: string, lang: string) {
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) throw new Error("no coach profile");
+
+  // Verify the session belongs to a program owned by this coach
+  const programSession = await prisma.programSession.findFirst({
+    where: {
+      id: sessionId,
+      programWeek: {
+        program: { id: programId, athlete: { coachProfileId: coach.id } },
+      },
+    },
+  });
+  if (!programSession) throw new Error("forbidden");
+
+  // Delete the session (cascades to blocks and movements)
+  await prisma.programSession.delete({ where: { id: sessionId } });
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+}
+
+// ────────────────────────────────────────────────────────────
+// Create a new session/workout on a specific date
+// ────────────────────────────────────────────────────────────
+
+export async function createSession(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) throw new Error("no coach profile");
+
+  const programId = String(formData.get("programId") ?? "");
+  const dateStr = String(formData.get("date") ?? "");
+  const day = String(formData.get("day") ?? "");
+  const focus = String(formData.get("focus") ?? "").trim() || null;
+  const intensity = String(formData.get("intensity") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const lang = String(formData.get("lang") ?? "en");
+
+  if (!programId || !dateStr) throw new Error("missing fields");
+
+  // Verify coach owns program
+  const program = await prisma.program.findFirst({
+    where: { id: programId, athlete: { coachProfileId: coach.id } },
+  });
+  if (!program) throw new Error("forbidden program");
+
+  // Find or create the week for this date
+  const sessionDate = new Date(dateStr);
+  sessionDate.setHours(0, 0, 0, 0);
+
+  // Calculate which week this date belongs to
+  const programStart = new Date(program.startDate);
+  programStart.setHours(0, 0, 0, 0);
+  const daysDiff = Math.floor((sessionDate.getTime() - programStart.getTime()) / (1000 * 60 * 60 * 24));
+  const weekNumber = Math.floor(daysDiff / 7) + 1;
+
+  // Find or create the week
+  let programWeek = await prisma.programWeek.findFirst({
+    where: { programId, weekNumber },
+  });
+  if (!programWeek) {
+    programWeek = await prisma.programWeek.create({
+      data: {
+        programId,
+        weekNumber,
+        weekLabel: `Week ${weekNumber}`,
+      },
+    });
+  }
+
+  // Create the session
+  await prisma.programSession.create({
+    data: {
+      programWeekId: programWeek.id,
+      date: sessionDate,
+      day: day || sessionDate.toLocaleDateString("en-US", { weekday: "long" }),
+      focus,
+      intensity,
+      notes,
+    },
+  });
+
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+}

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 import ProgramBuilder from "./ProgramBuilder";
+import CoachProgramCalendar from "@/components/CoachProgramCalendar";
 import type { EditorProgram } from "./actions";
 import { Card } from "@/components/ui/Card";
 import { regenerateProgramFromDocument } from "../../import/actions";
@@ -51,6 +52,9 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
 
   const sourceDoc = program.documents[0] ?? null;
   const docHref = sourceDoc ? `/api/programs/${program.id}/document` : null;
+
+  // Flatten sessions for calendar view
+  const allSessions = program.weeks.flatMap((w) => w.sessions);
 
   // Convert to editor shape. If a week has no sessions yet, synthesize 7 empty days from its start dates.
   const startDate = program.startDate;
@@ -172,6 +176,17 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
           </form>
         </Card>
       )}
+
+      <Card>
+        <CoachProgramCalendar
+          sessions={allSessions}
+          programId={program.id}
+          startDate={program.startDate}
+          durationWeeks={program.durationWeeks ?? program.weeks.length}
+          lang={lang}
+          dict={dict}
+        />
+      </Card>
 
       <ProgramBuilder
         initial={initial}
