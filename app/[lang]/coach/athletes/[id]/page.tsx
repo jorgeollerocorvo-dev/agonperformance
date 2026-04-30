@@ -80,6 +80,19 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         notes,
       },
     });
+
+    // If athlete has a user account, also update the user's email and fullName
+    if (a.userId) {
+      await prisma.user.update({
+        where: { id: a.userId },
+        data: {
+          email: email || undefined,
+          fullName,
+          displayName: fullName,
+        },
+      });
+    }
+
     redirect(`/${langParam}/coach/athletes/${athleteId}`);
   }
 
