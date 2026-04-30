@@ -72,6 +72,23 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
     : `/${lang}/athlete/history`;
   const backLabel = fromCalendar ? (dict.athlete.calendarTitle ?? "Calendar") : dict.nav.history;
 
+  // Find previous and next sessions for day navigation
+  const prevSession = await prisma.programSession.findFirst({
+    where: {
+      programWeek: { program: { athleteId: link.athleteId } },
+      date: { lt: s.date },
+    },
+    orderBy: { date: "desc" },
+  });
+
+  const nextSession = await prisma.programSession.findFirst({
+    where: {
+      programWeek: { program: { athleteId: link.athleteId } },
+      date: { gt: s.date },
+    },
+    orderBy: { date: "asc" },
+  });
+
   return (
     <div className="space-y-6">
       <Link href={backHref} className="text-sm text-[var(--ink-muted)] hover:underline">← {backLabel}</Link>
@@ -82,7 +99,35 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
           <h1 className="text-3xl font-bold">{s.day} · {s.date.toISOString().slice(0, 10)}</h1>
           {s.focus && <p className="text-sm text-[var(--ink-muted)] mt-1">{s.focus}</p>}
         </div>
-        {s.sessionLog && <Pill color="success">{dict.athlete.completed}</Pill>}
+        <div className="flex items-center gap-2">
+          {prevSession ? (
+            <Link
+              href={`/${lang}/athlete/session/${prevSession.id}${fromCalendar ? "?from=calendar" : ""}`}
+              className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-sm hover:bg-[var(--surface-2)]"
+              title={`← ${prevSession.date.toISOString().slice(0, 10)}`}
+            >
+              ←
+            </Link>
+          ) : (
+            <div className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--ink-muted)]">
+              ←
+            </div>
+          )}
+          {nextSession ? (
+            <Link
+              href={`/${lang}/athlete/session/${nextSession.id}${fromCalendar ? "?from=calendar" : ""}`}
+              className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-sm hover:bg-[var(--surface-2)]"
+              title={`→ ${nextSession.date.toISOString().slice(0, 10)}`}
+            >
+              →
+            </Link>
+          ) : (
+            <div className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--ink-muted)]">
+              →
+            </div>
+          )}
+          {s.sessionLog && <Pill color="success">{dict.athlete.completed}</Pill>}
+        </div>
       </header>
 
       {s.blocks.map((b) => (

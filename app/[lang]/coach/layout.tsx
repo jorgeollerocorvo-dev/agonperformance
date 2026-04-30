@@ -51,7 +51,7 @@ export default async function CoachLayout({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 bg-[var(--bg)]/95 backdrop-blur border-b border-[var(--border)]">
+      <header className="sticky top-0 z-30 bg-[var(--bg)]/95 backdrop-blur border-b border-[var(--border)] isolate">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center gap-3">
           <HomeLink href={`/${lang}`} label="Home" />
           <Link href={`/${lang}/coach`} className="font-semibold tracking-tight">{dict.brand}</Link>

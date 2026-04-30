@@ -9,6 +9,13 @@ import { hasAIKey } from "@/lib/ai-parse-program";
 import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
 import { importAndCreateProgram } from "../../import/actions";
 import { aiImportEnabled } from "@/lib/features";
+import { deleteProgram } from "../../programs/[id]/actions";
+
+async function deleteProgramAction(formData: FormData) {
+  "use server";
+  const programId = String(formData.get("programId") ?? "");
+  if (programId) await deleteProgram(programId);
+}
 
 export default async function AthleteDetail({ params, searchParams }: PageProps<"/[lang]/coach/athletes/[id]">) {
   const { lang, id } = await params;
@@ -320,19 +327,38 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
             {athlete.programs.map((p) => {
               const isNew = p.id === importedId;
               return (
-                <Link
+                <div
                   key={p.id}
-                  href={`/${lang}/coach/programs/${p.id}`}
-                  className={`block px-4 sm:px-5 py-4 hover:bg-[var(--surface-2)] ${isNew ? "bg-[var(--success-soft)]/60" : ""}`}
+                  className={`flex items-center justify-between px-4 sm:px-5 py-4 hover:bg-[var(--surface-2)] ${isNew ? "bg-[var(--success-soft)]/60" : ""}`}
                 >
-                  <div className="flex items-baseline gap-2">
-                    <div className="font-semibold">{p.title}</div>
-                    {isNew && <span className="text-xs rounded-full bg-[var(--success)] text-white px-2 py-0.5 font-semibold">NEW</span>}
-                  </div>
-                  <div className="text-xs text-[var(--ink-muted)] mt-1">
-                    {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
-                  </div>
-                </Link>
+                  <Link
+                    href={`/${lang}/coach/programs/${p.id}`}
+                    className="flex-1 block"
+                  >
+                    <div className="flex items-baseline gap-2">
+                      <div className="font-semibold">{p.title}</div>
+                      {isNew && <span className="text-xs rounded-full bg-[var(--success)] text-white px-2 py-0.5 font-semibold">NEW</span>}
+                    </div>
+                    <div className="text-xs text-[var(--ink-muted)] mt-1">
+                      {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
+                    </div>
+                  </Link>
+                  <form action={deleteProgramAction} className="ml-3">
+                    <input type="hidden" name="programId" value={p.id} />
+                    <button
+                      type="submit"
+                      className="text-xs text-[var(--ink-muted)] hover:text-[var(--danger)] px-2 py-1 rounded hover:bg-[var(--danger-soft)] transition"
+                      title="Delete program"
+                      onClick={(e) => {
+                        if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) {
+                          e.preventDefault();
+                        }
+                      }}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </form>
+                </div>
               );
             })}
           </Card>

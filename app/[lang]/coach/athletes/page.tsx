@@ -10,8 +10,9 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const session = await auth();
+  if (!session?.user?.id) redirect(`/${lang}/login`);
   const coachProfile = await prisma.coachProfile.findUnique({
-    where: { userId: session!.user.id },
+    where: { userId: session.user.id },
     include: { athletes: { orderBy: { createdAt: "desc" } } },
   });
 
