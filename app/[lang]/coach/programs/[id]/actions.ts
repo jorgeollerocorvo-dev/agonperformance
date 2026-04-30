@@ -74,6 +74,30 @@ export type EditorMovement = {
 export async function saveProgram(input: EditorProgram) {
   const { program } = await assertOwnsProgram(input.id);
 
+  // Collect all unique movement IDs referenced in the program
+  const movementIds = new Set<string>();
+  for (const wk of input.weeks) {
+    for (const day of wk.days) {
+      for (const block of day.blocks) {
+        for (const movement of block.movements) {
+          if (movement.movementId) {
+            movementIds.add(movement.movementId);
+          }
+        }
+      }
+    }
+  }
+
+  // Fetch all movements from library in one query
+  const movementMap = new Map<string, any>();
+  if (movementIds.size > 0) {
+    const movements = await prisma.movement.findMany({
+      where: { id: { in: Array.from(movementIds) } },
+      select: { id: true, videoUrl: true },
+    });
+    movements.forEach(m => movementMap.set(m.id, m));
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.program.update({
       where: { id: program.id },
@@ -122,20 +146,28 @@ export async function saveProgram(input: EditorProgram) {
               notes: b.notes,
               order: bi,
               movements: {
-                create: b.movements.map((m, mi) => ({
-                  movementId: m.movementId || undefined, // Reference to central library
-                  customName: m.name || null,
-                  prescription: {
-                    sets: m.sets || undefined,
-                    reps: m.reps || undefined,
-                    load: m.load || undefined,
-                    rest: m.rest || undefined,
-                    notes: m.notes || undefined,
-                    youtubeUrl: m.youtubeUrl || undefined, // Coach-pinned video URL
-                  },
-                  order: mi,
-                  isTest: m.isTest,
-                })),
+                create: b.movements.map((m, mi) => {
+                  const movementId = m.movementId || undefined;
+                  // Get the library video URL from the movement object
+                  const libraryVideoUrl = movementId ? movementMap.get(movementId)?.videoUrl : undefined;
+                  // Priority: coach-pinned URL → movement library video
+                  const youtubeUrl = m.youtubeUrl || libraryVideoUrl || undefined;
+
+                  return {
+                    movementId,
+                    customName: m.name || null,
+                    prescription: {
+                      sets: m.sets || undefined,
+                      reps: m.reps || undefined,
+                      load: m.load || undefined,
+                      rest: m.rest || undefined,
+                      notes: m.notes || undefined,
+                      youtubeUrl,
+                    },
+                    order: mi,
+                    isTest: m.isTest,
+                  };
+                }),
               },
             },
           });
