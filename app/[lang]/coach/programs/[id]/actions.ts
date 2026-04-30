@@ -74,8 +74,10 @@ export type EditorMovement = {
 export async function saveProgram(input: EditorProgram) {
   const { program } = await assertOwnsProgram(input.id);
 
-  // Collect all unique movement IDs referenced in the program
+  // Collect all unique movement IDs and names referenced in the program
   const movementIds = new Set<string>();
+  const movementNames = new Set<string>();
+
   for (const wk of input.weeks) {
     for (const day of wk.days) {
       for (const block of day.blocks) {
@@ -83,24 +85,37 @@ export async function saveProgram(input: EditorProgram) {
           if (movement.movementId) {
             movementIds.add(movement.movementId);
           }
+          if (movement.name) {
+            movementNames.add(movement.name.toLowerCase().trim());
+          }
         }
       }
     }
   }
 
-  console.log(`[saveProgram] Found ${movementIds.size} unique movements with IDs`);
-
-  // Fetch all movements from library in one query
+  // Fetch all movements from library - both by ID and by name
   const movementMap = new Map<string, any>();
+
+  // First fetch by IDs
   if (movementIds.size > 0) {
     const movements = await prisma.movement.findMany({
       where: { id: { in: Array.from(movementIds) } },
       select: { id: true, videoUrl: true, nameEn: true },
     });
-    console.log(`[saveProgram] Fetched ${movements.length} movements from database`);
-    movements.forEach(m => {
-      movementMap.set(m.id, m);
-      console.log(`[saveProgram] Movement ${m.nameEn} (${m.id}): videoUrl=${m.videoUrl}`);
+    movements.forEach(m => movementMap.set(m.id, m));
+  }
+
+  // Also fetch by name to match movements even if movementId isn't set
+  if (movementNames.size > 0) {
+    const movementsByName = await prisma.movement.findMany({
+      where: {
+        nameEn: { in: Array.from(movementNames), mode: 'insensitive' }
+      },
+      select: { id: true, videoUrl: true, nameEn: true },
+    });
+    movementsByName.forEach(m => {
+      // Store by normalized name for lookup
+      movementMap.set(m.nameEn.toLowerCase(), m);
     });
   }
 
@@ -154,15 +169,21 @@ export async function saveProgram(input: EditorProgram) {
               movements: {
                 create: b.movements.map((m, mi) => {
                   const movementId = m.movementId || undefined;
-                  // Get the library video URL from the movement object
-                  const libraryVideoUrl = movementId ? movementMap.get(movementId)?.videoUrl : undefined;
+
+                  // Try to get library video by ID first, then by name
+                  let libraryMovement = movementId ? movementMap.get(movementId) : null;
+                  if (!libraryMovement && m.name) {
+                    libraryMovement = movementMap.get(m.name.toLowerCase().trim());
+                  }
+
+                  const libraryVideoUrl = libraryMovement?.videoUrl;
                   // Priority: coach-pinned URL → movement library video
                   const youtubeUrl = m.youtubeUrl || libraryVideoUrl || undefined;
-
-                  console.log(`[saveProgram] Movement: ${m.name}, movementId=${movementId}, libraryVideo=${libraryVideoUrl}, youtubeUrl=${youtubeUrl}`);
+                  // Use the matched movement's ID if we found one by name
+                  const finalMovementId = movementId || (libraryMovement?.id ? libraryMovement.id : undefined);
 
                   return {
-                    movementId,
+                    movementId: finalMovementId,
                     customName: m.name || null,
                     prescription: {
                       sets: m.sets || undefined,
