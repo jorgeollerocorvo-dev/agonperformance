@@ -81,11 +81,14 @@ export default async function CoachLayout({
             <form action={async () => { "use server"; await signOut({ redirect: false }); }} className="hidden sm:block">
               <button className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] px-3 py-1.5">{dict.nav.logout}</button>
             </form>
-            {/* Mobile hamburger */}
-            <MobileMenu items={items} extraSlot={logoutForm} ariaLabel={dict.nav.menu ?? "Menu"} />
+            {/* Mobile hamburger button */}
+            <div className="sm:hidden">
+              <MobileMenu items={items} extraSlot={logoutForm} ariaLabel={dict.nav.menu ?? "Menu"} />
+            </div>
           </div>
         </div>
       </header>
+
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 py-6 sm:py-10">{children}</main>
     </div>
   );
