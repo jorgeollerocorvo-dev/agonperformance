@@ -122,6 +122,7 @@ export async function saveProgram(input: EditorProgram) {
               order: bi,
               movements: {
                 create: b.movements.map((m, mi) => ({
+                  movementId: m.movementId || undefined, // Reference to central library
                   customName: m.name || null,
                   prescription: {
                     sets: m.sets || undefined,
@@ -129,20 +130,11 @@ export async function saveProgram(input: EditorProgram) {
                     load: m.load || undefined,
                     rest: m.rest || undefined,
                     notes: m.notes || undefined,
+                    // Note: videoUrl is no longer stored here - always fetch from Movement library
                   },
                   order: mi,
                   isTest: m.isTest,
-                  // Store YouTube URL inside prescription for now (movement.videoUrl is library-level)
-                })).map((data, mi) => {
-                  const mv = b.movements[mi];
-                  return {
-                    ...data,
-                    prescription: {
-                      ...(data.prescription ?? {}),
-                      youtubeUrl: mv.youtubeUrl || undefined,
-                    },
-                  };
-                }),
+                })),
               },
             },
           });

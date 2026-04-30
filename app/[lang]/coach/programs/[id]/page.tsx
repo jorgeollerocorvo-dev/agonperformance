@@ -99,7 +99,7 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
                   load: (p.load as string | undefined) ?? (p.load_kg != null ? `${p.load_kg} kg` : null),
                   rest: (p.rest as string | undefined) ?? (p.rest_sec != null ? `${p.rest_sec}s` : null),
                   notes: (p.notes as string | undefined) ?? null,
-                  youtubeUrl: (p.youtubeUrl as string | undefined) ?? m.movement?.videoUrl ?? null,
+                  youtubeUrl: m.movement?.videoUrl ?? null, // Always fetch from movement library
                   isTest: m.isTest,
                 };
               }),
