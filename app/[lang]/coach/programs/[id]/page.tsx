@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { regenerateProgramFromDocument } from "../../import/actions";
 
 export default async function ProgramDetail({ params, searchParams }: PageProps<"/[lang]/coach/programs/[id]">) {
+  // Coach program detail with calendar for managing workouts
   const { lang, id } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
