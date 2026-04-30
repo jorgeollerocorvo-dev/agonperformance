@@ -11,6 +11,7 @@ import { importAndCreateProgram } from "../../import/actions";
 import { aiImportEnabled } from "@/lib/features";
 import { deleteProgram } from "../../programs/[id]/actions";
 import DeleteProgramButton from "@/components/DeleteProgramButton";
+import AthleteProfileEditor from "@/components/AthleteProfileEditor";
 
 async function deleteProgramAction(formData: FormData) {
   "use server";
@@ -155,27 +156,14 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         <span className="text-sm text-zinc-500">{athlete.division ?? ""}</span>
       </header>
 
-      <form action={updateAthlete} className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
-        <h2 className="text-lg font-medium sm:col-span-2">{dict.coach.editProfile}</h2>
-        <Field label={dict.auth.name}><input name="fullName" defaultValue={athlete.fullName} className={inputCls} /></Field>
-        <Field label={dict.auth.email}><input name="email" type="email" defaultValue={athlete.email ?? ""} className={inputCls} /></Field>
-        <Field label={dict.coach.phone}><input name="phone" defaultValue={athlete.phone ?? ""} className={inputCls} /></Field>
-        <Field label={dict.coach.sex}>
-          <select name="sex" defaultValue={athlete.sex ?? ""} className={inputCls}>
-            <option value="">—</option><option value="M">M</option><option value="F">F</option>
-          </select>
-        </Field>
-        <Field label={dict.coach.age}><input name="age" type="number" defaultValue={athlete.age ?? ""} className={inputCls} /></Field>
-        <Field label={dict.coach.birthDate}><input name="dob" type="date" defaultValue={toDateStr(athlete.dob)} className={inputCls} /></Field>
-        <Field label={dict.coach.height}><input name="heightCm" type="number" defaultValue={athlete.heightCm ?? ""} className={inputCls} /></Field>
-        <Field label={dict.coach.weight}><input name="weightKg" type="number" step="0.1" defaultValue={athlete.weightKg ?? ""} className={inputCls} /></Field>
-        <Field label={dict.coach.division} full><input name="division" defaultValue={athlete.division ?? ""} className={inputCls} /></Field>
-        <Field label={dict.coach.goals} full><textarea name="goals" rows={2} defaultValue={athlete.goals ?? ""} className={inputCls} /></Field>
-        <Field label={dict.coach.notes} full><textarea name="notes" rows={3} defaultValue={athlete.notes ?? ""} className={inputCls} /></Field>
-        <div className="sm:col-span-2">
-          <button className="rounded-md bg-zinc-900 text-white px-4 py-2 dark:bg-white dark:text-zinc-900">{dict.coach.save}</button>
-        </div>
-      </form>
+      <AthleteProfileEditor
+        athlete={athlete}
+        dict={dict}
+        updateAthlete={updateAthlete}
+        inputCls={inputCls}
+        Field={Field}
+        toDateStr={toDateStr}
+      />
 
       {/* Login account for the athlete */}
       <Card>
