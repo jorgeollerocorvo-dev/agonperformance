@@ -68,6 +68,7 @@ export type EditorMovement = {
   notes: string | null;
   youtubeUrl: string | null;
   isTest: boolean;
+  movementId: string | null;  // Reference to Movement library
 };
 
 export async function saveProgram(input: EditorProgram) {

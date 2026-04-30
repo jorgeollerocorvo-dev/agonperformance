@@ -208,6 +208,7 @@ export default function ProgramBuilder({
         sets: null, reps: null, load: null, rest: null, notes: null,
         youtubeUrl: null,
         isTest: false,
+        movementId: null,
       });
     });
   };

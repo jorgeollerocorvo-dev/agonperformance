@@ -101,6 +101,7 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
                   notes: (p.notes as string | undefined) ?? null,
                   youtubeUrl: m.movement?.videoUrl ?? null, // Always fetch from movement library
                   isTest: m.isTest,
+                  movementId: m.movement?.id ?? null,  // Reference to Movement library
                 };
               }),
             })),
