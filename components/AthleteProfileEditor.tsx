@@ -2,20 +2,29 @@
 
 import { useState } from "react";
 
+function Field({ label, full, children }: { label: string; full?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={full ? "sm:col-span-2" : ""}>
+      <label className="block text-sm font-medium text-zinc-900 dark:text-white mb-1">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function toDateStr(d: Date | null | undefined) {
+  return d ? d.toISOString().slice(0, 10) : "";
+}
+
 export default function AthleteProfileEditor({
   athlete,
   dict,
   updateAthlete,
   inputCls,
-  Field,
-  toDateStr,
 }: {
   athlete: any;
   dict: any;
   updateAthlete: (formData: FormData) => Promise<void>;
   inputCls: string;
-  Field: any;
-  toDateStr: (d: Date | null | undefined) => string;
 }) {
   const [isLocked, setIsLocked] = useState(true);
 

@@ -161,8 +161,6 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         dict={dict}
         updateAthlete={updateAthlete}
         inputCls={inputCls}
-        Field={Field}
-        toDateStr={toDateStr}
       />
 
       {/* Login account for the athlete */}
