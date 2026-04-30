@@ -15,11 +15,13 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
     where: { userId: session.user.id },
     include: { athletes: { orderBy: { createdAt: "desc" } } },
   });
+  if (!coachProfile) notFound();
 
   async function createAthlete(formData: FormData) {
     "use server";
     const s = await auth();
-    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
+    if (!s?.user?.id) return;
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s.user.id } });
     if (!cp) return;
 
     const fullName = String(formData.get("fullName") ?? "").trim();
