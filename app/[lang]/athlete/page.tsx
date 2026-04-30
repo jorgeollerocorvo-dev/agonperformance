@@ -78,7 +78,8 @@ function SessionCard({
                     ].filter(Boolean).join(" · ");
                     const prescriptionUrl = typeof p.youtubeUrl === "string" ? p.youtubeUrl : null;
                     const coachPinned = prescriptionUrl && !isYoutubeSearch(prescriptionUrl) ? prescriptionUrl : null;
-                    const sourceUrl = coachPinned ?? resolvedVideoByMovement.get(m.id) ?? m.movement?.videoUrl ?? prescriptionUrl ?? null;
+                    // Priority: coach-pinned URL → movement library video → auto-resolved video → youtube search
+                    const sourceUrl = coachPinned ?? m.movement?.videoUrl ?? resolvedVideoByMovement.get(m.id) ?? prescriptionUrl ?? null;
                     return (
                       <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-3)]/40 p-3">
                         <div className="flex items-baseline gap-2 mb-2">
