@@ -131,7 +131,7 @@ export async function saveProgram(input: EditorProgram) {
                     load: m.load || undefined,
                     rest: m.rest || undefined,
                     notes: m.notes || undefined,
-                    // Note: videoUrl is no longer stored here - always fetch from Movement library
+                    youtubeUrl: m.youtubeUrl || undefined, // Coach-pinned video URL
                   },
                   order: mi,
                   isTest: m.isTest,
