@@ -10,6 +10,7 @@ import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
 import { importAndCreateProgram } from "../../import/actions";
 import { aiImportEnabled } from "@/lib/features";
 import { deleteProgram } from "../../programs/[id]/actions";
+import DeleteProgramButton from "@/components/DeleteProgramButton";
 
 async function deleteProgramAction(formData: FormData) {
   "use server";
@@ -343,21 +344,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
                       {toDateStr(p.startDate)} → {toDateStr(p.endDate)} · {p.durationWeeks ?? "?"} weeks
                     </div>
                   </Link>
-                  <form action={deleteProgramAction} className="ml-3">
-                    <input type="hidden" name="programId" value={p.id} />
-                    <button
-                      type="submit"
-                      className="text-xs text-[var(--ink-muted)] hover:text-[var(--danger)] px-2 py-1 rounded hover:bg-[var(--danger-soft)] transition"
-                      title="Delete program"
-                      onClick={(e) => {
-                        if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      🗑️ Delete
-                    </button>
-                  </form>
+                  <DeleteProgramButton programId={p.id} programTitle={p.title} action={deleteProgramAction} />
                 </div>
               );
             })}
