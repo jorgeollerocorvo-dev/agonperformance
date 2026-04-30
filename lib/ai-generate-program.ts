@@ -47,8 +47,8 @@ type ParsedProgram = {
       isRest?: boolean;
       notes?: string | null;
       blocks: Array<{
-        blockCode: string;                // "A", "B", "C" (alphabetical within day)
-        label?: string | null;            // e.g. "Back squat strength"
+        blockCode: string;                // "W" = warm-up, "A" = main block, "B" = accessory/finisher (alphabetical)
+        label?: string | null;            // e.g. "Back squat strength" or "Arm + core accessories"
         format?: string | null;           // e.g. "5x5", "AMRAP 12 min", "EMOM 10"
         restSec?: number | null;
         notes?: string | null;
@@ -71,12 +71,16 @@ DESIGN RULES
 - Periodize across weeks: build → intensify → deload (or build → peak → test depending on length).
 - Match the requested style. CrossFit: include strength + skill + conditioning. Bodybuilding: hypertrophy splits with rep ranges 6-15. Rehab: low-load, high-quality, mobility-heavy. Women glutes/abs/legs: hip-hinge + glute isolation + core, moderate volume.
 - Respect equipment constraints. If the athlete has only DBs + bands, do not program a back squat under a barbell.
+- Block structure on EVERY training day:
+  * "W" block (warm-up): 5-15 min general + sport-specific prep. 2-4 movements (mobility, activation, light cardio).
+  * "A" / "B" / "C" blocks (main work): strength, skill, conditioning, hypertrophy. 1-3 blocks depending on complexity.
+  * Final block (accessories): targeted weak points, core, prehab, or conditioning finisher. 2-4 movements.
 - Movement names: use plain English the Movement library can match (e.g. "Back squat", "Hip thrust", "Bar muscle-up", "Pigeon pose"). Avoid exotic abbreviations.
 - Sets/reps: be specific. Use ranges only when intentional (e.g. "8-10").
 - Loads: prefer percentages (% 1RM) or RPE for strength work; specific weights only when given by the athlete's current 1RMs.
 - Exactly ONE rest day = isRest:true and an empty blocks array. Always include 7 days per week.
 - Avoid week 1 testing — schedule benchmark tests in the final week if program is ≥ 3 weeks.
-- Keep block count realistic: 2-5 blocks per training day. 4-12 movements total per day.
+- Keep block count realistic: 3-5 blocks per training day (W + main + accessories). 5-12 movements total per day.
 - weekNumber is 1-indexed and sequential.
 `;
 
