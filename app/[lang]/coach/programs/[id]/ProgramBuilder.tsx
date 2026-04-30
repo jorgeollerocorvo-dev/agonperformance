@@ -63,6 +63,7 @@ export default function ProgramBuilder({
   const [clip, setClip] = useState<Clip>(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [draggedBlock, setDraggedBlock] = useState<{ weekIdx: number; dayIdx: number; blockIdx: number } | null>(null);
   // Density mode: how many days fit on screen at once.
   // "compact" = 7-col week grid (default, lots-at-a-glance)
   // "wide"    = 3-col grid (more breathing room for inputs)
@@ -101,6 +102,20 @@ export default function ProgramBuilder({
   const copyMovement = (m: EditorMovement) => setClip({ kind: "movement", data: structuredClone(m) });
   const copyDay = (d: EditorDay) => setClip({ kind: "day", data: structuredClone(d) });
   const clearClip = () => setClip(null);
+
+  // Drag-and-drop: move block to another day
+  const moveBlockTo = (fromWeek: number, fromDay: number, fromBlock: number, toWeek: number, toDay: number) => {
+    setProg((p) => {
+      const weeks = p.weeks.map((w, i) => (i === fromWeek || i === toWeek ? structuredClone(w) : w));
+      const block = structuredClone(weeks[fromWeek]!.days[fromDay]!.blocks[fromBlock]);
+      // Remove from source
+      weeks[fromWeek]!.days[fromDay]!.blocks.splice(fromBlock, 1);
+      // Add to destination
+      weeks[toWeek]!.days[toDay]!.blocks.push(block);
+      return { ...p, weeks };
+    });
+    setDraggedBlock(null);
+  };
 
   const pasteDayInto = (wi: number, di: number) => {
     if (clip?.kind !== "day") return;
@@ -399,8 +414,11 @@ export default function ProgramBuilder({
               key={di}
               day={day}
               index={di}
+              weekIdx={activeWeek}
+              dayIdx={di}
               dict={dict}
               clip={clip}
+              draggedBlock={draggedBlock}
               onFocus={(v) => patchDay(activeWeek, di, (d) => { d.focus = v; })}
               onNotes={(v) => patchDay(activeWeek, di, (d) => { d.notes = v; })}
               onIntensity={(v) => patchDay(activeWeek, di, (d) => { d.intensity = v; })}
@@ -414,6 +432,8 @@ export default function ProgramBuilder({
               onBlockPatch={(bi, fn) => patchBlock(activeWeek, di, bi, fn)}
               onBlockRemove={(bi) => removeBlock(activeWeek, di, bi)}
               onBlockCopy={(bi) => copyBlock(day.blocks[bi])}
+              onBlockDragStart={(bi) => setDraggedBlock({ weekIdx: activeWeek, dayIdx: di, blockIdx: bi })}
+              onBlockDropped={() => draggedBlock && moveBlockTo(draggedBlock.weekIdx, draggedBlock.dayIdx, draggedBlock.blockIdx, activeWeek, di)}
               onMovementPatch={(bi, mi, fn) => patchMovement(activeWeek, di, bi, mi, fn)}
               onMovementAdd={(bi) => addMovement(activeWeek, di, bi)}
               onMovementRemove={(bi, mi) => removeMovement(activeWeek, di, bi, mi)}
@@ -439,16 +459,19 @@ export default function ProgramBuilder({
 }
 
 function DayCard({
-  day, index, dict, clip,
+  day, index, weekIdx, dayIdx, dict, clip, draggedBlock,
   onFocus, onNotes, onIntensity,
   onAddBlock, onDuplicate, onClear, onMarkRest, onCopyDay, onPasteDay, onPasteBlock,
-  onBlockPatch, onBlockRemove, onBlockCopy,
+  onBlockPatch, onBlockRemove, onBlockCopy, onBlockDragStart, onBlockDropped,
   onMovementPatch, onMovementAdd, onMovementRemove, onMovementCopy, onMovementPaste,
 }: {
   day: EditorDay;
   index: number;
+  weekIdx: number;
+  dayIdx: number;
   dict: Dict;
   clip: Clip;
+  draggedBlock: { weekIdx: number; dayIdx: number; blockIdx: number } | null;
   onFocus: (v: string) => void;
   onNotes: (v: string) => void;
   onIntensity: (v: string) => void;
@@ -462,18 +485,35 @@ function DayCard({
   onBlockPatch: (bi: number, fn: (b: EditorBlock) => void) => void;
   onBlockRemove: (bi: number) => void;
   onBlockCopy: (bi: number) => void;
+  onBlockDragStart: (bi: number) => void;
+  onBlockDropped: () => void;
   onMovementPatch: (bi: number, mi: number, fn: (m: EditorMovement) => void) => void;
   onMovementAdd: (bi: number) => void;
   onMovementRemove: (bi: number, mi: number) => void;
   onMovementCopy: (bi: number, mi: number) => void;
   onMovementPaste: (bi: number) => void;
 }) {
+  const [dragOver, setDragOver] = useState(false);
   const isRest =
     (day.blocks.length === 0 && !day.focus) ||
     (day.focus ?? "").toLowerCase().includes("rest");
 
   return (
-    <div className={`rounded-2xl border flex flex-col ${isRest ? "bg-[var(--surface-2)] border-dashed border-[var(--border-strong)]" : "bg-white border-[var(--border)]"}`}>
+    <div
+      className={`rounded-2xl border flex flex-col transition-colors ${
+        isRest ? "bg-[var(--surface-2)] border-dashed border-[var(--border-strong)]" : dragOver ? "bg-[var(--primary-soft)] border-[var(--primary)]" : "bg-white border-[var(--border)]"
+      }`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        onBlockDropped();
+      }}
+    >
       {/* Header */}
       <div className="px-3 pt-3 pb-2 border-b border-[var(--border)] flex items-center gap-2">
         <div className="flex-1">
@@ -538,11 +578,14 @@ function DayCard({
           <BlockEditor
             key={bi}
             block={b}
+            blockIdx={bi}
+            isDragging={draggedBlock?.weekIdx === weekIdx && draggedBlock.dayIdx === dayIdx && draggedBlock.blockIdx === bi}
             dict={dict}
             clip={clip}
             onPatch={(fn) => onBlockPatch(bi, fn)}
             onRemove={() => onBlockRemove(bi)}
             onCopy={() => onBlockCopy(bi)}
+            onDragStart={() => onBlockDragStart(bi)}
             onPasteMovement={() => onMovementPaste(bi)}
             onMovementPatch={(mi, fn) => onMovementPatch(bi, mi, fn)}
             onMovementAdd={() => onMovementAdd(bi)}
@@ -563,16 +606,19 @@ function DayCard({
 }
 
 function BlockEditor({
-  block, dict, clip,
-  onPatch, onRemove, onCopy, onPasteMovement,
+  block, blockIdx, isDragging, dict, clip,
+  onPatch, onRemove, onCopy, onDragStart, onPasteMovement,
   onMovementPatch, onMovementAdd, onMovementRemove, onMovementCopy,
 }: {
   block: EditorBlock;
+  blockIdx: number;
+  isDragging: boolean;
   dict: Dict;
   clip: Clip;
   onPatch: (fn: (b: EditorBlock) => void) => void;
   onRemove: () => void;
   onCopy: () => void;
+  onDragStart: () => void;
   onPasteMovement: () => void;
   onMovementPatch: (mi: number, fn: (m: EditorMovement) => void) => void;
   onMovementAdd: () => void;
@@ -580,7 +626,13 @@ function BlockEditor({
   onMovementCopy: (mi: number) => void;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] p-2 space-y-2 bg-[var(--surface-2)]/50">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      className={`rounded-xl border p-2 space-y-2 transition-all cursor-move ${
+        isDragging ? "opacity-50 border-dashed border-[var(--primary)]" : "border-[var(--border)] bg-[var(--surface-2)]/50 hover:bg-[var(--surface-2)] hover:border-[var(--primary)]/40"
+      }`}
+    >
       <div className="flex gap-1 items-center">
         <input
           value={block.blockCode}
