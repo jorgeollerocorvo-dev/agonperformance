@@ -20,11 +20,15 @@ export default function AthleteProfileEditor({
   dict,
   updateAthlete,
   inputCls,
+  lang,
+  athleteId,
 }: {
   athlete: any;
   dict: any;
   updateAthlete: (formData: FormData) => Promise<void>;
   inputCls: string;
+  lang: string;
+  athleteId: string;
 }) {
   const [isLocked, setIsLocked] = useState(true);
 
@@ -33,6 +37,8 @@ export default function AthleteProfileEditor({
       action={updateAthlete}
       className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 grid gap-3 grid-cols-1 sm:grid-cols-2"
     >
+      <input type="hidden" name="lang" value={lang} />
+      <input type="hidden" name="athleteId" value={athleteId} />
       <div className="sm:col-span-2 flex items-center justify-between">
         <h2 className="text-lg font-medium">{dict.coach.editProfile}</h2>
         <button

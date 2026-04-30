@@ -11,6 +11,7 @@ interface SessionInfo {
   focus: string | null;
   intensity: string | null;
   blocks: Array<{ id: string }>;
+  sessionLog: { intensityFeedback: number | null; intensityReview: string | null } | null;
 }
 
 interface DayCell {
@@ -34,6 +35,7 @@ export default function CoachMonthlyCalendar({
     focus: string | null;
     intensity: string | null;
     blocks: Array<{ id: string }>;
+    sessionLog: { intensityFeedback: number | null; intensityReview: string | null } | null;
   }>;
   programId: string;
   lang: string;
@@ -239,11 +241,18 @@ export default function CoachMonthlyCalendar({
               <p className={`text-sm font-semibold ${cell.isCurrentMonth ? "" : "text-[var(--ink-muted)]"}`}>
                 {cell.date.getDate()}
               </p>
-              {cell.session && (
-                <span className="text-xs bg-[var(--primary)] text-white px-1.5 py-0.5 rounded">
-                  {cell.session.blocks.length} block{cell.session.blocks.length !== 1 ? "s" : ""}
-                </span>
-              )}
+              <div className="flex gap-1">
+                {cell.session && (
+                  <span className="text-xs bg-[var(--primary)] text-white px-1.5 py-0.5 rounded">
+                    {cell.session.blocks.length} block{cell.session.blocks.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+                {cell.session?.sessionLog?.intensityFeedback && (
+                  <span className="text-sm" title={["Easy", "Moderate", "Challenging", "Hard", "Intense"][cell.session.sessionLog.intensityFeedback - 1]}>
+                    {["😊", "😐", "😓", "💪", "😤"][cell.session.sessionLog.intensityFeedback - 1]}
+                  </span>
+                )}
+              </div>
             </div>
             {cell.session && (
               <p className="text-xs font-medium text-[var(--ink)] mt-1 truncate">
@@ -288,6 +297,22 @@ export default function CoachMonthlyCalendar({
                       <p className="text-sm">
                         <span className="font-semibold">Intensity:</span> {selectedSessionInfo.intensity}
                       </p>
+                    )}
+                    {selectedSessionInfo.sessionLog?.intensityFeedback && (
+                      <div className="pt-2 border-t border-[var(--border)]">
+                        <p className="text-xs font-semibold text-[var(--ink-muted)] mb-2">Athlete Feedback</p>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-2xl">
+                            {["😊", "😐", "😓", "💪", "😤"][selectedSessionInfo.sessionLog.intensityFeedback - 1]}
+                          </span>
+                          <span className="text-sm text-[var(--ink)]">
+                            {["Easy", "Moderate", "Challenging", "Hard", "Intense"][selectedSessionInfo.sessionLog.intensityFeedback - 1]}
+                          </span>
+                        </div>
+                        {selectedSessionInfo.sessionLog.intensityReview && (
+                          <p className="text-xs text-[var(--ink-muted)] italic">{selectedSessionInfo.sessionLog.intensityReview}</p>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-2">

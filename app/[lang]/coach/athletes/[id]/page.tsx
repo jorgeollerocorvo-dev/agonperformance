@@ -46,8 +46,10 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   async function updateAthlete(formData: FormData) {
     "use server";
     const s = await auth();
+    const langParam = String(formData.get("lang") ?? lang);
+    const athleteId = String(formData.get("athleteId") ?? id);
     const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
-    const a = await prisma.athlete.findFirst({ where: { id, coachProfileId: cp!.id } });
+    const a = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: cp!.id } });
     if (!a) return;
 
     const fullName = String(formData.get("fullName") ?? "").trim() || a.fullName;
@@ -78,22 +80,24 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         notes,
       },
     });
-    redirect(`/${lang}/coach/athletes/${id}`);
+    redirect(`/${langParam}/coach/athletes/${athleteId}`);
   }
 
   async function createLoginForAthlete(formData: FormData) {
     "use server";
     const s = await auth();
+    const langParam = String(formData.get("lang") ?? lang);
+    const athleteId = String(formData.get("athleteId") ?? id);
     const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
-    const a = await prisma.athlete.findFirst({ where: { id, coachProfileId: cp!.id } });
+    const a = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: cp!.id } });
     if (!a) return;
 
     const email = String(formData.get("loginEmail") ?? "").toLowerCase().trim();
     const password = String(formData.get("loginPassword") ?? "");
-    if (!email) redirect(`/${lang}/coach/athletes/${id}?loginErr=email`);
-    if (password.length < 6) redirect(`/${lang}/coach/athletes/${id}?loginErr=short`);
+    if (!email) redirect(`/${langParam}/coach/athletes/${athleteId}?loginErr=email`);
+    if (password.length < 6) redirect(`/${langParam}/coach/athletes/${athleteId}?loginErr=short`);
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) redirect(`/${lang}/coach/athletes/${id}?loginErr=taken`);
+    if (existing) redirect(`/${langParam}/coach/athletes/${athleteId}?loginErr=taken`);
 
     const hash = await bcrypt.hash(password, 10);
     const u = await prisma.user.create({
@@ -102,7 +106,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         passwordHash: hash,
         fullName: a.fullName,
         displayName: a.fullName,
-        preferredLanguage: lang === "es" ? "ES" : lang === "ar" ? "AR" : "EN",
+        preferredLanguage: langParam === "es" ? "ES" : langParam === "ar" ? "AR" : "EN",
         roles: { create: [{ role: "CLIENT" }] },
       },
     });
@@ -115,7 +119,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
       data: { userId: u.id, athleteId: a.id, active: true },
     });
 
-    redirect(`/${lang}/coach/athletes/${id}?loginCreated=1`);
+    redirect(`/${langParam}/coach/athletes/${athleteId}?loginCreated=1`);
   }
 
   async function resetAthletePassword(formData: FormData) {
@@ -161,6 +165,8 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         dict={dict}
         updateAthlete={updateAthlete}
         inputCls={inputCls}
+        lang={lang}
+        athleteId={id}
       />
 
       {/* Login account for the athlete */}

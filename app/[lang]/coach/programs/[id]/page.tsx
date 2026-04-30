@@ -32,6 +32,7 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
                 orderBy: { order: "asc" },
                 include: { movements: { orderBy: { order: "asc" }, include: { movement: true } } },
               },
+              sessionLog: true,
             },
           },
         },
