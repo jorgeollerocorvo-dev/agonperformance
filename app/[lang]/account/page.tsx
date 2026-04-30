@@ -21,32 +21,34 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
   async function changePassword(formData: FormData) {
     "use server";
     const s = await auth();
-    if (!s?.user) redirect(`/${lang}/login`);
+    const langParam = String(formData.get("lang") ?? lang);
+    if (!s?.user) redirect(`/${langParam}/login`);
     const current = String(formData.get("current") ?? "");
     const next = String(formData.get("next") ?? "");
-    if (next.length < 6) redirect(`/${lang}/account?error=short`);
+    if (next.length < 6) redirect(`/${langParam}/account?error=short`);
 
     const u = await prisma.user.findUnique({ where: { id: s.user.id } });
-    if (!u?.passwordHash) redirect(`/${lang}/account?error=no_password`);
+    if (!u?.passwordHash) redirect(`/${langParam}/account?error=no_password`);
     const ok = await bcrypt.compare(current, u.passwordHash);
-    if (!ok) redirect(`/${lang}/account?error=wrong`);
+    if (!ok) redirect(`/${langParam}/account?error=wrong`);
 
     await prisma.user.update({
       where: { id: u.id },
       data: { passwordHash: await bcrypt.hash(next, 10) },
     });
-    redirect(`/${lang}/account?saved=1`);
+    redirect(`/${langParam}/account?saved=1`);
   }
 
   async function deleteAccount(formData: FormData) {
     "use server";
     const s = await auth();
-    if (!s?.user) redirect(`/${lang}/login`);
+    const langParam = String(formData.get("lang") ?? lang);
+    if (!s?.user) redirect(`/${langParam}/login`);
     const confirm = String(formData.get("confirm") ?? "");
-    if (confirm !== "DELETE") redirect(`/${lang}/account?error=confirm`);
+    if (confirm !== "DELETE") redirect(`/${langParam}/account?error=confirm`);
     await prisma.user.delete({ where: { id: s.user.id } });
     await signOut({ redirect: false });
-    redirect(`/${lang}`);
+    redirect(`/${langParam}`);
   }
 
   return (
@@ -64,6 +66,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
 
         <Card>
           <form action={changePassword} className="space-y-3">
+            <input type="hidden" name="lang" value={lang} />
             <h2 className="text-lg font-semibold">{dict.account.changePassword}</h2>
             <label className="block text-sm">
               <span className="mb-1 block text-[var(--ink-muted)]">{dict.account.currentPassword}</span>
@@ -79,6 +82,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
 
         <Card className="bg-[var(--danger)]/5 border-[var(--danger)]/30">
           <form action={deleteAccount} className="space-y-3">
+            <input type="hidden" name="lang" value={lang} />
             <h2 className="text-lg font-semibold text-[var(--danger)]">{dict.account.deleteAccount}</h2>
             <p className="text-sm text-[var(--danger)]">{dict.account.deleteWarning}</p>
             <label className="block text-sm">
