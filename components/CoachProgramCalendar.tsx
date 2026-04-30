@@ -101,7 +101,7 @@ export default function CoachProgramCalendar({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Workout Calendar</h2>
+      <h2 className="text-2xl font-bold mb-4">📅 Workout Calendar</h2>
 
       {weeks.map((week, weekIdx) => (
         <div key={weekIdx} className="space-y-3">
