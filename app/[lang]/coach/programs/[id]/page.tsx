@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
+import { getDayNameFromDate } from "@/lib/day-utils";
 import ProgramBuilder from "./ProgramBuilder";
 import CoachMonthlyCalendar from "@/components/CoachMonthlyCalendar";
 import type { EditorProgram } from "./actions";
@@ -84,7 +85,7 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
           return {
             id: existing.id,
             date: ds,
-            day: existing.day ?? d.toLocaleDateString("en-US", { weekday: "long" }),
+            day: existing.day ?? getDayNameFromDate(d),
             focus: existing.focus,
             intensity: existing.intensity,
             notes: existing.notes,

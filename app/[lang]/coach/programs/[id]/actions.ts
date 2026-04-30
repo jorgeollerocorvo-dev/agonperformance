@@ -254,11 +254,21 @@ export async function createProgram(formData: FormData) {
     for (let d = 0; d < 7; d++) {
       const dayDate = new Date(startDate);
       dayDate.setDate(dayDate.getDate() + w * 7 + d);
+
+      // Calculate correct day of week from date (timezone-safe)
+      const year = dayDate.getFullYear();
+      const month = dayDate.getMonth();
+      const day = dayDate.getDate();
+      const calculatedDate = new Date(year, month, day);
+      const dayOfWeekIndex = calculatedDate.getDay();
+      const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const dayName = daysOfWeek[dayOfWeekIndex];
+
       await prisma.programSession.create({
         data: {
           programWeekId: week.id,
           date: dayDate,
-          day: dayDate.toLocaleDateString("en-US", { weekday: "long" }),
+          day: dayName,
         },
       });
     }
@@ -349,12 +359,20 @@ export async function createSession(formData: FormData) {
     });
   }
 
+  // Calculate correct day of week from date string (timezone-safe)
+  const dateOnlyStr = dateStr; // YYYY-MM-DD
+  const [year, month, dayNum] = dateOnlyStr.split('-').map(Number);
+  const calculatedDate = new Date(year, month - 1, dayNum);
+  const dayOfWeekIndex = calculatedDate.getDay();
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const calculatedDay = daysOfWeek[dayOfWeekIndex];
+
   // Create the session
   await prisma.programSession.create({
     data: {
       programWeekId: programWeek.id,
       date: sessionDate,
-      day: day || sessionDate.toLocaleDateString("en-US", { weekday: "long" }),
+      day: day || calculatedDay,
       focus,
       intensity,
       notes,

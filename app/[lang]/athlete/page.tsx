@@ -6,6 +6,7 @@ import MovementVideoPreview from "@/components/MovementVideoPreview";
 import IntensityReview from "@/components/IntensityReview";
 import { ensureMovementVideoUrl } from "@/lib/youtube-search";
 import { isYoutubeSearch } from "@/lib/youtube";
+import { getDayNameFromDate } from "@/lib/day-utils";
 import Link from "next/link";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import { saveSessionFeedback } from "./actions";
@@ -31,7 +32,7 @@ function SessionCard({
       <Card className={`space-y-3 ${isToday ? "border-[var(--primary)] border-2" : ""}`}>
         <header className="flex items-baseline justify-between gap-3 flex-wrap">
           <div>
-            <p className="text-sm text-[var(--ink-muted)]">{session.day}</p>
+            <p className="text-sm text-[var(--ink-muted)]">{getDayNameFromDate(session.date)}</p>
             <h3 className="text-lg font-bold">{session.programWeek.program.title}</h3>
             <p className="text-xs text-[var(--ink-muted)] mt-1">
               {session.date.toISOString().slice(0, 10)} {session.focus && `— ${session.focus}`}
