@@ -88,14 +88,20 @@ export async function saveProgram(input: EditorProgram) {
     }
   }
 
+  console.log(`[saveProgram] Found ${movementIds.size} unique movements with IDs`);
+
   // Fetch all movements from library in one query
   const movementMap = new Map<string, any>();
   if (movementIds.size > 0) {
     const movements = await prisma.movement.findMany({
       where: { id: { in: Array.from(movementIds) } },
-      select: { id: true, videoUrl: true },
+      select: { id: true, videoUrl: true, nameEn: true },
     });
-    movements.forEach(m => movementMap.set(m.id, m));
+    console.log(`[saveProgram] Fetched ${movements.length} movements from database`);
+    movements.forEach(m => {
+      movementMap.set(m.id, m);
+      console.log(`[saveProgram] Movement ${m.nameEn} (${m.id}): videoUrl=${m.videoUrl}`);
+    });
   }
 
   await prisma.$transaction(async (tx) => {
@@ -152,6 +158,8 @@ export async function saveProgram(input: EditorProgram) {
                   const libraryVideoUrl = movementId ? movementMap.get(movementId)?.videoUrl : undefined;
                   // Priority: coach-pinned URL → movement library video
                   const youtubeUrl = m.youtubeUrl || libraryVideoUrl || undefined;
+
+                  console.log(`[saveProgram] Movement: ${m.name}, movementId=${movementId}, libraryVideo=${libraryVideoUrl}, youtubeUrl=${youtubeUrl}`);
 
                   return {
                     movementId,
