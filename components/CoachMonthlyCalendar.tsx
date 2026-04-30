@@ -45,62 +45,78 @@ export default function CoachMonthlyCalendar({
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Get today's date in YYYY-MM-DD format (local time)
+  const todayDate = new Date();
+  const todayStr = todayDate.toISOString().slice(0, 10);
 
   // Build session map
   const sessionMap = new Map(
     sessions.map((s) => [s.date.toISOString().slice(0, 10), s])
   );
 
+  // Helper function to get day of week from YYYY-MM-DD string
+  const getDayOfWeek = (dateStr: string): number => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).getDay();
+  };
+
   // Get calendar grid for current month
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const daysInMonth = lastDay.getDate();
-  const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday
-
   const calendarDays: DayCell[] = [];
 
+  // Get the first day of the month
+  const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const startingDayOfWeek = getDayOfWeek(firstDayStr); // 0 = Sunday
+
+  // Get days in month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   // Previous month's days
-  const prevMonthLastDay = new Date(year, month, 0).getDate();
+  const prevMonthYear = month === 0 ? year - 1 : year;
+  const prevMonth = month === 0 ? 11 : month - 1;
+  const prevMonthLastDay = new Date(prevMonthYear, prevMonth + 1, 0).getDate();
+
   for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-    const date = new Date(year, month - 1, prevMonthLastDay - i);
-    const dateStr = date.toISOString().slice(0, 10);
+    const day = prevMonthLastDay - i;
+    const dateStr = `${prevMonthYear}-${String(prevMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const date = new Date(dateStr);
     calendarDays.push({
       date,
       dateStr,
       isCurrentMonth: false,
-      isToday: date.getTime() === today.getTime(),
+      isToday: dateStr === todayStr,
       session: sessionMap.get(dateStr) ?? null,
     });
   }
 
   // Current month's days
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day);
-    const dateStr = date.toISOString().slice(0, 10);
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const date = new Date(dateStr);
     calendarDays.push({
       date,
       dateStr,
       isCurrentMonth: true,
-      isToday: date.getTime() === today.getTime(),
+      isToday: dateStr === todayStr,
       session: sessionMap.get(dateStr) ?? null,
     });
   }
 
   // Next month's days
   const remainingDays = 42 - calendarDays.length; // 6 rows × 7 days
+  const nextMonthYear = month === 11 ? year + 1 : year;
+  const nextMonth = month === 11 ? 0 : month + 1;
+
   for (let day = 1; day <= remainingDays; day++) {
-    const date = new Date(year, month + 1, day);
-    const dateStr = date.toISOString().slice(0, 10);
+    const dateStr = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const date = new Date(dateStr);
     calendarDays.push({
       date,
       dateStr,
       isCurrentMonth: false,
-      isToday: date.getTime() === today.getTime(),
+      isToday: dateStr === todayStr,
       session: sessionMap.get(dateStr) ?? null,
     });
   }
