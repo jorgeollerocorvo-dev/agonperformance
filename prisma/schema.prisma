@@ -399,6 +399,9 @@ model SessionLog {
   rating           Int?     // 1-10 RPE
   notes            String?
   actuals          Json?    // per-movement actual results
+  intensityFeedback Int?    // 1-5 scale workout intensity rating from athlete (1=easy, 5=hardest)
+  intensityReview  String?  // athlete's text feedback about workout intensity
+  mediaData        Json?    // future: { fileIds: [...], uploadedAt: ... } for photos/videos
 }
 
 model TestResult {
