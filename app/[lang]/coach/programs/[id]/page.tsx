@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 import ProgramBuilder from "./ProgramBuilder";
-import CoachProgramCalendar from "@/components/CoachProgramCalendar";
+import CoachMonthlyCalendar from "@/components/CoachMonthlyCalendar";
 import type { EditorProgram } from "./actions";
 import { Card } from "@/components/ui/Card";
 import { regenerateProgramFromDocument } from "../../import/actions";
@@ -178,11 +178,9 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
         </Card>
       )}
 
-      <CoachProgramCalendar
+      <CoachMonthlyCalendar
         sessions={allSessions}
         programId={program.id}
-        startDate={program.startDate}
-        durationWeeks={program.durationWeeks ?? program.weeks.length}
         lang={lang}
         dict={dict}
       />

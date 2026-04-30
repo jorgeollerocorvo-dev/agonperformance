@@ -302,3 +302,46 @@ export async function createSession(formData: FormData) {
 
   revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
 }
+
+// ────────────────────────────────────────────────────────────
+// Update an existing session/workout
+// ────────────────────────────────────────────────────────────
+
+export async function updateSession(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) throw new Error("no coach profile");
+
+  const sessionId = String(formData.get("sessionId") ?? "");
+  const programId = String(formData.get("programId") ?? "");
+  const focus = String(formData.get("focus") ?? "").trim() || null;
+  const intensity = String(formData.get("intensity") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const lang = String(formData.get("lang") ?? "en");
+
+  if (!sessionId || !programId) throw new Error("missing fields");
+
+  // Verify coach owns program
+  const programSession = await prisma.programSession.findFirst({
+    where: {
+      id: sessionId,
+      programWeek: {
+        program: { id: programId, athlete: { coachProfileId: coach.id } },
+      },
+    },
+  });
+  if (!programSession) throw new Error("forbidden");
+
+  // Update the session
+  await prisma.programSession.update({
+    where: { id: sessionId },
+    data: {
+      focus,
+      intensity,
+      notes,
+    },
+  });
+
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+}
