@@ -177,16 +177,14 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
         </Card>
       )}
 
-      <Card>
-        <CoachProgramCalendar
-          sessions={allSessions}
-          programId={program.id}
-          startDate={program.startDate}
-          durationWeeks={program.durationWeeks ?? program.weeks.length}
-          lang={lang}
-          dict={dict}
-        />
-      </Card>
+      <CoachProgramCalendar
+        sessions={allSessions}
+        programId={program.id}
+        startDate={program.startDate}
+        durationWeeks={program.durationWeeks ?? program.weeks.length}
+        lang={lang}
+        dict={dict}
+      />
 
       <ProgramBuilder
         initial={initial}
