@@ -120,6 +120,21 @@ export async function saveProgram(input: EditorProgram) {
   }
 
   await prisma.$transaction(async (tx) => {
+    // CRITICAL: Save all existing SessionLog data before deleting sessions
+    // This preserves athlete feedback (intensityFeedback, intensityReview) across program edits
+    const existingSessions = await tx.programSession.findMany({
+      where: { programWeek: { programId: program.id } },
+      include: { sessionLog: true },
+    });
+
+    // Create a map of programSessionId -> sessionLog for restoration
+    const sessionLogMap = new Map();
+    for (const session of existingSessions) {
+      if (session.sessionLog) {
+        sessionLogMap.set(session.id, session.sessionLog);
+      }
+    }
+
     await tx.program.update({
       where: { id: program.id },
       data: {
@@ -155,6 +170,29 @@ export async function saveProgram(input: EditorProgram) {
             notes: day.notes,
           },
         });
+
+        // CRITICAL: Restore SessionLog if this date had athlete feedback
+        // Match old sessions by date to preserve intensityFeedback and intensityReview
+        const matchingOldSession = existingSessions.find((s) => {
+          const oldDateStr = s.date.toISOString().slice(0, 10);
+          const newDateStr = new Date(day.date).toISOString().slice(0, 10);
+          return oldDateStr === newDateStr;
+        });
+        if (matchingOldSession?.sessionLog) {
+          await tx.sessionLog.create({
+            data: {
+              programSessionId: createdDay.id,
+              athleteId: matchingOldSession.sessionLog.athleteId,
+              intensityFeedback: matchingOldSession.sessionLog.intensityFeedback,
+              intensityReview: matchingOldSession.sessionLog.intensityReview,
+              completedAt: matchingOldSession.sessionLog.completedAt,
+              rating: matchingOldSession.sessionLog.rating,
+              notes: matchingOldSession.sessionLog.notes,
+              actuals: matchingOldSession.sessionLog.actuals,
+              mediaData: matchingOldSession.sessionLog.mediaData,
+            },
+          });
+        }
         for (let bi = 0; bi < day.blocks.length; bi++) {
           const b = day.blocks[bi];
           await tx.programBlock.create({
