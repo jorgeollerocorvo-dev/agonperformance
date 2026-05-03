@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
@@ -158,6 +159,9 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
         });
       }
     });
+
+    // Revalidate the athletes list cache so the new athlete appears immediately
+    revalidatePath(`/${lang}/coach/athletes`, "layout");
 
     // If Jorge is logged in, redirect to athletes list to see the new athlete
     // Otherwise, show the thank you message
