@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type EditorMovement } from "./actions";
 import { ytEmbed as ytEmbedUrl } from "@/lib/youtube";
+import { getDayNameFromDateString } from "@/lib/day-utils";
 import MovementNameInput from "@/components/MovementNameInput";
 
 type Dict = {
@@ -263,10 +264,11 @@ export default function ProgramBuilder({
       const days: EditorDay[] = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(lastDate);
         d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().slice(0, 10);
         return {
           id: null,
-          date: d.toISOString().slice(0, 10),
-          day: d.toLocaleDateString("en-US", { weekday: "long" }),
+          date: dateStr,
+          day: getDayNameFromDateString(dateStr),
           focus: null, intensity: null, notes: null,
           blocks: [],
         };
