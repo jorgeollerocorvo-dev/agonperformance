@@ -115,9 +115,6 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
       exists = await prisma.athlete.findUnique({ where: { athleteKey: finalAthleteKey } });
     }
 
-    // Check if Jorge is already logged in
-    const isJorgeLoggedIn = session?.user?.email?.toLowerCase() === JORGE_EMAIL.toLowerCase();
-
     await prisma.$transaction(async (tx) => {
       // Create Inquiry record
       await tx.inquiry.create({
@@ -163,13 +160,9 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
     // Revalidate the athletes list cache so the new athlete appears immediately
     revalidatePath(`/${lang}/coach/athletes`, "layout");
 
-    // If Jorge is logged in, redirect to athletes list to see the new athlete
-    // Otherwise, show the thank you message
-    if (isJorgeLoggedIn) {
-      redirect(`/${lang}/coach/athletes`);
-    } else {
-      redirect(`/${lang}/find/jorge?sent=1`);
-    }
+    // Always redirect to athletes page
+    // If not logged in, redirect to login which will redirect to athletes
+    redirect(`/${lang}/coach/athletes`);
   }
 
   return (
