@@ -94,6 +94,11 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
 
     const jorgeCoachId = await findJorgeCoachProfileId();
 
+    if (!jorgeCoachId) {
+      console.error("ERROR: Could not find Jorge's coach profile ID");
+      redirect(`/${lang}/find/jorge?error=system`);
+    }
+
     // Create both Inquiry and Athlete record
     // Generate unique athleteKey from name or email
     let athleteKey: string;
@@ -115,33 +120,33 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
       exists = await prisma.athlete.findUnique({ where: { athleteKey: finalAthleteKey } });
     }
 
-    await prisma.$transaction(async (tx) => {
-      // Create Inquiry record
-      await tx.inquiry.create({
-        data: {
-          clientUserId: session?.user?.id ?? null,
-          anonymousEmail,
-          anonymousPhone,
-          contactName,
-          contactInstagram,
-          marketingConsent,
-          source,
-          goal,
-          frequencyCurrent,
-          frequencyDesired,
-          ageRange,
-          injuryOrConcern,
-          preferredLocation,
-          preferredDaysAndTimes,
-          urgency,
-          notes,
-          recommendedCoachIds: jorgeCoachId ? [jorgeCoachId] : [],
-          status: "NEW",
-        },
-      });
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Create Inquiry record
+        await tx.inquiry.create({
+          data: {
+            clientUserId: session?.user?.id ?? null,
+            anonymousEmail,
+            anonymousPhone,
+            contactName,
+            contactInstagram,
+            marketingConsent,
+            source,
+            goal,
+            frequencyCurrent,
+            frequencyDesired,
+            ageRange,
+            injuryOrConcern,
+            preferredLocation,
+            preferredDaysAndTimes,
+            urgency,
+            notes,
+            recommendedCoachIds: jorgeCoachId ? [jorgeCoachId] : [],
+            status: "NEW",
+          },
+        });
 
-      // Create Athlete record linked to Jorge's coach profile
-      if (jorgeCoachId) {
+        // Create Athlete record linked to Jorge's coach profile
         await tx.athlete.create({
           data: {
             athleteKey: finalAthleteKey,
@@ -154,8 +159,11 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
             goals: goal || undefined,
           },
         });
-      }
-    });
+      });
+    } catch (err) {
+      console.error("ERROR creating inquiry/athlete:", err);
+      redirect(`/${lang}/find/jorge?error=creation`);
+    }
 
     // Revalidate the athletes list cache so the new athlete appears immediately
     revalidatePath(`/${lang}/coach/athletes`, "layout");
