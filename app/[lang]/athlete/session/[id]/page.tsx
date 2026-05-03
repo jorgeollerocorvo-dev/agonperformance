@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
+import IntensityReview from "@/components/IntensityReview";
 import { ensureMovementVideoUrl } from "@/lib/youtube-search";
 import { isYoutubeSearch } from "@/lib/youtube";
+import { saveSessionFeedback } from "./actions";
 
 export default async function SessionDetail({ params, searchParams }: PageProps<"/[lang]/athlete/session/[id]">) {
   const { lang, id } = await params;
@@ -59,12 +61,14 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
     if (!s || !link) return;
     if (s.sessionLog) {
       await prisma.sessionLog.delete({ where: { id: s.sessionLog.id } });
+      redirect(`/${lang}/athlete/session/${s.id}${fromCalendar ? "?from=calendar" : ""}`);
     } else {
+      // Reload to show the form
       await prisma.sessionLog.create({
         data: { programSessionId: s.id, athleteId: link.athleteId },
       });
+      redirect(`/${lang}/athlete/session/${s.id}${fromCalendar ? "?from=calendar" : ""}`);
     }
-    redirect(`/${lang}/athlete/session/${s.id}${fromCalendar ? "?from=calendar" : ""}`);
   }
 
   const backHref = fromCalendar
@@ -178,6 +182,16 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
           </ul>
         </Card>
       ))}
+
+      {s.sessionLog && (
+        <IntensityReview
+          sessionId={s.id}
+          lang={lang}
+          initialFeedback={s.sessionLog.intensityFeedback}
+          initialReview={s.sessionLog.intensityReview}
+          dict={{}}
+        />
+      )}
 
       <form action={toggleComplete}>
         <Button size="lg" variant={s.sessionLog ? "outline" : "primary"}>

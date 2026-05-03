@@ -107,12 +107,13 @@ function SessionCard({
           </>
         )}
 
-        {isToday && !session.sessionLog && (
+        {isToday && session.sessionLog && (
           <>
             <IntensityReview
-              currentFeedback={null}
-              currentReview={null}
-              isCompleted={false}
+              sessionId={session.id}
+              lang={lang}
+              initialFeedback={session.sessionLog.intensityFeedback}
+              initialReview={session.sessionLog.intensityReview}
               dict={dict}
             />
             <Button type="submit" size="lg">
@@ -124,9 +125,10 @@ function SessionCard({
         {session.sessionLog && (
           <>
             <IntensityReview
-              currentFeedback={session.sessionLog.intensityFeedback}
-              currentReview={session.sessionLog.intensityReview}
-              isCompleted={true}
+              sessionId={session.id}
+              lang={lang}
+              initialFeedback={session.sessionLog.intensityFeedback}
+              initialReview={session.sessionLog.intensityReview}
               dict={dict}
             />
             <Button type="button" disabled size="lg">

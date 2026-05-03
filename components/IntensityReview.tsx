@@ -1,91 +1,156 @@
 "use client";
 
 import { useState } from "react";
+import { saveSessionFeedback } from "@/app/[lang]/athlete/session/[id]/actions";
+import { Card } from "./ui/Card";
 
-const EMOJI_LEVELS = [
-  { level: 1, emoji: "😊", label: "Easy" },
-  { level: 2, emoji: "😐", label: "Moderate" },
-  { level: 3, emoji: "😓", label: "Challenging" },
-  { level: 4, emoji: "💪", label: "Hard" },
-  { level: 5, emoji: "😤", label: "Intense" },
-];
+interface IntensityReviewProps {
+  sessionId: string;
+  lang: string;
+  initialFeedback?: number | null;
+  initialReview?: string | null;
+  dict: {
+    intensityTitle?: string;
+    intensityDescription?: string;
+    easy?: string;
+    moderate?: string;
+    challenging?: string;
+    hard?: string;
+    intense?: string;
+    reviewPlaceholder?: string;
+    submit?: string;
+    change?: string;
+    cancel?: string;
+  };
+}
 
 export default function IntensityReview({
-  currentFeedback,
-  currentReview,
-  isCompleted,
+  sessionId,
+  lang,
+  initialFeedback,
+  initialReview,
   dict,
-}: {
-  currentFeedback: number | null;
-  currentReview: string | null;
-  isCompleted: boolean;
-  dict: any;
-}) {
-  const [selectedLevel, setSelectedLevel] = useState<number | null>(currentFeedback);
-  const [review, setReview] = useState(currentReview || "");
+}: IntensityReviewProps) {
+  const [feedback, setFeedback] = useState<number | null>(initialFeedback ?? null);
+  const [review, setReview] = useState(initialReview ?? "");
+  const [isEditing, setIsEditing] = useState(!initialFeedback);
+  const [isPending, setIsPending] = useState(false);
 
-  // If already completed, show in read-only mode
-  if (isCompleted && currentFeedback !== null) {
+  const emojis = ["😊", "😐", "😓", "💪", "😤"];
+  const labels = [
+    dict.easy ?? "Easy",
+    dict.moderate ?? "Moderate",
+    dict.challenging ?? "Challenging",
+    dict.hard ?? "Hard",
+    dict.intense ?? "Intense",
+  ];
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!feedback) return;
+
+    setIsPending(true);
+    try {
+      const formData = new FormData();
+      formData.set("sessionId", sessionId);
+      formData.set("lang", lang);
+      formData.set("intensityFeedback", String(feedback));
+      formData.set("intensityReview", review);
+      await saveSessionFeedback(formData);
+    } catch (err) {
+      console.error("Failed to save feedback:", err);
+      alert("Failed to save feedback");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  if (!isEditing && initialFeedback && feedback) {
     return (
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 p-4 mt-4">
-        <p className="text-sm font-semibold text-[var(--ink-muted)] mb-3">Workout Intensity Review</p>
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-3xl">
-            {EMOJI_LEVELS.find((e) => e.level === currentFeedback)?.emoji || "—"}
-          </span>
-          <span className="text-sm text-[var(--ink)]">
-            {EMOJI_LEVELS.find((e) => e.level === currentFeedback)?.label}
-          </span>
+      <Card className="p-4 bg-[var(--success-soft)] border-[var(--success)]/30">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-[var(--ink-muted)] mb-2">
+              {dict.intensityTitle ?? "How did the workout feel?"}
+            </p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">{emojis[feedback - 1]}</span>
+              <span className="font-medium text-[var(--ink)]">{labels[feedback - 1]}</span>
+            </div>
+            {review && <p className="text-sm text-[var(--ink-muted)] italic">"{review}"</p>}
+          </div>
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-sm px-3 py-1.5 rounded-full bg-[var(--success)] text-white hover:bg-[var(--success)]/90 transition shrink-0"
+          >
+            {dict.change ?? "Change"}
+          </button>
         </div>
-        {currentReview && <p className="text-sm text-[var(--ink-muted)] italic">{currentReview}</p>}
-      </div>
+      </Card>
     );
   }
 
-  // Edit mode (before completion or not yet submitted)
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 p-4 mt-4">
-      <p className="text-sm font-semibold text-[var(--ink-muted)] mb-4">
-        {dict?.athlete?.intensityLabel ?? "How did this workout feel?"}
-      </p>
+    <Card className="p-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <p className="text-sm font-semibold mb-2">
+            {dict.intensityTitle ?? "How did the workout feel?"}
+          </p>
+          <p className="text-xs text-[var(--ink-muted)] mb-3">
+            {dict.intensityDescription ?? "Rate the intensity of this workout"}
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                type="button"
+                onClick={() => setFeedback(rating)}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition ${
+                  feedback === rating
+                    ? "bg-[var(--primary-soft)] border-[var(--primary)]"
+                    : "border-[var(--border)] hover:bg-[var(--surface-2)]"
+                }`}
+              >
+                <span className="text-2xl">{emojis[rating - 1]}</span>
+                <span className="text-xs text-[var(--ink-muted)]">{labels[rating - 1]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Emoji Selection */}
-      <div className="flex gap-3 mb-4 justify-between sm:justify-start">
-        {EMOJI_LEVELS.map((item) => (
+        <div>
+          <label className="block text-sm font-semibold mb-2">
+            {dict.reviewPlaceholder ?? "Optional: Tell me more"}
+          </label>
+          <textarea
+            value={review}
+            onChange={(e) => setReview(e.target.value)}
+            placeholder="How did your body feel? Any pain, energy levels, or general thoughts?"
+            rows={2}
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-white text-sm"
+          />
+        </div>
+
+        <div className="flex gap-2">
           <button
-            key={item.level}
-            type="button"
-            onClick={() => setSelectedLevel(item.level)}
-            className={`flex flex-col items-center gap-1 p-2 rounded-lg transition ${
-              selectedLevel === item.level
-                ? "bg-[var(--primary)] text-white scale-110"
-                : "hover:bg-[var(--surface-3)] text-[var(--ink-muted)]"
-            }`}
-            title={item.label}
+            type="submit"
+            disabled={!feedback || isPending}
+            className="flex-1 px-3 py-2 rounded-lg bg-[var(--primary)] text-white text-sm font-medium hover:bg-[var(--primary-hover)] disabled:opacity-50 transition"
           >
-            <span className="text-3xl">{item.emoji}</span>
-            <span className="text-xs hidden sm:block">{item.label}</span>
+            {isPending ? "..." : dict.submit ?? "Submit feedback"}
           </button>
-        ))}
-      </div>
-
-      {/* Hidden input to submit with form */}
-      <input type="hidden" name="intensityFeedback" value={selectedLevel || ""} />
-
-      {/* Review Text Area */}
-      <textarea
-        name="intensityReview"
-        placeholder={dict?.athlete?.intensityPlaceholder ?? "Share any thoughts about this workout (optional)..."}
-        value={review}
-        onChange={(e) => setReview(e.target.value)}
-        rows={3}
-        className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm bg-[var(--bg)] text-[var(--ink)] placeholder-[var(--ink-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-      />
-
-      {/* Helper text */}
-      <p className="text-xs text-[var(--ink-muted)] mt-2">
-        {selectedLevel ? `Selected: ${EMOJI_LEVELS.find((e) => e.level === selectedLevel)?.label}` : "Click an emoji to rate intensity"}
-      </p>
-    </div>
+          {initialFeedback && (
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] text-sm font-medium hover:bg-[var(--surface-2)] transition"
+            >
+              {dict.cancel ?? "Cancel"}
+            </button>
+          )}
+        </div>
+      </form>
+    </Card>
   );
 }

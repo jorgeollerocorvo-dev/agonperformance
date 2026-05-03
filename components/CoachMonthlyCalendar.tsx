@@ -241,10 +241,15 @@ export default function CoachMonthlyCalendar({
               <p className={`text-sm font-semibold ${cell.isCurrentMonth ? "" : "text-[var(--ink-muted)]"}`}>
                 {cell.date.getDate()}
               </p>
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 {cell.session && (
                   <span className="text-xs bg-[var(--primary)] text-white px-1.5 py-0.5 rounded">
                     {cell.session.blocks.length} block{cell.session.blocks.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+                {cell.session?.sessionLog && (
+                  <span className="text-xs bg-[var(--success)] text-white px-1.5 py-0.5 rounded" title="Completed">
+                    ✓ Done
                   </span>
                 )}
                 {cell.session?.sessionLog?.intensityFeedback && (
