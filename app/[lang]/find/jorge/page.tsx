@@ -93,27 +93,67 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
 
     const jorgeCoachId = await findJorgeCoachProfileId();
 
-    await prisma.inquiry.create({
-      data: {
-        clientUserId: session?.user?.id ?? null,
-        anonymousEmail,
-        anonymousPhone,
-        contactName,
-        contactInstagram,
-        marketingConsent,
-        source,
-        goal,
-        frequencyCurrent,
-        frequencyDesired,
-        ageRange,
-        injuryOrConcern,
-        preferredLocation,
-        preferredDaysAndTimes,
-        urgency,
-        notes,
-        recommendedCoachIds: jorgeCoachId ? [jorgeCoachId] : [],
-        status: "NEW",
-      },
+    // Create both Inquiry and Athlete record
+    // Generate unique athleteKey from name or email
+    let athleteKey: string;
+    if (contactName) {
+      athleteKey = contactName.toLowerCase().replace(/[^a-z0-9]/g, "_").substring(0, 50);
+    } else if (anonymousEmail) {
+      athleteKey = anonymousEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "_").substring(0, 50);
+    } else {
+      athleteKey = `lead_${Date.now()}`;
+    }
+
+    // Ensure athleteKey is unique by appending a counter if needed
+    let finalAthleteKey = athleteKey;
+    let counter = 1;
+    let exists = await prisma.athlete.findUnique({ where: { athleteKey: finalAthleteKey } });
+    while (exists) {
+      finalAthleteKey = `${athleteKey}_${counter}`;
+      counter++;
+      exists = await prisma.athlete.findUnique({ where: { athleteKey: finalAthleteKey } });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Create Inquiry record
+      await tx.inquiry.create({
+        data: {
+          clientUserId: session?.user?.id ?? null,
+          anonymousEmail,
+          anonymousPhone,
+          contactName,
+          contactInstagram,
+          marketingConsent,
+          source,
+          goal,
+          frequencyCurrent,
+          frequencyDesired,
+          ageRange,
+          injuryOrConcern,
+          preferredLocation,
+          preferredDaysAndTimes,
+          urgency,
+          notes,
+          recommendedCoachIds: jorgeCoachId ? [jorgeCoachId] : [],
+          status: "NEW",
+        },
+      });
+
+      // Create Athlete record linked to Jorge's coach profile
+      if (jorgeCoachId) {
+        await tx.athlete.create({
+          data: {
+            athleteKey: finalAthleteKey,
+            coachProfileId: jorgeCoachId,
+            fullName: contactName || "New Athlete",
+            email: anonymousEmail || undefined,
+            phone: anonymousPhone || undefined,
+            // Store inquiry notes in athlete's notes for coach reference
+            notes: notes ? `Lead intake: ${notes}` : "Lead from Jorge intake form",
+            goals: goal || undefined,
+          },
+        });
+      }
     });
 
     redirect(`/${lang}/find/jorge?sent=1`);
