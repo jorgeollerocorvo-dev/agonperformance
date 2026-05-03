@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
@@ -36,6 +37,74 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
     if (!id) return;
     await prisma.inquiry.update({ where: { id }, data: { status } });
     redirect(`/${lang}/coach/leads`);
+  }
+
+  async function convertInquiryToAthlete(formData: FormData) {
+    "use server";
+    const s = await auth();
+    if (!isJorge(s)) return;
+
+    const inquiryId = String(formData.get("inquiryId") ?? "");
+    if (!inquiryId) return;
+
+    // Get the inquiry data
+    const inquiry = await prisma.inquiry.findUnique({
+      where: { id: inquiryId },
+    });
+    if (!inquiry) return;
+
+    // Get Jorge's coach profile
+    const jorgeCoachId = await findJorgeCoachProfileId();
+    if (!jorgeCoachId) return;
+
+    // Generate unique athleteKey from contact name or email
+    let athleteKey: string;
+    if (inquiry.contactName) {
+      athleteKey = inquiry.contactName.toLowerCase().replace(/[^a-z0-9]/g, "_").substring(0, 50);
+    } else if (inquiry.anonymousEmail) {
+      athleteKey = inquiry.anonymousEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "_").substring(0, 50);
+    } else {
+      athleteKey = `lead_${Date.now()}`;
+    }
+
+    // Ensure unique athleteKey with counter
+    let finalAthleteKey = athleteKey;
+    let counter = 1;
+    let exists = await prisma.athlete.findUnique({ where: { athleteKey: finalAthleteKey } });
+    while (exists) {
+      finalAthleteKey = `${athleteKey}_${counter}`;
+      counter++;
+      exists = await prisma.athlete.findUnique({ where: { athleteKey: finalAthleteKey } });
+    }
+
+    // Create athlete and update inquiry status in transaction
+    await prisma.$transaction(async (tx) => {
+      // Create athlete from inquiry
+      await tx.athlete.create({
+        data: {
+          athleteKey: finalAthleteKey,
+          coachProfileId: jorgeCoachId,
+          fullName: inquiry.contactName || "New Athlete",
+          email: inquiry.anonymousEmail || undefined,
+          phone: inquiry.anonymousPhone || undefined,
+          notes: inquiry.notes ? `Lead intake: ${inquiry.notes}` : "Lead from intake form",
+          goals: inquiry.goal || undefined,
+        },
+      });
+
+      // Update inquiry status to CONVERTED
+      await tx.inquiry.update({
+        where: { id: inquiryId },
+        data: { status: "CONVERTED" },
+      });
+    });
+
+    // Revalidate both leads and athletes pages
+    revalidatePath(`/${lang}/coach/leads`, "layout");
+    revalidatePath(`/${lang}/coach/athletes`, "layout");
+
+    // Redirect to athletes page
+    redirect(`/${lang}/coach/athletes`);
   }
 
   const intakeUrl = `${process.env.PUBLIC_URL ?? "https://web-production-83d44.up.railway.app"}/${lang}/find/jorge`;
@@ -113,25 +182,39 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
                 <Field label="Notes" value={q.notes} full />
               </div>
 
-              <form action={updateStatus} className="mt-3 flex items-center gap-2 text-xs">
-                <input type="hidden" name="id" value={q.id} />
-                <span className="text-[var(--ink-muted)]">Status:</span>
-                {(["NEW","CONTACTED","CONVERTED","CLOSED"] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="submit"
-                    name="status"
-                    value={s}
-                    className={`rounded-full border px-2.5 py-1 ${
-                      q.status === s
-                        ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)] font-semibold"
-                        : "border-[var(--border)] hover:bg-[var(--surface-2)]"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </form>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <form action={updateStatus} className="flex items-center gap-2 text-xs">
+                  <input type="hidden" name="id" value={q.id} />
+                  <span className="text-[var(--ink-muted)]">Status:</span>
+                  {(["NEW","CONTACTED","CONVERTED","CLOSED"] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="submit"
+                      name="status"
+                      value={s}
+                      className={`rounded-full border px-2.5 py-1 ${
+                        q.status === s
+                          ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)] font-semibold"
+                          : "border-[var(--border)] hover:bg-[var(--surface-2)]"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </form>
+
+                {q.status === "CONVERTED" && (
+                  <form action={convertInquiryToAthlete}>
+                    <input type="hidden" name="inquiryId" value={q.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full bg-[var(--success)] text-white px-4 py-1.5 text-sm font-semibold hover:bg-[var(--success)]/90"
+                    >
+                      → Move to Athletes
+                    </button>
+                  </form>
+                )}
+              </div>
             </Card>
           ))}
         </ul>
