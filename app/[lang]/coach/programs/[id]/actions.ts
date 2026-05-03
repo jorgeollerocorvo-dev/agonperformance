@@ -188,8 +188,8 @@ export async function saveProgram(input: EditorProgram) {
               completedAt: matchingOldSession.sessionLog.completedAt,
               rating: matchingOldSession.sessionLog.rating,
               notes: matchingOldSession.sessionLog.notes,
-              actuals: matchingOldSession.sessionLog.actuals,
-              mediaData: matchingOldSession.sessionLog.mediaData,
+              actuals: matchingOldSession.sessionLog.actuals ?? undefined,
+              mediaData: matchingOldSession.sessionLog.mediaData ?? undefined,
             },
           });
         }
