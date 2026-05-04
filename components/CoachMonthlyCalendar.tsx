@@ -268,9 +268,17 @@ export default function CoachMonthlyCalendar({
         ))}
       </div>
 
-      {/* Day Detail Panel */}
+      {/* Day Detail Modal */}
       {selectedDate && (
-        <Card className="p-4">
+        <>
+          {/* Modal Overlay */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={() => setSelectedDate(null)}
+          />
+          {/* Modal Content */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto">
           <div className="flex items-center justify-between gap-4 mb-4">
             <h3 className="text-lg font-semibold">
               {selectedDateObj?.toLocaleDateString("en-US", {
@@ -437,7 +445,9 @@ export default function CoachMonthlyCalendar({
               )}
             </div>
           )}
-        </Card>
+            </Card>
+          </div>
+        </>
       )}
     </div>
   );
