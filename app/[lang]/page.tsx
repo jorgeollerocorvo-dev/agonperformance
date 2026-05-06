@@ -62,31 +62,31 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
             {/* Browse Coaches */}
             <Link
               href={`/${lang}/coaches`}
-              className="group p-8 rounded-xl bg-gradient-to-br from-[#2E75B6] to-[#1E5A94] text-white shadow-md hover:shadow-xl hover:scale-105 transition-all"
+              className="p-8 rounded-xl bg-[#2E75B6] text-white font-bold text-center hover:bg-[#1E5A94] transition-colors shadow-md hover:shadow-lg"
             >
-              <div className="text-4xl mb-4">🗺️</div>
-              <h3 className="text-2xl font-bold mb-2">Browse Coaches</h3>
-              <p className="text-white/90">Find elite coaches in your area</p>
+              <div className="text-4xl mb-3">🗺️</div>
+              <h3 className="text-xl mb-2">Browse Coaches</h3>
+              <p className="text-white/90 text-sm">Find elite coaches in your area</p>
             </Link>
 
             {/* Find My Coach */}
             <Link
               href={`/${lang}/find-my-coach`}
-              className="group p-8 rounded-xl border-2 border-[#2E75B6] bg-white hover:bg-[#E8F0F7] transition-all"
+              className="p-8 rounded-xl border-2 border-[#1A1A1A] bg-white text-[#1A1A1A] font-bold text-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
             >
-              <div className="text-4xl mb-4">📋</div>
-              <h3 className="text-2xl font-bold text-[#1A1A1A] mb-2">Get Matched</h3>
-              <p className="text-[#666666]">We find the perfect coach for you</p>
+              <div className="text-4xl mb-3">📋</div>
+              <h3 className="text-xl mb-2">Get Matched</h3>
+              <p className="text-[#666666] text-sm hover:text-white/90">We find the perfect coach for you</p>
             </Link>
 
             {/* Book Consultation */}
             <Link
               href={`/${lang}/consultation`}
-              className="group p-8 rounded-xl bg-white border-2 border-[#E5E5E5] hover:border-[#2E75B6] hover:shadow-lg transition-all"
+              className="p-8 rounded-xl bg-[#2E75B6] text-white font-bold text-center hover:bg-[#1E5A94] transition-colors shadow-md hover:shadow-lg"
             >
-              <div className="text-4xl mb-4">💬</div>
-              <h3 className="text-2xl font-bold text-[#1A1A1A] mb-2">Free Consultation</h3>
-              <p className="text-[#666666]">Talk with our experts today</p>
+              <div className="text-4xl mb-3">💬</div>
+              <h3 className="text-xl mb-2">Free Consultation</h3>
+              <p className="text-white/90 text-sm">Talk with our experts today</p>
             </Link>
           </div>
         </section>
