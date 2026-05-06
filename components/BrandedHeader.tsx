@@ -15,13 +15,13 @@ export default function BrandedHeader({
         {/* Logo & Brand Name */}
         <Link href={`/${lang}`} className="flex items-center gap-3 hover:opacity-80 transition group">
           {/* Agon Performance Logo */}
-          <div className="w-12 h-12 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+          <div className="w-12 h-12 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 bg-white rounded overflow-hidden">
             <Image
               src="/images/brand/logo.jpg"
               alt={BRAND.name}
               width={48}
               height={48}
-              className="w-full h-full object-cover rounded"
+              className="w-full h-full object-contain"
             />
           </div>
           <div className="hidden sm:block">
