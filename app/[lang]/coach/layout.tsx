@@ -35,6 +35,7 @@ export default async function CoachLayout({
     { href: `/${lang}/coach/programs`, label: dict.nav.programs },
     ...(showImport ? [{ href: `/${lang}/coach/import`, label: dict.nav.import ?? "Import" }] : []),
     ...(showLeads ? [{ href: `/${lang}/coach/leads`, label: dict.nav.leads ?? "Leads", highlight: true }] : []),
+    ...(showLeads ? [{ href: `/${lang}/coach/consultations`, label: "Consultations", highlight: true }] : []),
     ...(showLeads ? [{ href: `/${lang}/coach/movements`, label: dict.nav.movements ?? "Movements", highlight: true }] : []),
     { href: `/${lang}/messages`, label: dict.nav.messages },
     { href: `/${lang}/coach/profile`, label: dict.nav.profile },
@@ -64,6 +65,11 @@ export default async function CoachLayout({
             {showLeads && (
               <Link href={`/${lang}/coach/leads`} className={`${navLink} text-[var(--primary)]`}>
                 {dict.nav.leads ?? "Leads"}
+              </Link>
+            )}
+            {showLeads && (
+              <Link href={`/${lang}/coach/consultations`} className={`${navLink} text-[var(--primary)]`}>
+                Consultations
               </Link>
             )}
             {showLeads && (

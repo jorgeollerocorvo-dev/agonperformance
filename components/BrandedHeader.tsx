@@ -16,12 +16,13 @@ export default function BrandedHeader({
         <Link href={`/${lang}`} className="flex items-center gap-3 hover:opacity-80 transition group">
           {/* Agon Performance Logo */}
           <div className="w-12 h-12 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-              <circle cx="100" cy="100" r="95" fill="#1A1A1A" stroke="#FFFFFF" strokeWidth="3"/>
-              <g stroke="#FFFFFF" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <path d="M 100 60 Q 120 70, 120 100 Q 120 120, 100 120 Q 80 120, 80 100 Q 80 85, 95 80 Q 110 75, 115 90 Q 120 105, 105 115"/>
-              </g>
-            </svg>
+            <Image
+              src="/images/brand/logo.jpg"
+              alt={BRAND.name}
+              width={48}
+              height={48}
+              className="w-full h-full object-cover rounded"
+            />
           </div>
           <div className="hidden sm:block">
             <div className="text-sm font-bold text-[#1A1A1A]">{BRAND.name}</div>

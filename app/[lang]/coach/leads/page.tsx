@@ -16,6 +16,7 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
 
   const dict = await getDictionary(lang);
   const sp = await searchParams;
+  const tab = String(sp?.tab ?? "leads");
 
   // Jorge sees every inquiry that recommends him as a coach,
   // regardless of which short-URL source tag (j, jorge, train, anything custom).
@@ -25,6 +26,12 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
       ? { recommendedCoachIds: { has: jorgeCoachId } }
       : { source: { startsWith: JORGE_INQUIRY_SOURCE } },
     orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  // Fetch consultations for the consultations tab
+  const consultations = await prisma.consultationBooking.findMany({
+    orderBy: { startTime: "desc" },
     take: 200,
   });
 
@@ -121,38 +128,74 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
     <div className="space-y-6">
       <header className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">{dict.coach.leads ?? "Leads"}</h1>
-          <p className="text-sm text-[var(--ink-muted)] mt-1">{dict.coach.leadsHint ?? "Inquiries that came in through your private intake form."}</p>
+          <h1 className="text-3xl font-bold">
+            {tab === "consultations" ? "Consultations" : dict.coach.leads ?? "Leads"}
+          </h1>
+          <p className="text-sm text-[var(--ink-muted)] mt-1">
+            {tab === "consultations"
+              ? "View and manage scheduled consultations"
+              : dict.coach.leadsHint ?? "Inquiries that came in through your private intake form."}
+          </p>
         </div>
-        <a href={csvHref} download className="rounded-full border border-[var(--border-strong)] bg-white px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-2)]">
-          {dict.coach.exportCsv ?? "Export CSV"}
-        </a>
+        {tab === "leads" && (
+          <a href={csvHref} download className="rounded-full border border-[var(--border-strong)] bg-white px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-2)]">
+            {dict.coach.exportCsv ?? "Export CSV"}
+          </a>
+        )}
       </header>
 
-      <Card className="space-y-2">
-        <div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">{dict.coach.shareThisLink ?? "Share this link on social media"}</div>
-        <div className="flex flex-wrap items-center gap-2">
-          <code className="flex-1 min-w-0 break-all rounded-lg bg-[var(--surface-2)] px-3 py-2 text-sm">{intakeUrl}</code>
-          <Link href={`/${lang}/find/jorge`} target="_blank" className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90">
-            {dict.coach.openForm ?? "Open form ↗"}
-          </Link>
-        </div>
-        <p className="text-xs text-[var(--ink-muted)]">
-          {dict.coach.shareHint ?? "Add ?source=instagram or ?source=whatsapp to track where each lead came from."}
-        </p>
-      </Card>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">New</div><div className="text-3xl font-bold mt-0.5">{counts.new}</div></Card>
-        <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Contacted</div><div className="text-3xl font-bold mt-0.5">{counts.contacted}</div></Card>
-        <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Converted</div><div className="text-3xl font-bold mt-0.5">{counts.converted}</div></Card>
+      {/* Tabs Navigation */}
+      <div className="flex gap-2 border-b border-[var(--border)]">
+        <Link
+          href={`?tab=leads`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === "leads"
+              ? "border-[var(--primary)] text-[var(--primary)]"
+              : "border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]"
+          }`}
+        >
+          Leads
+        </Link>
+        <Link
+          href={`?tab=consultations`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === "consultations"
+              ? "border-[var(--primary)] text-[var(--primary)]"
+              : "border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]"
+          }`}
+        >
+          Consultations ({consultations.length})
+        </Link>
       </div>
 
-      {inquiries.length === 0 ? (
-        <Card><p className="text-sm text-[var(--ink-muted)]">{dict.coach.noLeadsYet ?? "No inquiries yet. Share your link to start collecting leads."}</p></Card>
-      ) : (
-        <ul className="space-y-3">
-          {inquiries.map((q) => (
+      {tab === "leads" && (
+        <Card className="space-y-2">
+          <div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">{dict.coach.shareThisLink ?? "Share this link on social media"}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="flex-1 min-w-0 break-all rounded-lg bg-[var(--surface-2)] px-3 py-2 text-sm">{intakeUrl}</code>
+            <Link href={`/${lang}/find/jorge`} target="_blank" className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90">
+              {dict.coach.openForm ?? "Open form ↗"}
+            </Link>
+          </div>
+          <p className="text-xs text-[var(--ink-muted)]">
+            {dict.coach.shareHint ?? "Add ?source=instagram or ?source=whatsapp to track where each lead came from."}
+          </p>
+        </Card>
+      )}
+
+      {tab === "leads" && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">New</div><div className="text-3xl font-bold mt-0.5">{counts.new}</div></Card>
+            <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Contacted</div><div className="text-3xl font-bold mt-0.5">{counts.contacted}</div></Card>
+            <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Converted</div><div className="text-3xl font-bold mt-0.5">{counts.converted}</div></Card>
+          </div>
+
+          {inquiries.length === 0 ? (
+            <Card><p className="text-sm text-[var(--ink-muted)]">{dict.coach.noLeadsYet ?? "No inquiries yet. Share your link to start collecting leads."}</p></Card>
+          ) : (
+            <ul className="space-y-3">
+              {inquiries.map((q) => (
             <Card key={q.id} padded={false} className="p-4 sm:p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
                 <div className="flex items-baseline gap-2 flex-wrap">
@@ -217,7 +260,42 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
               </div>
             </Card>
           ))}
-        </ul>
+            </ul>
+          )}
+        </>
+      )}
+
+      {tab === "consultations" && (
+        <>
+          {consultations.length === 0 ? (
+            <Card><p className="text-sm text-[var(--ink-muted)]">No scheduled consultations yet.</p></Card>
+          ) : (
+            <ul className="space-y-3">
+              {consultations.map((c) => (
+                <Card key={c.id} padded={false} className="p-4 sm:p-5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+                    <div>
+                      <div className="font-semibold text-base">{c.clientName}</div>
+                      <div className="text-xs text-[var(--ink-muted)] mt-0.5">
+                        {c.clientEmail}
+                      </div>
+                    </div>
+                    <Pill color={new Date(c.startTime) > new Date() ? "primary" : "soft"}>
+                      {new Date(c.startTime) > new Date() ? "Upcoming" : "Completed"}
+                    </Pill>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                    <Field label="Date" value={new Date(c.startTime).toLocaleDateString()} />
+                    <Field label="Time" value={`${new Date(c.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${new Date(c.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`} />
+                    {c.clientPhone && <Field label="Phone" value={c.clientPhone} tel />}
+                    {c.googleMeetUrl && <Field label="Meet Link" value={c.googleMeetUrl} />}
+                  </div>
+                </Card>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );
