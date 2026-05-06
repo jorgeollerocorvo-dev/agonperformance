@@ -8,6 +8,7 @@ import { isJorge } from "@/lib/jorge";
 import BrandedHeader from "@/components/BrandedHeader";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { formatSlotTime, formatEndTime, formatBookingTime } from "@/lib/timezone-utils";
+import { fromZonedTime } from "date-fns-tz";
 
 export default async function ConsultationsPage({
   params,
@@ -100,8 +101,15 @@ export default async function ConsultationsPage({
 
     if (!startTimeStr || !endTimeStr) return;
 
-    const startTime = new Date(startTimeStr);
-    const endTime = new Date(endTimeStr);
+    // Convert from Qatar local time to UTC
+    // datetime-local input gives us "2026-07-05T11:00" which the coach entered in Qatar time
+    // We need to convert it to UTC for storage
+    const startTimeQatar = new Date(startTimeStr);
+    const endTimeQatar = new Date(endTimeStr);
+
+    // Use fromZonedTime to convert Qatar local time to UTC
+    const startTime = fromZonedTime(startTimeQatar, "Asia/Qatar");
+    const endTime = fromZonedTime(endTimeQatar, "Asia/Qatar");
 
     // Generate Google Meet link
     const googleMeetUrl = `https://meet.google.com/new`;
