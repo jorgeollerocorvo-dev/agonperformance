@@ -201,7 +201,7 @@ export default function ConsultationBooking() {
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
-                  placeholder="+34 XXX XXX XXX"
+                  placeholder="+974 XXXX XXXX"
                   className="w-full px-3 py-2 rounded-lg border border-[var(--border)] text-sm"
                 />
               </div>

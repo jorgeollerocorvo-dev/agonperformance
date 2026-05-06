@@ -199,10 +199,10 @@ export default async function ConsultationsPage({
           </form>
         </Card>
 
-        {/* Bookings */}
+        {/* Calls - All Consultation Bookings */}
         {bookings.length > 0 && (
           <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4 text-[#1A1A1A]">📅 Upcoming Bookings ({bookings.length})</h2>
+            <h2 className="text-xl font-bold mb-4 text-[#1A1A1A]">📞 Calls ({bookings.length})</h2>
             <div className="space-y-3">
               {bookings.map((booking) => (
                 <div
