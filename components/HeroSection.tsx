@@ -22,9 +22,17 @@ export default function HeroSection({
         <div className="text-center space-y-8">
           {/* Logo - Centered Large */}
           <div className="flex justify-center mb-8">
-            <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-full bg-gradient-to-br from-[#2E75B6] to-[#1A1A1A] flex items-center justify-center shadow-lg hover:scale-105 transition-transform duration-300">
-              {/* Spiral Logo Placeholder */}
-              <div className="text-6xl sm:text-8xl">◯</div>
+            <div className="w-32 h-32 sm:w-48 sm:h-48 hover:scale-110 transition-transform duration-300 drop-shadow-lg">
+              <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                {/* Outer circle background */}
+                <circle cx="100" cy="100" r="95" fill="#1A1A1A" stroke="#FFFFFF" strokeWidth="4"/>
+
+                {/* Inner spiral */}
+                <g stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round">
+                  {/* Spiral path - represents the journey, growth, and struggle */}
+                  <path d="M 100 50 Q 130 70, 130 100 Q 130 130, 100 130 Q 70 130, 70 100 Q 70 80, 95 70 Q 120 60, 125 85 Q 130 110, 105 125"/>
+                </g>
+              </svg>
             </div>
           </div>
 
