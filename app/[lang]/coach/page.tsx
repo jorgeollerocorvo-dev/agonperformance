@@ -40,12 +40,17 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
   const isJorge = session?.user?.email === "jorge.ollero.corvo@gmail.com";
   let consultationCount = 0;
   if (isJorge) {
-    const now = new Date();
-    consultationCount = await prisma.consultationBooking.count({
-      where: {
-        startTime: { gte: now },
-      },
-    });
+    try {
+      const now = new Date();
+      consultationCount = await prisma.consultationBooking.count({
+        where: {
+          startTime: { gte: now },
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching consultation count:", error);
+      consultationCount = 0;
+    }
   }
 
   const greeting = coachProfile.user.displayName ?? coachProfile.user.fullName ?? "Coach";
