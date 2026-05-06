@@ -14,14 +14,14 @@ export default function BrandedHeader({
       <div className="px-4 sm:px-8 py-4 flex items-center justify-between gap-4">
         {/* Logo & Brand Name */}
         <Link href={`/${lang}`} className="flex items-center gap-3 hover:opacity-80 transition group">
-          {/* Agon Performance Logo */}
-          <div className="w-12 h-12 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 bg-white rounded overflow-hidden">
+          {/* Agon Performance Logo - Perfect Square */}
+          <div className="w-12 h-12 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 bg-white overflow-hidden">
             <Image
               src="/images/brand/logo.jpg"
               alt={BRAND.name}
               width={48}
               height={48}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain p-0"
             />
           </div>
           <div className="hidden sm:block">
