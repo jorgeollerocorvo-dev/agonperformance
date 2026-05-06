@@ -24,30 +24,45 @@ function SessionCard({
   resolvedVideoByMovement: Map<string, string | null>;
   isToday: boolean;
 }) {
+  const isCompleted = !!session.sessionLog;
+  const dateStr = session.date.toISOString().slice(0, 10);
+  const dayName = getDayNameFromDate(session.date);
+
   return (
     <form action={saveSessionFeedback} className="space-y-4">
       <input type="hidden" name="programSessionId" value={session.id} />
       <input type="hidden" name="lang" value={lang} />
 
       <Card className={`space-y-3 ${isToday ? "border-[var(--primary)] border-2" : ""}`}>
-        <header className="flex items-baseline justify-between gap-3 flex-wrap">
-          <div>
-            <p className="text-sm text-[var(--ink-muted)]">{getDayNameFromDate(session.date)}</p>
-            <h3 className="text-lg font-bold">{session.programWeek.program.title}</h3>
-            <p className="text-xs text-[var(--ink-muted)] mt-1">
-              {session.date.toISOString().slice(0, 10)} {session.focus && `— ${session.focus}`}
-            </p>
+        {/* Header with date and status */}
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex-1">
+            <div className="text-sm text-[var(--ink-muted)]">{dayName}</div>
+            <div className="text-lg font-bold">{dateStr}</div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {session.intensity && <Pill color={session.intensity === "Hard" ? "primary" : "soft"}>{session.intensity}</Pill>}
+          <div className="flex items-center gap-2">
+            {isCompleted ? (
+              <div className="text-xl">✓</div>
+            ) : (
+              session.focus === "Rest" && <div className="text-xl">⚡</div>
+            )}
             {session.sessionLog?.intensityFeedback && (
-              <Pill color="primary">
+              <Pill color="primary" className="text-lg">
                 {["😊", "😐", "😓", "💪", "😤"][session.sessionLog.intensityFeedback - 1]}
               </Pill>
             )}
           </div>
         </header>
 
+        {/* Session Title and Focus */}
+        <div>
+          <h3 className="text-lg font-bold">{session.programWeek.program.title}</h3>
+          {session.focus && (
+            <p className="text-sm text-[var(--ink-muted)] mt-1">{session.focus}</p>
+          )}
+        </div>
+
+        {/* Show blocks only if not just a rest day */}
         {session.blocks.length > 0 && (
           <>
             {session.blocks.map((b: any) => (
@@ -79,7 +94,6 @@ function SessionCard({
                     ].filter(Boolean).join(" · ");
                     const prescriptionUrl = typeof p.youtubeUrl === "string" ? p.youtubeUrl : null;
                     const coachPinned = prescriptionUrl && !isYoutubeSearch(prescriptionUrl) ? prescriptionUrl : null;
-                    // Priority: coach-pinned URL → movement library video → auto-resolved video → youtube search
                     const sourceUrl = coachPinned ?? m.movement?.videoUrl ?? resolvedVideoByMovement.get(m.id) ?? prescriptionUrl ?? null;
                     return (
                       <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-3)]/40 p-3">
@@ -107,22 +121,23 @@ function SessionCard({
           </>
         )}
 
-        {isToday && session.sessionLog && (
+        {/* Action Buttons */}
+        {!isCompleted && session.blocks.length > 0 && (
           <>
             <IntensityReview
               sessionId={session.id}
               lang={lang}
-              initialFeedback={session.sessionLog.intensityFeedback}
-              initialReview={session.sessionLog.intensityReview}
+              initialFeedback={null}
+              initialReview={null}
               dict={dict}
             />
-            <Button type="submit" size="lg">
-              {dict.athlete.markDone || "Mark Done"}
+            <Button type="submit" size="lg" className="w-full bg-[#1A1A1A] text-white hover:bg-[#333333]">
+              ✓ {dict.athlete.markDone || "Complete Workout"}
             </Button>
           </>
         )}
 
-        {session.sessionLog && (
+        {isCompleted && session.sessionLog && (
           <>
             <IntensityReview
               sessionId={session.id}
@@ -131,8 +146,8 @@ function SessionCard({
               initialReview={session.sessionLog.intensityReview}
               dict={dict}
             />
-            <Button type="button" disabled size="lg">
-              {dict.athlete.completed || "Completed"}
+            <Button type="button" disabled size="lg" className="w-full">
+              ✓ {dict.athlete.completed || "Completed"}
             </Button>
           </>
         )}
@@ -141,7 +156,7 @@ function SessionCard({
   );
 }
 
-export default async function AthleteToday({ params }: PageProps<"/[lang]/athlete">) {
+export default async function AthleteToday({ params, searchParams }: PageProps<"/[lang]/athlete">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
@@ -246,49 +261,94 @@ export default async function AthleteToday({ params }: PageProps<"/[lang]/athlet
     );
   }
 
+  const sp = await searchParams;
+  const tab = String(sp?.tab ?? "upcoming");
+
   return (
-    <div className="space-y-8">
-      {/* This Week */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">This Week</h2>
-        <div className="space-y-4">
-          {futureSessions.map((ps) => {
-            const isToday = ps.date.getTime() === today.getTime();
-            return (
-              <SessionCard
-                key={ps.id}
-                session={ps}
-                lang={lang}
-                dict={dict}
-                resolvedVideoByMovement={resolvedVideoByMovement}
-                isToday={isToday}
-              />
-            );
-          })}
+    <div className="space-y-6">
+      {/* Header with Greeting */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-[#2E75B6] text-white grid place-items-center font-bold">
+            {link.athlete.fullName?.charAt(0).toUpperCase() ?? "A"}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {link.athlete.fullName?.split(" ")[0] ?? "Athlete"}</h1>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 border-b border-[#E5E5E5]">
+          <Link
+            href={`?tab=upcoming`}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+              tab === "upcoming"
+                ? "border-[#2E75B6] text-[#2E75B6]"
+                : "border-transparent text-[#666666] hover:text-[#1A1A1A]"
+            }`}
+          >
+            Upcoming
+          </Link>
+          <Link
+            href={`?tab=past`}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+              tab === "past"
+                ? "border-[#2E75B6] text-[#2E75B6]"
+                : "border-transparent text-[#666666] hover:text-[#1A1A1A]"
+            }`}
+          >
+            Past
+          </Link>
         </div>
       </div>
 
-      {/* Completed History (Collapsible) */}
-      {pastSessions.length > 0 && (
-        <details className="group">
-          <summary className="cursor-pointer text-lg font-bold mb-4 flex items-center gap-2 hover:text-[var(--primary)]">
-            <span>✓ Completed ({pastSessions.length})</span>
-            <span className="transition-transform group-open:rotate-180">▼</span>
-          </summary>
-          <div className="space-y-4 pl-0">
-            {pastSessions.map((ps) => (
-              <SessionCard
-                key={ps.id}
-                session={ps}
-                lang={lang}
-                dict={dict}
-                resolvedVideoByMovement={resolvedVideoByMovement}
-                isToday={false}
-              />
-            ))}
-          </div>
-        </details>
-      )}
+      {/* Content based on tab */}
+      <div className="space-y-4">
+        {tab === "upcoming" && (
+          <>
+            {futureSessions.length > 0 ? (
+              futureSessions.map((ps) => {
+                const isToday = ps.date.getTime() === today.getTime();
+                return (
+                  <SessionCard
+                    key={ps.id}
+                    session={ps}
+                    lang={lang}
+                    dict={dict}
+                    resolvedVideoByMovement={resolvedVideoByMovement}
+                    isToday={isToday}
+                  />
+                );
+              })
+            ) : (
+              <Card>
+                <p className="text-sm text-[var(--ink-muted)]">{dict.athlete.noWorkout}</p>
+              </Card>
+            )}
+          </>
+        )}
+
+        {tab === "past" && (
+          <>
+            {pastSessions.length > 0 ? (
+              pastSessions.map((ps) => (
+                <SessionCard
+                  key={ps.id}
+                  session={ps}
+                  lang={lang}
+                  dict={dict}
+                  resolvedVideoByMovement={resolvedVideoByMovement}
+                  isToday={false}
+                />
+              ))
+            ) : (
+              <Card>
+                <p className="text-sm text-[var(--ink-muted)]">No completed workouts yet.</p>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
