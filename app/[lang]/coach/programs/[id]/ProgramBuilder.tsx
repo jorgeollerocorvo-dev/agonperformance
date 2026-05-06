@@ -52,10 +52,12 @@ export default function ProgramBuilder({
   initial,
   dict,
   lang,
+  lastCompletedDate,
 }: {
   initial: EditorProgram;
   dict: Dict;
   lang: string;
+  lastCompletedDate: string | null;
 }) {
   const [prog, setProg] = useState<EditorProgram>(initial);
   const [activeWeek, setActiveWeek] = useState(0);
@@ -422,6 +424,7 @@ export default function ProgramBuilder({
               dict={dict}
               clip={clip}
               draggedBlock={draggedBlock}
+              isLastCompleted={lastCompletedDate === day.date}
               onFocus={(v) => patchDay(activeWeek, di, (d) => { d.focus = v; })}
               onNotes={(v) => patchDay(activeWeek, di, (d) => { d.notes = v; })}
               onIntensity={(v) => patchDay(activeWeek, di, (d) => { d.intensity = v; })}
@@ -462,7 +465,7 @@ export default function ProgramBuilder({
 }
 
 function DayCard({
-  day, index, weekIdx, dayIdx, dict, clip, draggedBlock,
+  day, index, weekIdx, dayIdx, dict, clip, draggedBlock, isLastCompleted = false,
   onFocus, onNotes, onIntensity,
   onAddBlock, onDuplicate, onClear, onMarkRest, onCopyDay, onPasteDay, onPasteBlock,
   onBlockPatch, onBlockRemove, onBlockCopy, onBlockDragStart, onBlockDropped,
@@ -475,6 +478,7 @@ function DayCard({
   dict: Dict;
   clip: Clip;
   draggedBlock: { weekIdx: number; dayIdx: number; blockIdx: number } | null;
+  isLastCompleted?: boolean;
   onFocus: (v: string) => void;
   onNotes: (v: string) => void;
   onIntensity: (v: string) => void;
@@ -503,8 +507,14 @@ function DayCard({
 
   return (
     <div
-      className={`rounded-2xl border flex flex-col transition-colors ${
-        isRest ? "bg-[var(--surface-2)] border-dashed border-[var(--border-strong)]" : dragOver ? "bg-[var(--primary-soft)] border-[var(--primary)]" : "bg-white border-[var(--border)]"
+      className={`rounded-2xl border flex flex-col transition-colors relative ${
+        isLastCompleted
+          ? "bg-purple-50 border-purple-300 ring-2 ring-purple-200"
+          : isRest
+          ? "bg-[var(--surface-2)] border-dashed border-[var(--border-strong)]"
+          : dragOver
+          ? "bg-[var(--primary-soft)] border-[var(--primary)]"
+          : "bg-white border-[var(--border)]"
       }`}
       onDragOver={(e) => {
         e.preventDefault();
@@ -522,10 +532,16 @@ function DayCard({
         <div className="flex-1">
           <div className="text-xs font-semibold text-[var(--ink-muted)] flex items-center gap-1">
             {isRest && <span title="Rest day">💤</span>}
+            {isLastCompleted && <span className="text-purple-600 font-bold" title="Last completed workout">✓</span>}
             {dict.day} {index + 1}
           </div>
           <div className="text-xs text-[var(--ink-subtle)]">{day.day} · {day.date.slice(5)}</div>
         </div>
+        {isLastCompleted && (
+          <div className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-700 text-xs font-semibold whitespace-nowrap">
+            Last completed
+          </div>
+        )}
         <div className="flex gap-1">
           <IconButton title={dict.copy + " (day)"} onClick={onCopyDay}>
             <span className="text-xs">📋</span>

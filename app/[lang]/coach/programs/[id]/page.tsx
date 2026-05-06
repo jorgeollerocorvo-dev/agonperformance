@@ -59,6 +59,14 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
   // Flatten sessions for calendar view
   const allSessions = program.weeks.flatMap((w) => w.sessions);
 
+  // Find the last completed session date
+  const lastCompletedDate = allSessions
+    .filter((s) => s.sessionLog) // Only sessions with logs (completed)
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .at(0)
+    ?.date.toISOString()
+    .slice(0, 10) ?? null;
+
   // Convert to editor shape. If a week has no sessions yet, synthesize 7 empty days from its start dates.
   const startDate = program.startDate;
 
@@ -190,6 +198,7 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
       <ProgramBuilder
         initial={initial}
         lang={lang}
+        lastCompletedDate={lastCompletedDate}
         dict={{
           save: dict.coach.save,
           saved: dict.coach.saved,
