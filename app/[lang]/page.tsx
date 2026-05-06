@@ -4,6 +4,9 @@ import { auth } from "@/auth";
 import { getDictionary, hasLocale } from "./dictionaries";
 import { primaryRole } from "@/lib/roles";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import BrandedHeader from "@/components/BrandedHeader";
+import HeroSection from "@/components/HeroSection";
+import { BRAND } from "@/lib/brand";
 
 export default async function LandingPage({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -20,99 +23,82 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
   const dict = await getDictionary(lang);
 
   return (
-    <div className="min-h-screen">
-      {/* Nav */}
-      <header className="px-4 sm:px-8 py-5 flex items-center gap-2">
-        <Link href={`/${lang}`} className="font-bold text-lg tracking-tight">{dict.brand}</Link>
-        <nav className="ml-auto flex items-center gap-2">
-          <LanguageSwitcher current={lang} compact />
-          {dashboardHref ? (
-            <Link href={dashboardHref} className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90">
-              {dict.nav.profile} →
+    <div className="min-h-screen bg-white">
+      {/* Premium Branded Header */}
+      <BrandedHeader lang={lang}>
+        <LanguageSwitcher current={lang} compact />
+        {dashboardHref ? (
+          <Link 
+            href={dashboardHref} 
+            className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors"
+          >
+            {dict.nav.profile} →
+          </Link>
+        ) : (
+          <>
+            <Link 
+              href={`/${lang}/login`} 
+              className="text-sm px-3 py-2 text-[#666666] hover:text-[#1A1A1A] hidden sm:inline transition-colors"
+            >
+              {dict.auth.signIn}
             </Link>
-          ) : (
-            <>
-              <Link href={`/${lang}/login`} className="text-sm px-3 py-2 hover:opacity-70 hidden sm:inline">{dict.auth.signIn}</Link>
-              <Link href={`/${lang}/register`} className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-2 text-sm font-semibold hover:opacity-90">
-                {dict.auth.signUp}
-              </Link>
-            </>
-          )}
-        </nav>
-      </header>
+            <Link 
+              href={`/${lang}/register`} 
+              className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors"
+            >
+              {dict.auth.signUp}
+            </Link>
+          </>
+        )}
+      </BrandedHeader>
 
-      {/* Hero */}
-      <main className="px-4 sm:px-8 py-8 sm:py-20 max-w-6xl mx-auto">
-        <div className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1 text-xs font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
-            {dict.brand}
-          </div>
-          <h1 className="text-5xl sm:text-7xl font-bold tracking-tight leading-[0.95] display">
-            {dict.landing.heroLine1 ?? dict.landing.tagline}
-          </h1>
-          {dict.landing.heroLine2 && (
-            <p className="text-lg sm:text-xl text-[var(--ink-muted)] max-w-2xl mx-auto">
-              {dict.landing.heroLine2}
-            </p>
-          )}
-          <div className="flex gap-3 justify-center flex-wrap pt-4">
+      {/* Hero Section */}
+      <HeroSection lang={lang} showCTA={!dashboardHref} />
+
+      {/* Feature Cards - Links to real pages */}
+      {!dashboardHref && (
+        <section className="px-4 sm:px-8 py-20 max-w-6xl mx-auto">
+          <div className="grid gap-6 sm:grid-cols-3">
+            {/* Browse Coaches */}
             <Link
               href={`/${lang}/coaches`}
-              className="rounded-full bg-[var(--primary)] text-white px-7 py-3.5 font-semibold text-base hover:bg-[var(--primary-hover)]"
+              className="group p-8 rounded-xl bg-gradient-to-br from-[#2E75B6] to-[#1E5A94] text-white shadow-md hover:shadow-xl hover:scale-105 transition-all"
             >
-              {dict.directory.browseCoaches}
+              <div className="text-4xl mb-4">🗺️</div>
+              <h3 className="text-2xl font-bold mb-2">Browse Coaches</h3>
+              <p className="text-white/90">Find elite coaches in your area</p>
             </Link>
+
+            {/* Find My Coach */}
             <Link
               href={`/${lang}/find-my-coach`}
-              className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-7 py-3.5 font-semibold text-base hover:opacity-90"
+              className="group p-8 rounded-xl border-2 border-[#2E75B6] bg-white hover:bg-[#E8F0F7] transition-all"
             >
-              {dict.directory.findMyCoach}
+              <div className="text-4xl mb-4">📋</div>
+              <h3 className="text-2xl font-bold text-[#1A1A1A] mb-2">Get Matched</h3>
+              <p className="text-[#666666]">We find the perfect coach for you</p>
+            </Link>
+
+            {/* Book Consultation */}
+            <Link
+              href={`/${lang}/consultation`}
+              className="group p-8 rounded-xl bg-white border-2 border-[#E5E5E5] hover:border-[#2E75B6] hover:shadow-lg transition-all"
+            >
+              <div className="text-4xl mb-4">💬</div>
+              <h3 className="text-2xl font-bold text-[#1A1A1A] mb-2">Free Consultation</h3>
+              <p className="text-[#666666]">Talk with our experts today</p>
             </Link>
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* Gradient feature cards — each links to a real page */}
-        <div className="mt-16 sm:mt-24 grid gap-5 sm:grid-cols-3">
-          <Link
-            href={`/${lang}/coaches`}
-            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[var(--primary)] to-[#5B3FE0] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
-          >
-            <div className="w-9 h-9 rounded-full bg-white/25 grid place-items-center">🗺️</div>
-            <div>
-              <div className="text-xl font-bold">{dict.landing.feat1Title ?? "Browse by map"}</div>
-              <div className="text-sm text-white font-medium mt-1 opacity-95">{dict.landing.feat1Sub ?? "See coaches who cover your area."}</div>
-            </div>
-          </Link>
-          <Link
-            href={`/${lang}/find-my-coach`}
-            className="rounded-2xl p-6 bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-sm)] min-h-[180px] flex flex-col justify-between hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)] transition"
-          >
-            <div className="w-9 h-9 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] grid place-items-center">📋</div>
-            <div>
-              <div className="text-xl font-bold">{dict.landing.feat2Title ?? "Real programming"}</div>
-              <div className="text-sm text-[var(--ink-muted)] mt-1">{dict.landing.feat2Sub ?? "Weekly plans, video demos, check-ins."}</div>
-            </div>
-          </Link>
-          <Link
-            href={
-              role === "CLIENT" ? `/${lang}/athlete/talk`
-              : role === "COACH" ? `/${lang}/messages`
-              : `/${lang}/register`
-            }
-            className="rounded-2xl p-6 text-white bg-gradient-to-br from-[#1D1D20] to-[#432880] shadow-[var(--shadow-lg)] min-h-[180px] flex flex-col justify-between hover:scale-[1.01] transition"
-          >
-            <div className="w-9 h-9 rounded-full bg-white/25 grid place-items-center">💬</div>
-            <div>
-              <div className="text-xl font-bold">{dict.landing.feat3Title ?? "Talk to your coach"}</div>
-              <div className="text-sm text-white font-medium mt-1 opacity-95">{dict.landing.feat3Sub ?? "In-app chat, no phone-tag."}</div>
-            </div>
-          </Link>
+      {/* Footer */}
+      <footer className="border-t border-[#E5E5E5] bg-[#F5F5F5] px-4 sm:px-8 py-12">
+        <div className="max-w-6xl mx-auto text-center text-[#666666]">
+          <p className="mb-2 font-bold text-[#1A1A1A]">{BRAND.name}</p>
+          <p className="text-sm mb-4">{BRAND.tagline}</p>
+          <p className="text-xs">© 2026 {BRAND.name}. All rights reserved.</p>
         </div>
-      </main>
-
-      <footer className="px-4 sm:px-8 py-8 text-xs text-[var(--ink-subtle)] text-center">
-        © {dict.brand}
       </footer>
     </div>
   );
