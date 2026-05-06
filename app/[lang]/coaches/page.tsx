@@ -3,14 +3,24 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
 import CoachDirectory, { type CoachDirItem } from "@/components/CoachDirectory";
-import PublicHeader from "@/components/ui/PublicHeader";
+import BrandedHeader from "@/components/BrandedHeader";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { detectGeo } from "@/lib/geolocation";
+import { auth } from "@/auth";
+import { primaryRole } from "@/lib/roles";
 
 export default async function CoachesDirectoryPage({ params, searchParams }: PageProps<"/[lang]/coaches">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const sp = await searchParams;
+  const session = await auth();
+  const role = primaryRole(session);
+  const dashboardHref =
+    role === "COACH" ? `/${lang}/coach`
+    : role === "ADMIN" ? `/${lang}/admin`
+    : role === "CLIENT" ? `/${lang}/athlete`
+    : null;
 
   const specialtyFilter = typeof sp?.specialty === "string" ? sp.specialty : "";
   const cityFilter = typeof sp?.city === "string" ? sp.city.trim() : "";
@@ -60,17 +70,33 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
   }));
 
   return (
-    <div className="min-h-screen">
-      <PublicHeader
-        lang={lang}
-        brand={dict.brand}
-        rightSlot={
+    <div className="min-h-screen bg-white">
+      <BrandedHeader lang={lang}>
+        <LanguageSwitcher current={lang} compact />
+        {dashboardHref ? (
+          <Link
+            href={dashboardHref}
+            className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors"
+          >
+            {dict.nav.profile} →
+          </Link>
+        ) : (
           <>
-            <Link href={`/${lang}/find-my-coach`} className="text-sm text-[var(--ink)] hover:underline px-3 py-1.5">{dict.directory.findMyCoach}</Link>
-            <Link href={`/${lang}/login`} className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-sm hover:bg-[var(--surface-2)]">{dict.auth.signIn}</Link>
+            <Link
+              href={`/${lang}/login`}
+              className="text-sm px-3 py-2 text-[#666666] hover:text-[#1A1A1A] hidden sm:inline transition-colors"
+            >
+              {dict.auth.signIn}
+            </Link>
+            <Link
+              href={`/${lang}/register`}
+              className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors"
+            >
+              {dict.auth.signUp}
+            </Link>
           </>
-        }
-      />
+        )}
+      </BrandedHeader>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         <div>

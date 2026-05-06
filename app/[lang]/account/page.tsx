@@ -4,7 +4,9 @@ import bcrypt from "bcryptjs";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
-import PublicHeader from "@/components/ui/PublicHeader";
+import BrandedHeader from "@/components/BrandedHeader";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AccountLogoutButton from "@/components/AccountLogoutButton";
 import { Card, Button } from "@/components/ui/Card";
 
 export default async function AccountPage({ params, searchParams }: PageProps<"/[lang]/account">) {
@@ -52,8 +54,16 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
   }
 
   return (
-    <div className="min-h-screen">
-      <PublicHeader lang={lang} brand={dict.brand} rightSlot={<span className="text-sm text-[var(--ink-muted)]">{dict.account.title}</span>} />
+    <div className="min-h-screen bg-white">
+      <BrandedHeader lang={lang}>
+        <LanguageSwitcher current={lang} compact />
+        <Link
+          href={`/${lang}/athlete`}
+          className="text-sm px-3 py-2 text-[#666666] hover:text-[#1A1A1A] transition-colors"
+        >
+          ← Back
+        </Link>
+      </BrandedHeader>
       <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         <header>
           <h1 className="text-3xl font-bold">{dict.account.title}</h1>
@@ -91,6 +101,14 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
             </label>
             <Button type="submit" variant="danger">{dict.account.deleteAccount}</Button>
           </form>
+        </Card>
+
+        <Card className="bg-[#F5F5F5] border-[#E5E5E5]">
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold text-[#1A1A1A]">Log Out</h2>
+            <p className="text-sm text-[#666666]">You can log back in anytime with your credentials.</p>
+            <AccountLogoutButton lang={lang} />
+          </div>
         </Card>
       </main>
     </div>
