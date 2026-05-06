@@ -521,6 +521,39 @@ model Review {
   @@index([coachProfileId, isHidden])
 }
 
+model ConsultationBooking {
+  id                String   @id @default(cuid())
+  slotId            String   @unique
+  slot              ConsultationSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  clientName        String
+  clientEmail       String
+  clientPhone       String?
+  googleMeetUrl     String?
+  confirmationSent  Boolean  @default(false)
+  coachNotified     Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  startTime         DateTime
+  endTime           DateTime
+
+  @@index([slotId])
+  @@index([clientEmail])
+  @@index([createdAt])
+}
+
+model ConsultationSlot {
+  id                String   @id @default(cuid())
+  startTime         DateTime
+  endTime           DateTime
+  isAvailable       Boolean  @default(true)
+  googleMeetUrl     String?
+  booking           ConsultationBooking?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([startTime])
+  @@index([isAvailable])
+}
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE

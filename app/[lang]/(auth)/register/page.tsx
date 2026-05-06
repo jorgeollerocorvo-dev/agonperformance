@@ -7,6 +7,7 @@ import { getDictionary, hasLocale } from "../../dictionaries";
 import HomeLink from "@/components/HomeLink";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Card, Button } from "@/components/ui/Card";
+import { sendWelcomeEmail, sendNewClientNotification } from "@/lib/email";
 
 export default async function RegisterPage({ params }: PageProps<"/[lang]/register">) {
   const { lang } = await params;
@@ -46,6 +47,19 @@ export default async function RegisterPage({ params }: PageProps<"/[lang]/regist
           : {}),
       },
     });
+
+    // Send welcome email to new user
+    try {
+      if (roleChoice === "CLIENT") {
+        // For athletes, send welcome email
+        await sendWelcomeEmail(email, fullName || "Friend");
+      }
+      // Always notify coach of new signup
+      await sendNewClientNotification(fullName || "New User", email);
+    } catch (emailError) {
+      console.error("Email sending failed during registration:", emailError);
+      // Don't fail the registration if emails fail
+    }
 
     await signIn("credentials", { email, password, redirect: false });
     redirect(roleChoice === "COACH" ? `/${lang}/coach` : `/${lang}/athlete`);
