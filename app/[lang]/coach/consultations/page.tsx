@@ -102,13 +102,13 @@ export default async function ConsultationsPage({
     if (!startTimeStr || !endTimeStr) return;
 
     // datetime-local returns "2026-07-05T11:00" which represents Qatar local time
-    // Parse it and subtract 3 hours to get UTC equivalent
+    // Convert to UTC by subtracting 3 hours (Qatar is UTC+3)
     const parseLocalTime = (timeStr: string): Date => {
       // Create a date from the input (which JS treats as UTC initially)
       const tempDate = new Date(timeStr);
-      // Add 3 hours to compensate for Qatar timezone (UTC+3)
-      // This converts: local input -> add 3 hours -> get UTC time
-      tempDate.setHours(tempDate.getHours() + 3);
+      // Subtract 3 hours to convert from Qatar local to UTC
+      // Coach enters 11:00 (Qatar) -> subtract 3 -> 08:00 (UTC)
+      tempDate.setHours(tempDate.getHours() - 3);
       return tempDate;
     };
 
