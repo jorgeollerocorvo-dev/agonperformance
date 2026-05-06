@@ -8,6 +8,7 @@ import { isJorge } from "@/lib/jorge";
 import { aiImportEnabled } from "@/lib/features";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import MobileMenu, { type MobileMenuItem } from "@/components/MobileMenu";
+import AccountLogoutButton from "@/components/AccountLogoutButton";
 
 export default async function CoachLayout({
   children,
@@ -43,11 +44,9 @@ export default async function CoachLayout({
   ];
 
   const logoutForm = (
-    <form action={async () => { "use server"; await signOut({ redirect: false }); }}>
-      <button className="w-full text-start text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] px-2 py-2">
-        {dict.nav.logout}
-      </button>
-    </form>
+    <div className="px-2 py-2">
+      <AccountLogoutButton lang={lang} />
+    </div>
   );
 
   return (
@@ -84,9 +83,9 @@ export default async function CoachLayout({
 
           <div className="ml-auto flex items-center gap-2">
             <LanguageSwitcher current={lang} compact />
-            <form action={async () => { "use server"; await signOut({ redirect: false }); }} className="hidden sm:block">
-              <button className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] px-3 py-1.5">{dict.nav.logout}</button>
-            </form>
+            <div className="hidden sm:block">
+              <AccountLogoutButton lang={lang} />
+            </div>
             {/* Mobile hamburger button */}
             <div className="sm:hidden">
               <MobileMenu items={items} extraSlot={logoutForm} ariaLabel={dict.nav.menu ?? "Menu"} />
