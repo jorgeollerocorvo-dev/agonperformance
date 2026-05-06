@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { formatBookingTime } from "./timezone-utils";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -116,14 +117,7 @@ export async function sendConsultationConfirmation(
     return { id: "mock" };
   }
   try {
-    const formattedTime = startTime.toLocaleString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const formattedTime = formatBookingTime(startTime);
 
     const result = await resend.emails.send({
       from: "noreply@agonperformance.com",
@@ -190,14 +184,7 @@ export async function sendConsultationNotificationToCoach(
     return { id: "mock" };
   }
   try {
-    const formattedTime = startTime.toLocaleString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const formattedTime = formatBookingTime(startTime);
 
     const result = await resend.emails.send({
       from: "noreply@agonperformance.com",

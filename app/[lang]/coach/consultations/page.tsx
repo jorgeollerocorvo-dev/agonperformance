@@ -7,6 +7,7 @@ import { Card, Button } from "@/components/ui/Card";
 import { isJorge } from "@/lib/jorge";
 import BrandedHeader from "@/components/BrandedHeader";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { formatSlotTime, formatEndTime, formatBookingTime } from "@/lib/timezone-utils";
 
 export default async function ConsultationsPage({
   params,
@@ -208,14 +209,7 @@ export default async function ConsultationsPage({
                         </p>
                       )}
                       <p className="text-sm font-medium mt-3 text-[#1A1A1A]">
-                        📅{" "}
-                        {booking.startTime.toLocaleString("en-US", {
-                          weekday: "long",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        📅 {formatBookingTime(booking.startTime)}
                       </p>
                       {booking.googleMeetUrl && (
                         <a
@@ -256,18 +250,7 @@ export default async function ConsultationsPage({
                   >
                     <div>
                       <p className="font-medium text-[#1A1A1A]">
-                        {slot.startTime.toLocaleString("en-US", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        -{" "}
-                        {slot.endTime.toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatSlotTime(slot.startTime)} - {formatEndTime(slot.endTime)}
                       </p>
                       <p className="text-sm text-[#666666]">
                         Available for booking

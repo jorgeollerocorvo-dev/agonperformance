@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, Button } from "./ui/Card";
 import { getAvailableSlots, bookConsultation } from "@/app/[lang]/coach/leads/booking-actions";
+import { formatSlotTime } from "@/lib/timezone-utils";
 
 interface Slot {
   id: string;
@@ -30,8 +31,8 @@ export default function ConsultationBooking() {
         setSlots(
           result.slots.map((slot: any) => ({
             id: slot.id,
-            startTime: new Date(slot.startTime).toLocaleString(),
-            endTime: new Date(slot.endTime).toLocaleString(),
+            startTime: formatSlotTime(slot.startTime),
+            endTime: formatSlotTime(slot.endTime),
           }))
         );
       }
@@ -68,8 +69,8 @@ export default function ConsultationBooking() {
           setSlots(
             slotsResult.slots.map((slot: any) => ({
               id: slot.id,
-              startTime: new Date(slot.startTime).toLocaleString(),
-              endTime: new Date(slot.endTime).toLocaleString(),
+              startTime: formatSlotTime(slot.startTime),
+              endTime: formatSlotTime(slot.endTime),
             }))
           );
         }
