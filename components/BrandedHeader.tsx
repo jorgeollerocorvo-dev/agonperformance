@@ -30,16 +30,16 @@ export default function BrandedHeader({
         </Link>
 
         {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-4 mr-4">
           <Link
             href={`/${lang}/consultation`}
-            className="text-sm text-[#666666] hover:text-[#2E75B6] transition-colors font-medium"
+            className="text-sm px-4 py-2 text-[#666666] hover:text-[#1A1A1A] transition-colors"
           >
             Consultation
           </Link>
           <Link
             href={`/${lang}/coaches`}
-            className="text-sm text-[#666666] hover:text-[#2E75B6] transition-colors font-medium"
+            className="text-sm px-4 py-2 text-[#666666] hover:text-[#1A1A1A] transition-colors"
           >
             Coaches
           </Link>
