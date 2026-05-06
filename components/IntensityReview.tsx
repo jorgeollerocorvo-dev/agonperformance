@@ -35,6 +35,7 @@ export default function IntensityReview({
   const [review, setReview] = useState(initialReview ?? "");
   const [isEditing, setIsEditing] = useState(!initialFeedback);
   const [isPending, setIsPending] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const emojis = ["😊", "😐", "😓", "💪", "😤"];
   const labels = [
@@ -57,6 +58,12 @@ export default function IntensityReview({
       formData.set("intensityFeedback", String(feedback));
       formData.set("intensityReview", review);
       await saveSessionFeedback(formData);
+      setShowSuccess(true);
+      setIsEditing(false);
+      // Auto-redirect after 3 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
     } catch (err) {
       console.error("Failed to save feedback:", err);
       alert("Failed to save feedback");
@@ -64,6 +71,30 @@ export default function IntensityReview({
       setIsPending(false);
     }
   };
+
+  if (showSuccess) {
+    return (
+      <>
+        {/* Success Modal Overlay */}
+        <div className="fixed inset-0 bg-black/50 z-40" />
+        {/* Success Modal */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md bg-[var(--success-soft)] border-[var(--success)]/30">
+            <div className="text-center space-y-4">
+              <div className="text-5xl">✅</div>
+              <h2 className="text-2xl font-bold text-[var(--ink)]">Great job!</h2>
+              <p className="text-sm text-[var(--ink-muted)]">
+                Thank you for completing your workout and sharing your feedback. Your coach will review it and get in touch with you shortly.
+              </p>
+              <div className="text-xs text-[var(--ink-muted)] pt-2">
+                Redirecting in a moment...
+              </div>
+            </div>
+          </Card>
+        </div>
+      </>
+    );
+  }
 
   if (!isEditing && initialFeedback && feedback) {
     return (
