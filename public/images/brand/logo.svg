@@ -1,11 +1,10 @@
 <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <!-- Outer circle background -->
-  <circle cx="100" cy="100" r="95" fill="#2A2A2A" stroke="#FFFFFF" stroke-width="4"/>
-  <circle cx="100" cy="100" r="88" fill="#1A1A1A"/>
+  <circle cx="100" cy="100" r="95" fill="#1A1A1A" stroke="#FFFFFF" stroke-width="3"/>
 
-  <!-- Inner spiral - clean design matching original -->
-  <g stroke="#FFFFFF" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Main spiral path representing journey and growth -->
-    <path d="M 100 55 Q 130 75, 130 105 Q 130 130, 100 135 Q 70 135, 70 105 Q 70 80, 95 75 Q 120 70, 125 95 Q 128 115, 105 128"/>
+  <!-- Inner spiral - clean minimal design -->
+  <g stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Elegant spiral representing journey -->
+    <path d="M 100 50 Q 135 65, 135 100 Q 135 135, 100 145 Q 65 145, 65 100 Q 65 70, 100 65 Q 130 60, 130 95"/>
   </g>
 </svg>
