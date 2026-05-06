@@ -36,6 +36,18 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
     where: { coachUserId: session!.user.id },
   });
 
+  // Get consultation bookings count (only for Jorge)
+  const isJorge = session?.user?.email === "jorge.ollero.corvo@gmail.com";
+  let consultationCount = 0;
+  if (isJorge) {
+    const now = new Date();
+    consultationCount = await prisma.consultationBooking.count({
+      where: {
+        startTime: { gte: now },
+      },
+    });
+  }
+
   const greeting = coachProfile.user.displayName ?? coachProfile.user.fullName ?? "Coach";
   const statusColor =
     coachProfile.listingStatus === "APPROVED" ? "success"
@@ -57,7 +69,7 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
         </span>
       </AccentCard>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label={dict.nav.athletes}
           value={coachProfile._count.athletes}
@@ -76,6 +88,14 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
           href={`/${lang}/messages`}
           icon={<IconChat />}
         />
+        {isJorge && (
+          <StatCard
+            label="Consultations"
+            value={consultationCount}
+            href={`/${lang}/coach/consultations`}
+            icon={<IconCalendar />}
+          />
+        )}
       </section>
 
       <section>
@@ -132,3 +152,4 @@ function listingLabelFor(status: string): string {
 function IconUsers() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15 20c0-2.5 2-4.5 4.5-4.5"/></svg>; }
 function IconChart() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg>; }
 function IconChat() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path d="M21 12a8 8 0 01-12.4 6.7L3 20l1.3-4.2A8 8 0 1121 12z"/></svg>; }
+function IconCalendar() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>; }
