@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
+import DeleteAthleteButton from "@/components/DeleteAthleteButton";
 
 export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/athletes">) {
   const { lang } = await params;
@@ -100,6 +102,57 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
     redirect(`/${lang}/coach/athletes/${athlete.id}${createLogin ? "?accountCreated=1" : ""}`);
   }
 
+  async function deleteAthlete(formData: FormData) {
+    "use server";
+    const s = await auth();
+    if (!s?.user?.id) return;
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s.user.id } });
+    if (!cp) return;
+
+    const athleteId = String(formData.get("athleteId") ?? "");
+    if (!athleteId) return;
+
+    // Verify athlete belongs to this coach
+    const athlete = await prisma.athlete.findUnique({
+      where: { id: athleteId },
+      select: { coachProfileId: true, fullName: true, userId: true },
+    });
+    if (!athlete || athlete.coachProfileId !== cp.id) return;
+
+    // Delete in transaction to handle all related data
+    await prisma.$transaction(async (tx) => {
+      // Delete all program sessions and their logs
+      const programs = await tx.program.findMany({
+        where: { athleteId },
+        select: { weeks: { select: { sessions: { select: { id: true } } } } },
+      });
+      for (const prog of programs) {
+        for (const week of prog.weeks) {
+          for (const session of week.sessions) {
+            await tx.sessionLog.deleteMany({ where: { programSessionId: session.id } });
+          }
+        }
+      }
+
+      // Delete all programs and related data
+      await tx.program.deleteMany({ where: { athleteId } });
+
+      // Delete athlete links
+      await tx.athleteLink.deleteMany({ where: { athleteId } });
+
+      // Delete athlete
+      await tx.athlete.delete({ where: { id: athleteId } });
+
+      // Delete associated user if it exists
+      if (athlete.userId) {
+        await tx.user.delete({ where: { id: athlete.userId } }).catch(() => {});
+      }
+    });
+
+    revalidatePath(`/${lang}/coach/athletes`, "layout");
+    redirect(`/${lang}/coach/athletes`);
+  }
+
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-semibold">{dict.nav.athletes}</h1>
@@ -172,15 +225,18 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
         <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           {coachProfile?.athletes.map((a) => (
             <li key={a.id}>
-              <Link href={`/${lang}/coach/athletes/${a.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                <div>
+              <div className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 gap-4">
+                <Link href={`/${lang}/coach/athletes/${a.id}`} className="flex-1 hover:opacity-80">
                   <div className="font-medium">{a.fullName}</div>
                   <div className="text-xs text-zinc-500">
                     {[a.sex, a.age ? `${a.age} y/o` : null, a.division, a.email].filter(Boolean).join(" · ")}
                   </div>
+                </Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-zinc-400">→</span>
+                  <DeleteAthleteButton athleteId={a.id} athleteName={a.fullName} lang={lang} deleteAction={deleteAthlete} />
                 </div>
-                <span className="text-sm text-zinc-400">→</span>
-              </Link>
+              </div>
             </li>
           ))}
         </ul>
