@@ -3,13 +3,9 @@
   <circle cx="100" cy="100" r="95" fill="#2A2A2A" stroke="#FFFFFF" stroke-width="4"/>
   <circle cx="100" cy="100" r="88" fill="#1A1A1A"/>
 
-  <!-- Inner spiral - geometric clean design matching original -->
+  <!-- Inner spiral - clean design matching original -->
   <g stroke="#FFFFFF" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Outer spiral loop -->
-    <path d="M 100 55 Q 125 70, 125 100 Q 125 125, 100 130" />
-    <!-- Middle spiral loop -->
-    <path d="M 105 62 Q 120 75, 120 100 Q 120 120, 100 122" />
-    <!-- Inner spiral loop -->
-    <path d="M 100 70 Q 115 82, 115 100 Q 115 113, 100 114" />
+    <!-- Main spiral path representing journey and growth -->
+    <path d="M 100 55 Q 130 75, 130 105 Q 130 130, 100 135 Q 70 135, 70 105 Q 70 80, 95 75 Q 120 70, 125 95 Q 128 115, 105 128"/>
   </g>
 </svg>

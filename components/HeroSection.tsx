@@ -59,13 +59,13 @@ export default function HeroSection({
             <div className="flex gap-4 justify-center flex-wrap pt-8">
               <Link
                 href={`/${lang}/consultation`}
-                className="px-8 py-4 bg-[#2E75B6] text-white font-bold text-lg rounded-lg hover:bg-[#1E5A94] transition-colors shadow-md hover:shadow-lg"
+                className="px-8 py-3 text-[#666666] hover:text-[#1A1A1A] font-semibold text-lg transition-colors"
               >
                 {BRAND_MESSAGE.cta.secondary}
               </Link>
               <Link
                 href={`/${lang}/register`}
-                className="px-8 py-4 border-2 border-[#1A1A1A] text-[#1A1A1A] font-bold text-lg rounded-lg hover:bg-[#1A1A1A] hover:text-white transition-colors"
+                className="px-8 py-3 bg-[#2E75B6] text-white font-bold text-lg rounded-lg hover:bg-[#1E5A94] transition-colors"
               >
                 {BRAND_MESSAGE.cta.primary}
               </Link>
