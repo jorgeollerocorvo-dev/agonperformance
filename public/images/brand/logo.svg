@@ -1,10 +1,15 @@
 <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <!-- Outer circle background -->
-  <circle cx="100" cy="100" r="95" fill="#1A1A1A" stroke="#FFFFFF" stroke-width="3"/>
+  <circle cx="100" cy="100" r="95" fill="#2A2A2A" stroke="#FFFFFF" stroke-width="4"/>
+  <circle cx="100" cy="100" r="88" fill="#1A1A1A"/>
 
-  <!-- Inner spiral -->
-  <g stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round">
-    <!-- Spiral path -->
-    <path d="M 100 60 Q 120 70, 120 100 Q 120 120, 100 120 Q 80 120, 80 100 Q 80 85, 95 80 Q 110 75, 115 90 Q 120 105, 105 115"/>
+  <!-- Inner spiral - geometric clean design matching original -->
+  <g stroke="#FFFFFF" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Outer spiral loop -->
+    <path d="M 100 55 Q 125 70, 125 100 Q 125 125, 100 130" />
+    <!-- Middle spiral loop -->
+    <path d="M 105 62 Q 120 75, 120 100 Q 120 120, 100 122" />
+    <!-- Inner spiral loop -->
+    <path d="M 100 70 Q 115 82, 115 100 Q 115 113, 100 114" />
   </g>
 </svg>

@@ -29,7 +29,23 @@ export default function BrandedHeader({
           </div>
         </Link>
 
-        {/* Navigation */}
+        {/* Navigation Links */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link
+            href={`/${lang}/consultation`}
+            className="text-sm text-[#666666] hover:text-[#2E75B6] transition-colors font-medium"
+          >
+            Consultation
+          </Link>
+          <Link
+            href={`/${lang}/coaches`}
+            className="text-sm text-[#666666] hover:text-[#2E75B6] transition-colors font-medium"
+          >
+            Coaches
+          </Link>
+        </nav>
+
+        {/* Auth Navigation */}
         <nav className="ml-auto flex items-center gap-3">
           {children}
         </nav>
