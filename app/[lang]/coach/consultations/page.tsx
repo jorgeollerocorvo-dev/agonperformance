@@ -21,6 +21,52 @@ export default async function ConsultationsPage({
 
   const dict = await getDictionary(lang);
 
+  // Initialize tables if they don't exist
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ConsultationSlot" (
+        "id" TEXT NOT NULL,
+        "startTime" TIMESTAMP(3) NOT NULL,
+        "endTime" TIMESTAMP(3) NOT NULL,
+        "isAvailable" BOOLEAN NOT NULL DEFAULT true,
+        "googleMeetUrl" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "ConsultationSlot_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ConsultationBooking" (
+        "id" TEXT NOT NULL,
+        "slotId" TEXT NOT NULL,
+        "clientName" TEXT NOT NULL,
+        "clientEmail" TEXT NOT NULL,
+        "clientPhone" TEXT,
+        "googleMeetUrl" TEXT,
+        "confirmationSent" BOOLEAN NOT NULL DEFAULT false,
+        "coachNotified" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "startTime" TIMESTAMP(3) NOT NULL,
+        "endTime" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "ConsultationBooking_pkey" PRIMARY KEY ("id")
+      );
+    `);
+
+    // Create indexes
+    await Promise.all([
+      prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ConsultationSlot_startTime_idx" ON "ConsultationSlot"("startTime");`),
+      prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ConsultationSlot_isAvailable_idx" ON "ConsultationSlot"("isAvailable");`),
+      prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "ConsultationBooking_slotId_key" ON "ConsultationBooking"("slotId");`),
+      prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ConsultationBooking_slotId_idx" ON "ConsultationBooking"("slotId");`),
+      prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ConsultationBooking_clientEmail_idx" ON "ConsultationBooking"("clientEmail");`),
+      prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ConsultationBooking_createdAt_idx" ON "ConsultationBooking"("createdAt");`),
+    ]);
+  } catch (error) {
+    // Tables may already exist, continue
+    console.error("Table initialization error (may be expected):", error);
+  }
+
   // Get upcoming consultation slots and bookings
   const now = new Date();
   const slots = await prisma.consultationSlot.findMany({

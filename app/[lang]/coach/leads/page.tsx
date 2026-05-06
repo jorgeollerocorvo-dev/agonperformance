@@ -30,10 +30,16 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
   });
 
   // Fetch consultations for the consultations tab
-  const consultations = await prisma.consultationBooking.findMany({
-    orderBy: { startTime: "desc" },
-    take: 200,
-  });
+  let consultations: any[] = [];
+  try {
+    consultations = await prisma.consultationBooking.findMany({
+      orderBy: { startTime: "desc" },
+      take: 200,
+    });
+  } catch (error) {
+    // Consultations table may not exist yet
+    console.error("Error fetching consultations:", error);
+  }
 
   async function updateStatus(formData: FormData) {
     "use server";
