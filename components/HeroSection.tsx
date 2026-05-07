@@ -25,11 +25,11 @@ export default function HeroSection({
           <div className="flex justify-center mb-8">
             <div className="w-32 h-32 sm:w-48 sm:h-48 hover:scale-110 transition-transform duration-300 drop-shadow-lg">
               <Image
-                src="/images/brand/logo.jpg"
+                src="/images/brand/logo.svg"
                 alt={BRAND.name}
                 width={192}
                 height={192}
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-contain"
               />
             </div>
           </div>
