@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";
+import { isJorge } from "@/lib/jorge";
 
 export default async function ProgramsPage({ params }: PageProps<"/[lang]/coach/programs">) {
   const { lang } = await params;
@@ -23,9 +24,11 @@ export default async function ProgramsPage({ params }: PageProps<"/[lang]/coach/
       <header className="flex items-baseline justify-between gap-2 flex-wrap">
         <h1 className="text-3xl font-bold">{dict.nav.programs}</h1>
         <div className="flex gap-2">
-          <Link href={`/${lang}/coach/programs/ai-new`}>
-            <Button variant="ink">✨ {dict.coach.aiCreateBtn ?? "Create with AI"}</Button>
-          </Link>
+          {isJorge(session) && (
+            <Link href={`/${lang}/coach/programs/ai-new`}>
+              <Button variant="ink">✨ {dict.coach.aiCreateBtn ?? "Create with AI"}</Button>
+            </Link>
+          )}
           <Link href={`/${lang}/coach/programs/new`}>
             <Button>+ {dict.coach.newProgram}</Button>
           </Link>

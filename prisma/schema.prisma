@@ -197,6 +197,7 @@ model CoachProfile {
   specialties            CoachProfileSpecialty[]
   athletes               Athlete[]
   reviews                Review[]
+  movements              CoachMovement[] // coach-specific movements
 
   @@index([listingStatus, subscriptionTier])
   @@index([providerType])
@@ -209,6 +210,31 @@ model CoachProfileSpecialty {
   specialty      Specialty    @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
 
   @@id([coachProfileId, specialtyId])
+}
+
+// ============================================================
+// Coach-specific movement library (custom movements per coach)
+// ============================================================
+
+model CoachMovement {
+  id              String   @id @default(cuid())
+  coachProfileId  String
+  coachProfile    CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+  code            String   // unique per coach: "squat", "bench_press"
+  nameEn          String
+  nameEs          String?
+  nameAr          String?
+  videoUrl        String?  // coach's custom video URL
+  demoUrl         String?
+  category        String?
+  attributes      Json?    // movement attributes (calf_loading, etc.)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([coachProfileId, code]) // unique per coach
+  @@index([coachProfileId])
+  @@index([category])
 }
 
 // ============================================================

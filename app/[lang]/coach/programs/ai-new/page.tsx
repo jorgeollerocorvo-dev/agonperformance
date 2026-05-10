@@ -6,6 +6,7 @@ import { getDictionary, hasLocale } from "../../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";
 import { aiProgramGenEnabled } from "@/lib/features";
 import { generateAndRedirect } from "./actions";
+import { isJorge } from "@/lib/jorge";
 
 export default async function AiNewProgramPage({ params, searchParams }: PageProps<"/[lang]/coach/programs/ai-new">) {
   const { lang } = await params;
@@ -13,6 +14,9 @@ export default async function AiNewProgramPage({ params, searchParams }: PagePro
   const dict = await getDictionary(lang);
   const sp = await searchParams;
   const session = await auth();
+
+  // Only Jorge can use AI program generation
+  if (!isJorge(session)) notFound();
 
   const coach = await prisma.coachProfile.findUnique({
     where: { userId: session!.user.id },

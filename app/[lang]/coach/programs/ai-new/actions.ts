@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { generateProgramFromBrief, type ProgramBrief } from "@/lib/ai-generate-program";
 import { aiProgramGenEnabled } from "@/lib/features";
 import { movementYoutubeSearchUrl } from "@/lib/ai-parse-program";
+import { isJorge } from "@/lib/jorge";
 
 /* Build a compact athlete-context blob from the DB row, JSON-coercing the
  * coaching-tool fields that are stored as Prisma Json. */
@@ -55,11 +56,18 @@ function formatAthleteContext(a: {
 export async function generateAndCreateProgram(
   formData: FormData,
 ): Promise<{ error?: string; previewId?: string }> {
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) return { error: "unauthorized" };
+
+  // Only Jorge can use AI program generation
+  if (!isJorge(session)) {
+    return { error: "AI program generation is only available for Jorge" };
+  }
+
   if (!aiProgramGenEnabled()) {
     return { error: "AI program generation is currently disabled. Enable AI_PROGRAM_GEN_ENABLED on Railway and add Anthropic credits." };
   }
-  const session = await auth();
-  if (!session?.user || !session.user.roles?.includes("COACH")) return { error: "unauthorized" };
+
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
   if (!coach) return { error: "no coach profile" };
 

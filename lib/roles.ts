@@ -1,4 +1,5 @@
 import type { Session } from "next-auth";
+import { isCoachOwner as checkCoachOwner } from "./get-coach-profile";
 
 export type AppRole = "CLIENT" | "COACH" | "ADMIN";
 
@@ -20,4 +21,16 @@ export function landingPathFor(locale: string, session: Session | null): string 
   if (role === "ADMIN") return `/${locale}/admin`;
   if (role === "CLIENT") return `/${locale}/athlete`;
   return `/${locale}`;
+}
+
+/**
+ * Check if session user owns a specific coach profile.
+ * Async version of isCoachOwner from get-coach-profile.ts
+ * Used to verify resource ownership across coach-specific data.
+ */
+export async function isCoachOwner(
+  session: Session | null,
+  coachProfileId: string
+): Promise<boolean> {
+  return checkCoachOwner(session, coachProfileId);
 }
