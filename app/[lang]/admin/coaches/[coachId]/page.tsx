@@ -22,13 +22,14 @@ export default async function CoachDetailPage({
     notFound();
   }
 
-  // Fetch coach with all their data
+  // Fetch coach with all their data - Jorge can see complete athlete details
   const coach = await prisma.coachProfile.findUnique({
     where: { id: coachId },
     include: {
       user: true,
       athletes: {
         include: {
+          user: { select: { email: true, displayName: true } },
           programs: {
             include: {
               weeks: { select: { id: true } },
