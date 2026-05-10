@@ -122,3 +122,65 @@ export async function createMovement(
   revalidatePath(`/`, "layout");
   return { id: movement.id, videoUrl };
 }
+
+/**
+ * Delete a movement by marking it as inactive.
+ * This soft-deletes the movement while preserving program history.
+ * Programs already using this movement will continue to reference it,
+ * but it won't appear in new program creation or the movement library.
+ */
+export async function deleteMovement(movementId: string): Promise<{ ok: boolean; error?: string }> {
+  await assertJorge();
+
+  const movement = await prisma.movement.findUnique({
+    where: { id: movementId },
+    include: {
+      programMovements: {
+        include: {
+          programBlock: {
+            include: {
+              programSession: {
+                include: {
+                  programWeek: {
+                    include: {
+                      program: {
+                        include: {
+                          athlete: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!movement) {
+    return { ok: false, error: "Movement not found" };
+  }
+
+  // Count how many programs use this movement
+  const programCount = new Set(
+    movement.programMovements.map((pm) => pm.programBlock.programSession.programWeek.program.id)
+  ).size;
+
+  if (programCount > 0) {
+    return {
+      ok: false,
+      error: `Cannot delete: ${programCount} program(s) still use this movement. Remove from programs first.`,
+    };
+  }
+
+  // Safe to delete - mark as inactive
+  await prisma.movement.update({
+    where: { id: movementId },
+    data: { isActive: false },
+  });
+
+  revalidatePath(`/`, "layout");
+  return { ok: true };
+}

@@ -6,7 +6,7 @@ import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import { isJorge } from "@/lib/jorge";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
-import { rerollMovementVideo, toggleMovementLock, setMovementVideoUrl, clearMovementVideo, createMovement } from "./actions";
+import { rerollMovementVideo, toggleMovementLock, setMovementVideoUrl, clearMovementVideo, createMovement, deleteMovement } from "./actions";
 
 const PAGE_SIZE = 30;
 
@@ -79,6 +79,11 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
     const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
     const lockVideo = formData.get("lockVideo") === "on" && !!videoUrl;
     if (nameEn) await createMovement(nameEn, nameEs, autoSearch, videoUrl, lockVideo);
+  }
+  async function deleteAction(formData: FormData) {
+    "use server";
+    const id = String(formData.get("id") ?? "");
+    if (id) await deleteMovement(id);
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -232,6 +237,16 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
                       className="inline-flex items-center gap-1 rounded-full bg-white border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--ink-muted)] hover:bg-[var(--surface-2)]"
                     >
                       Clear cache
+                    </button>
+                  </form>
+                  <form action={deleteAction}>
+                    <input type="hidden" name="id" value={m.id} />
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1 rounded-full bg-white border border-[var(--border-danger)] px-3 py-1.5 text-xs text-[var(--danger)] hover:bg-[var(--danger-soft)]"
+                      title="Remove this movement from the library"
+                    >
+                      🗑 Delete
                     </button>
                   </form>
                 </div>
