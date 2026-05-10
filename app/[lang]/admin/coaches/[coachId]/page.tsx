@@ -22,14 +22,14 @@ export default async function CoachDetailPage({
     notFound();
   }
 
-  // Fetch coach with all their data - Jorge can see complete athlete details
+  // Fetch coach with all their data - Jorge can see complete athlete details including all profile fields
   const coach = await prisma.coachProfile.findUnique({
     where: { id: coachId },
     include: {
       user: true,
       athletes: {
         include: {
-          user: { select: { email: true, displayName: true } },
+          user: true, // Full user details for email, password management
           programs: {
             include: {
               weeks: { select: { id: true } },
@@ -106,7 +106,7 @@ export default async function CoachDetailPage({
         ) : (
           <div className="space-y-4">
             {coach.athletes.map((athlete) => (
-              <CoachAthleteDetail key={athlete.id} athlete={athlete} lang={lang} />
+              <CoachAthleteDetail key={athlete.id} athlete={athlete} lang={lang} coachId={coachId} />
             ))}
           </div>
         )}
