@@ -79,9 +79,11 @@ export async function POST(request: NextRequest) {
             data: { userId: user.id },
           });
 
-          // Create AthleteLink
-          await prisma.athleteLink.create({
-            data: {
+          // Upsert AthleteLink (create if not exists, update if exists)
+          await prisma.athleteLink.upsert({
+            where: { userId_athleteId: { userId: user.id, athleteId: athlete.id } },
+            update: { active: true },
+            create: {
               userId: user.id,
               athleteId: athlete.id,
               active: true,
