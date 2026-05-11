@@ -12,11 +12,10 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function POST(request: NextRequest) {
   try {
-    // Temporarily allow without auth for initial fix - will be reverted after running once
-    // const session = await auth();
-    // if (!session?.user || !isJorge(session)) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    // }
+    const session = await auth();
+    if (!session?.user || !isJorge(session)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
     // Find all athletes with userId but no active AthleteLink
     const athletesWithoutLink = await prisma.athlete.findMany({
