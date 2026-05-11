@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
         userId: { not: null },
       },
       include: {
-        athleteLink: {
+        athleteLinks: {
           where: { active: true },
         },
       },
     });
 
     const athletesNeedingLink = athletesWithoutLink.filter(
-      (a) => a.userId && a.athleteLink.length === 0
+      (a) => a.userId && a.athleteLinks.length === 0
     );
 
     // Create missing links
