@@ -131,3 +131,62 @@ export async function generateTemporaryPassword(): Promise<string> {
   }
   return password;
 }
+
+export async function createUserAccountForAthlete(
+  athleteId: string,
+  initialPassword: string,
+  lang: string
+): Promise<{ error?: string; success?: boolean; password?: string }> {
+  const session = await auth();
+  if (!session?.user || !isJorge(session)) {
+    return { error: "Unauthorized" };
+  }
+
+  const athlete = await prisma.athlete.findUnique({
+    where: { id: athleteId },
+  });
+
+  if (!athlete) {
+    return { error: "Athlete not found" };
+  }
+
+  if (athlete.userId) {
+    return { error: "Athlete already has a user account" };
+  }
+
+  if (!athlete.email) {
+    return { error: "Athlete must have an email address to create an account" };
+  }
+
+  if (!initialPassword || initialPassword.length < 6) {
+    return { error: "Password must be at least 6 characters" };
+  }
+
+  try {
+    const hashedPassword = await hash(initialPassword, 10);
+
+    // Create user account linked to the athlete
+    const user = await prisma.user.create({
+      data: {
+        email: athlete.email,
+        displayName: athlete.displayName || athlete.fullName,
+        passwordHash: hashedPassword,
+        isEmailVerified: true, // Jorge created it, so we verify automatically
+      },
+    });
+
+    // Link the athlete to the user
+    await prisma.athlete.update({
+      where: { id: athleteId },
+      data: { userId: user.id },
+    });
+
+    return { success: true, password: initialPassword };
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+    if (errorMessage.includes("Unique constraint failed on the fields: (`email`)")) {
+      return { error: "An account with this email already exists" };
+    }
+    return { error: errorMessage };
+  }
+}

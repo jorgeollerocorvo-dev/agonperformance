@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { updateAthleteProfile, updateAthletePassword, generateTemporaryPassword } from "@/app/[lang]/admin/coaches/[coachId]/actions";
+import { updateAthleteProfile, updateAthletePassword, generateTemporaryPassword, createUserAccountForAthlete } from "@/app/[lang]/admin/coaches/[coachId]/actions";
 
 interface AthleteEditModalProps {
   athlete: {
@@ -41,6 +41,10 @@ export default function AthleteEditModal({
   const [displayedPassword, setDisplayedPassword] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState("");
+  const [hasUserAccount, setHasUserAccount] = useState(!!athlete.userId);
 
   const athleteEmail = athlete.email || athlete.user?.email;
   const hasPassword = athlete.user?.passwordHash;
@@ -130,22 +134,20 @@ export default function AthleteEditModal({
           >
             Profile Details
           </button>
-          {athlete.userId && (
-            <button
-              onClick={() => {
-                setActiveTab("password");
-                setError(null);
-                setSuccess(null);
-              }}
-              className={`flex-1 px-4 py-3 font-medium border-b-2 transition ${
-                activeTab === "password"
-                  ? "border-[var(--primary)] text-[var(--primary)]"
-                  : "border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]"
-              }`}
-            >
-              Password
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setActiveTab("password");
+              setError(null);
+              setSuccess(null);
+            }}
+            className={`flex-1 px-4 py-3 font-medium border-b-2 transition ${
+              activeTab === "password"
+                ? "border-[var(--primary)] text-[var(--primary)]"
+                : "border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            Password
+          </button>
         </div>
 
         {/* Content */}
@@ -320,149 +322,299 @@ export default function AthleteEditModal({
             </form>
           )}
 
-          {activeTab === "password" && athlete.userId && (
+          {activeTab === "password" && (
             <div className="space-y-6">
-              {/* Password Status */}
-              <div className={`p-4 rounded-lg border-2 ${
-                hasPassword
-                  ? "bg-green-50 border-green-200"
-                  : "bg-orange-50 border-orange-200"
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`font-semibold ${hasPassword ? "text-green-700" : "text-orange-700"}`}>
-                      {hasPassword ? "✓ Password Set" : "⚠️ No Password Set"}
-                    </p>
-                    <p className={`text-sm mt-1 ${hasPassword ? "text-green-600" : "text-orange-600"}`}>
-                      {hasPassword
-                        ? `${athlete.fullName} can log in with their email and password`
-                        : `${athlete.fullName} cannot log in until a password is set`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Generate Password */}
-              {!displayedPassword && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-700 mb-3">
-                    Quickly generate a temporary password for {athlete.fullName}
+              {/* No User Account Yet - Show Account Creation Form */}
+              {!hasUserAccount && (
+                <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-lg">
+                  <p className="font-semibold text-amber-700 mb-1">⚠️ No User Account</p>
+                  <p className="text-sm text-amber-600 mb-4">
+                    {athlete.fullName} doesn&#x2019;t have a user account yet. Create one to enable login.
                   </p>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setLoading(true);
-                      const tempPass = await generateTemporaryPassword();
-                      setPasswordInput(tempPass);
-                      setPasswordConfirm(tempPass);
-                      setLoading(false);
-                    }}
-                    disabled={loading}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-                  >
-                    🔐 Generate Temporary Password
-                  </button>
+
+                  {!creatingAccount ? (
+                    <button
+                      type="button"
+                      onClick={() => setCreatingAccount(true)}
+                      className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition"
+                    >
+                      📝 Create User Account
+                    </button>
+                  ) : (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        setError(null);
+                        setSuccess(null);
+
+                        if (!accountPassword || !accountPasswordConfirm) {
+                          setError("Both password fields are required");
+                          return;
+                        }
+
+                        if (accountPassword !== accountPasswordConfirm) {
+                          setError("Passwords do not match");
+                          return;
+                        }
+
+                        if (accountPassword.length < 6) {
+                          setError("Password must be at least 6 characters");
+                          return;
+                        }
+
+                        setLoading(true);
+                        const result = await createUserAccountForAthlete(athlete.id, accountPassword, lang);
+                        setLoading(false);
+
+                        if (result.error) {
+                          setError(result.error);
+                        } else if (result.success) {
+                          setSuccess("User account created successfully!");
+                          setHasUserAccount(true);
+                          setCreatingAccount(false);
+                          setDisplayedPassword(result.password || accountPassword);
+                          setAccountPassword("");
+                          setAccountPasswordConfirm("");
+                        }
+                      }}
+                      className="space-y-3"
+                    >
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">Email *</label>
+                        <input
+                          type="email"
+                          value={athleteEmail || ""}
+                          disabled
+                          className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm bg-gray-100 text-gray-600"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Using athlete email (cannot be changed)</p>
+                      </div>
+
+                      <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                        <p className="text-sm text-blue-700">
+                          Quick Generate:
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setLoading(true);
+                              const tempPass = await generateTemporaryPassword();
+                              setAccountPassword(tempPass);
+                              setAccountPasswordConfirm(tempPass);
+                              setLoading(false);
+                            }}
+                            disabled={loading}
+                            className="ml-2 underline font-semibold hover:text-blue-900"
+                          >
+                            Generate Temporary Password
+                          </button>
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">Initial Password *</label>
+                        <input
+                          type="password"
+                          value={accountPassword}
+                          onChange={(e) => setAccountPassword(e.target.value)}
+                          placeholder="At least 6 characters"
+                          className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">Confirm Password *</label>
+                        <input
+                          type="password"
+                          value={accountPasswordConfirm}
+                          onChange={(e) => setAccountPasswordConfirm(e.target.value)}
+                          placeholder="Confirm password"
+                          className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="submit"
+                          disabled={loading || !accountPassword || !accountPasswordConfirm}
+                          className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50 transition"
+                        >
+                          {loading ? "Creating..." : "Create Account"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCreatingAccount(false);
+                            setAccountPassword("");
+                            setAccountPasswordConfirm("");
+                          }}
+                          className="px-4 py-2 border border-[var(--border)] rounded-lg font-medium hover:bg-[var(--surface-2)] transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               )}
 
-              {/* Manual Password Entry Form */}
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-3 text-sm">Or Enter Password Manually</h4>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">New Password *</label>
-                      <input
-                        type="password"
-                        value={passwordInput}
-                        onChange={(e) => setPasswordInput(e.target.value)}
-                        placeholder="At least 6 characters"
-                        className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">Confirm Password *</label>
-                      <input
-                        type="password"
-                        value={passwordConfirm}
-                        onChange={(e) => setPasswordConfirm(e.target.value)}
-                        placeholder="Confirm password"
-                        className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {passwordInput && passwordConfirm && (
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                    <p className="text-sm font-semibold text-purple-700 mb-2">Password Preview:</p>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded text-sm font-mono">
-                        {showPassword ? passwordInput : "•".repeat(passwordInput.length)}
+              {/* Existing User Account - Show Password Management */}
+              {hasUserAccount && (
+                <>
+                  {/* Password Status */}
+                  <div className={`p-4 rounded-lg border-2 ${
+                    hasPassword
+                      ? "bg-green-50 border-green-200"
+                      : "bg-orange-50 border-orange-200"
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`font-semibold ${hasPassword ? "text-green-700" : "text-orange-700"}`}>
+                          {hasPassword ? "✓ Password Set" : "⚠️ No Password Set"}
+                        </p>
+                        <p className={`text-sm mt-1 ${hasPassword ? "text-green-600" : "text-orange-600"}`}>
+                          {hasPassword
+                            ? `${athlete.fullName} can log in with their email and password`
+                            : `${athlete.fullName} cannot log in until a password is set`}
+                        </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="px-3 py-2 text-sm bg-white border border-purple-200 rounded hover:bg-purple-50"
-                      >
-                        {showPassword ? "Hide" : "Show"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(passwordInput);
-                          setCopiedToClipboard(true);
-                          setTimeout(() => setCopiedToClipboard(false), 2000);
-                        }}
-                        className="px-3 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
-                      >
-                        {copiedToClipboard ? "✓ Copied" : "Copy"}
-                      </button>
                     </div>
                   </div>
-                )}
 
+                  {/* Quick Generate Password */}
+                  {!displayedPassword && (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-700 mb-3">
+                        Quickly generate a temporary password for {athlete.fullName}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setLoading(true);
+                          const tempPass = await generateTemporaryPassword();
+                          setPasswordInput(tempPass);
+                          setPasswordConfirm(tempPass);
+                          setLoading(false);
+                        }}
+                        disabled={loading}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+                      >
+                        🔐 Generate Temporary Password
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Manual Password Entry Form */}
+                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-3 text-sm">Or Enter Password Manually</h4>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-semibold mb-1">New Password *</label>
+                          <input
+                            type="password"
+                            value={passwordInput}
+                            onChange={(e) => setPasswordInput(e.target.value)}
+                            placeholder="At least 6 characters"
+                            className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold mb-1">Confirm Password *</label>
+                          <input
+                            type="password"
+                            value={passwordConfirm}
+                            onChange={(e) => setPasswordConfirm(e.target.value)}
+                            placeholder="Confirm password"
+                            className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {passwordInput && passwordConfirm && (
+                      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        <p className="text-sm font-semibold text-purple-700 mb-2">Password Preview:</p>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded text-sm font-mono">
+                            {showPassword ? passwordInput : "•".repeat(passwordInput.length)}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="px-3 py-2 text-sm bg-white border border-purple-200 rounded hover:bg-purple-50"
+                          >
+                            {showPassword ? "Hide" : "Show"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(passwordInput);
+                              setCopiedToClipboard(true);
+                              setTimeout(() => setCopiedToClipboard(false), 2000);
+                            }}
+                            className="px-3 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
+                          >
+                            {copiedToClipboard ? "✓ Copied" : "Copy"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        type="submit"
+                        disabled={loading || !passwordInput || !passwordConfirm}
+                        className="flex-1 px-4 py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary)]/90 disabled:opacity-50 transition"
+                      >
+                        {loading ? "Setting Password..." : "Set Password"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 border border-[var(--border)] rounded-lg font-medium hover:bg-[var(--surface-2)] transition"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </form>
+
+                  {displayedPassword && (
+                    <div className="bg-green-50 border-2 border-green-200 p-4 rounded-lg">
+                      <p className="font-semibold text-green-700 mb-2">✓ Password Set Successfully!</p>
+                      <p className="text-sm text-green-600">
+                        Share this password with {athlete.fullName} so they can log in.
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="flex-1 px-3 py-2 bg-white border border-green-300 rounded font-mono text-sm">
+                          {displayedPassword}
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(displayedPassword);
+                            setCopiedToClipboard(true);
+                            setTimeout(() => setCopiedToClipboard(false), 2000);
+                          }}
+                          className="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          {copiedToClipboard ? "✓ Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {displayedPassword && (
                 <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={loading || !passwordInput || !passwordConfirm}
-                    className="flex-1 px-4 py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary)]/90 disabled:opacity-50 transition"
-                  >
-                    {loading ? "Setting Password..." : "Set Password"}
-                  </button>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 border border-[var(--border)] rounded-lg font-medium hover:bg-[var(--surface-2)] transition"
+                    className="flex-1 px-4 py-2 border border-[var(--border)] rounded-lg font-medium hover:bg-[var(--surface-2)] transition"
                   >
                     Done
                   </button>
-                </div>
-              </form>
-
-              {displayedPassword && (
-                <div className="bg-green-50 border-2 border-green-200 p-4 rounded-lg">
-                  <p className="font-semibold text-green-700 mb-2">✓ Password Set Successfully!</p>
-                  <p className="text-sm text-green-600">
-                    Share this password with {athlete.fullName} so they can log in.
-                  </p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <div className="flex-1 px-3 py-2 bg-white border border-green-300 rounded font-mono text-sm">
-                      {displayedPassword}
-                    </div>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(displayedPassword);
-                        setCopiedToClipboard(true);
-                        setTimeout(() => setCopiedToClipboard(false), 2000);
-                      }}
-                      className="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                      {copiedToClipboard ? "✓ Copied" : "Copy"}
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
