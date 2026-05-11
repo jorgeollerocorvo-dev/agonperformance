@@ -191,25 +191,21 @@ export async function createUserAccountForAthlete(
       });
 
       if (existingUser) {
-        // Link the athlete to the existing user
+        const hashedPassword = await hash(initialPassword, 10);
+
+        // Link the athlete to the existing user AND update password
         await prisma.athlete.update({
           where: { id: athleteId },
           data: { userId: existingUser.id },
         });
 
-        // Update password if needed
-        if (existingUser.passwordHash !== null) {
-          // User already has a password, just return success with the new password we tried to set
-          return { success: true, password: initialPassword };
-        } else {
-          // User doesn't have a password, update it
-          const newHashedPassword = await hash(initialPassword, 10);
-          await prisma.user.update({
-            where: { id: existingUser.id },
-            data: { passwordHash: newHashedPassword },
-          });
-          return { success: true, password: initialPassword };
-        }
+        // Always update the password (whether user had one or not)
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { passwordHash: hashedPassword },
+        });
+
+        return { success: true, password: initialPassword };
       }
 
       return { error: "An account with this email already exists but could not be linked" };
