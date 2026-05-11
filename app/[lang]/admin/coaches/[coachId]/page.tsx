@@ -29,7 +29,7 @@ export default async function CoachDetailPage({
       user: true,
       athletes: {
         include: {
-          user: true, // Full user details for email, password management
+          user: { select: { id: true, email: true, displayName: true, passwordHash: true } }, // Include password hash status
           programs: {
             include: {
               weeks: { select: { id: true } },

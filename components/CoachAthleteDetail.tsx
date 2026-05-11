@@ -22,7 +22,7 @@ interface CoachAthleteDetailProps {
     goals: string | null;
     notes: string | null;
     userId: string | null;
-    user: { email: string | null; displayName: string | null; id?: string } | null;
+    user: { email?: string | null; displayName?: string | null; id?: string; passwordHash?: string | null } | null;
     programs: Array<{
       id: string;
       title: string;
@@ -68,7 +68,7 @@ export default function CoachAthleteDetail({ athlete, lang, coachId }: CoachAthl
         <div className="space-y-4 text-xs">
           {/* Contact Information */}
           <div className="bg-[var(--surface-1)] p-3 rounded">
-            <h4 className="font-semibold mb-2 text-[var(--ink-muted)]">Contact</h4>
+            <h4 className="font-semibold mb-2 text-[var(--ink-muted)]">Contact & Access</h4>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="text-[var(--ink-muted)]">Email:</span>
@@ -78,6 +78,18 @@ export default function CoachAthleteDetail({ athlete, lang, coachId }: CoachAthl
                 <span className="text-[var(--ink-muted)]">Phone:</span>
                 <div className="font-medium">{athlete.phone || "—"}</div>
               </div>
+              {athlete.userId && (
+                <div>
+                  <span className="text-[var(--ink-muted)]">Password Status:</span>
+                  <div className="font-medium">
+                    {athlete.user?.passwordHash ? (
+                      <span className="text-green-600">✓ Set</span>
+                    ) : (
+                      <span className="text-orange-600">⚠ Not set</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

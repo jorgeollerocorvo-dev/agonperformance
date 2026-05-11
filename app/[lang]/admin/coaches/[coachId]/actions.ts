@@ -89,7 +89,7 @@ export async function updateAthletePassword(
   athleteId: string,
   newPassword: string,
   lang: string
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; password?: string }> {
   const session = await auth();
   if (!session?.user || !isJorge(session)) {
     return { error: "Unauthorized" };
@@ -116,8 +116,18 @@ export async function updateAthletePassword(
       data: { passwordHash: hashedPassword },
     });
 
-    return { success: true };
+    // Return the plain password once so Jorge can see/copy it
+    return { success: true, password: newPassword };
   } catch (error) {
     return { error: (error as Error).message };
   }
+}
+
+export async function generateTemporaryPassword(): Promise<string> {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let password = "";
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
 }
