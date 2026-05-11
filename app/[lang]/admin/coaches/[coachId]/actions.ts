@@ -181,6 +181,15 @@ export async function createUserAccountForAthlete(
       data: { userId: user.id },
     });
 
+    // Create AthleteLink so the athlete can access their profile
+    await prisma.athleteLink.create({
+      data: {
+        userId: user.id,
+        athleteId: athleteId,
+        active: true,
+      },
+    });
+
     return { success: true, password: initialPassword };
   } catch (error) {
     const errorMessage = (error as Error).message;
@@ -203,6 +212,13 @@ export async function createUserAccountForAthlete(
         await prisma.user.update({
           where: { id: existingUser.id },
           data: { passwordHash: hashedPassword },
+        });
+
+        // Create or update AthleteLink so the athlete can access their profile
+        await prisma.athleteLink.upsert({
+          where: { userId_athleteId: { userId: existingUser.id, athleteId } },
+          update: { active: true },
+          create: { userId: existingUser.id, athleteId, active: true },
         });
 
         return { success: true, password: initialPassword };
