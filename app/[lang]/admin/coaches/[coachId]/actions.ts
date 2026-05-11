@@ -165,8 +165,8 @@ export async function createUserAccountForAthlete(
   try {
     const hashedPassword = await hash(initialPassword, 10);
 
-    // Create user account linked to the athlete
-    const user = await prisma.user.create({
+    // Try to create user account linked to the athlete
+    let user = await prisma.user.create({
       data: {
         email: athlete.email,
         displayName: athlete.displayName || athlete.fullName,
@@ -185,7 +185,34 @@ export async function createUserAccountForAthlete(
   } catch (error) {
     const errorMessage = (error as Error).message;
     if (errorMessage.includes("Unique constraint failed on the fields: (`email`)")) {
-      return { error: "An account with this email already exists" };
+      // Account already exists with this email - merge by linking the athlete to it
+      const existingUser = await prisma.user.findUnique({
+        where: { email: athlete.email },
+      });
+
+      if (existingUser) {
+        // Link the athlete to the existing user
+        await prisma.athlete.update({
+          where: { id: athleteId },
+          data: { userId: existingUser.id },
+        });
+
+        // Update password if needed
+        if (existingUser.passwordHash !== null) {
+          // User already has a password, just return success with the new password we tried to set
+          return { success: true, password: initialPassword };
+        } else {
+          // User doesn't have a password, update it
+          const newHashedPassword = await hash(initialPassword, 10);
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { passwordHash: newHashedPassword },
+          });
+          return { success: true, password: initialPassword };
+        }
+      }
+
+      return { error: "An account with this email already exists but could not be linked" };
     }
     return { error: errorMessage };
   }
