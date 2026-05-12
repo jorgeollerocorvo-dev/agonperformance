@@ -33,11 +33,18 @@ function SessionCard({
       <input type="hidden" name="programSessionId" value={session.id} />
       <input type="hidden" name="lang" value={lang} />
 
-      <Card className={`space-y-3 ${isToday ? "border-[var(--primary)] border-2" : ""}`}>
+      <Card className={`space-y-3 ${isToday ? "border-l-4 sm:border-l-4 sm:border-2 border-[var(--primary)] bg-[var(--primary-soft)] sm:bg-transparent" : ""}`}>
         {/* Header with date and status */}
         <header className="flex items-center justify-between gap-3">
           <div className="flex-1">
-            <div className="text-sm text-[var(--ink-muted)]">{dayName}</div>
+            <div className="flex items-center gap-2">
+              <div className="text-sm text-[var(--ink-muted)]">{dayName}</div>
+              {isToday && (
+                <span className="inline-block px-2 py-1 text-xs font-bold rounded-full bg-[var(--primary)] text-white">
+                  TODAY
+                </span>
+              )}
+            </div>
             <div className="text-lg font-bold">{dateStr}</div>
           </div>
           <div className="flex items-center gap-2">
