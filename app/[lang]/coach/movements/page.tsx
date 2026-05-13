@@ -22,6 +22,7 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
   const q = typeof sp?.q === "string" ? sp.q.trim() : "";
   const onlyMissing = sp?.missing === "1";
   const onlyLocked = sp?.locked === "1";
+  const onlyUnlocked = sp?.unlocked === "1";
   const page = Math.max(1, parseInt(typeof sp?.page === "string" ? sp.page : "1", 10) || 1);
 
   const where = {
@@ -38,6 +39,7 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
       : {}),
     ...(onlyMissing ? { videoUrl: null } : {}),
     ...(onlyLocked ? { videoLocked: true } : {}),
+    ...(onlyUnlocked ? { videoLocked: false, videoUrl: { not: null } } : {}),
   };
   const total = await prisma.movement.count({ where });
   const movements = await prisma.movement.findMany({
@@ -58,6 +60,7 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
 
   const sortedCategories = Object.keys(groupedMovements).sort();
   const lockedCount = await prisma.movement.count({ where: { videoLocked: true } });
+  const unlockedCount = await prisma.movement.count({ where: { videoLocked: false, videoUrl: { not: null }, isActive: true } });
   const missingCount = await prisma.movement.count({ where: { videoUrl: null, isActive: true } });
   const totalActive = await prisma.movement.count({ where: { isActive: true } });
 
@@ -103,6 +106,7 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
     if (q) params.set("q", q);
     if (onlyMissing) params.set("missing", "1");
     if (onlyLocked) params.set("locked", "1");
+    if (onlyUnlocked) params.set("unlocked", "1");
     if (page > 1) params.set("page", String(page));
     for (const [k, v] of Object.entries(overrides)) {
       if (v === undefined) params.delete(k);
@@ -168,10 +172,11 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
         </form>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Total</div><div className="text-3xl font-bold mt-0.5">{totalActive}</div></Card>
-        <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">No video yet</div><div className="text-3xl font-bold mt-0.5">{missingCount}</div></Card>
-        <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Locked</div><div className="text-3xl font-bold mt-0.5">{lockedCount}</div></Card>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Total</div><div className="text-3xl font-bold mt-0.5 text-[var(--ink)]">{totalActive}</div></Card>
+        <Card><div className="text-xs uppercase tracking-wider text-[var(--danger)]">⚠️ No Video</div><div className="text-3xl font-bold mt-0.5 text-[var(--danger)]">{missingCount}</div></Card>
+        <Card><div className="text-xs uppercase tracking-wider text-[var(--success)]">🔒 Locked</div><div className="text-3xl font-bold mt-0.5 text-[var(--success)]">{lockedCount}</div></Card>
+        <Card><div className="text-xs uppercase tracking-wider text-[var(--primary)]">🔓 Unlocked</div><div className="text-3xl font-bold mt-0.5 text-[var(--primary)]">{unlockedCount}</div></Card>
       </div>
 
       <form method="GET" className="space-y-4">
@@ -182,16 +187,45 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
             placeholder="Search by name, code, category…"
             className="flex-1 min-w-48 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
           />
-          <label className="text-sm flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5">
-            <input type="checkbox" name="missing" value="1" defaultChecked={onlyMissing} /> No video
-          </label>
-          <label className="text-sm flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5">
-            <input type="checkbox" name="locked" value="1" defaultChecked={onlyLocked} /> Locked
-          </label>
-          <Button type="submit">Filter</Button>
-          {(q || onlyMissing || onlyLocked) && (
+          <Button type="submit">Search</Button>
+          {(q || onlyMissing || onlyLocked || onlyUnlocked) && (
             <Link href={`/${lang}/coach/movements`} className="text-sm text-[var(--ink-muted)] hover:underline">Reset</Link>
           )}
+        </div>
+
+        {/* Video Status Filters */}
+        <div className="flex flex-wrap gap-2 items-start">
+          <span className="text-xs uppercase tracking-wide text-[var(--ink-muted)] font-semibold w-full">Filter by video status:</span>
+          <Link
+            href={buildHref({ missing: onlyMissing ? undefined : "1", unlocked: undefined, locked: undefined })}
+            className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition ${
+              onlyMissing
+                ? "bg-[var(--danger)] text-white"
+                : "bg-white border border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--danger)]"
+            }`}
+          >
+            ⚠️ No Video ({missingCount})
+          </Link>
+          <Link
+            href={buildHref({ locked: onlyLocked ? undefined : "1", missing: undefined, unlocked: undefined })}
+            className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition ${
+              onlyLocked
+                ? "bg-[var(--success)] text-white"
+                : "bg-white border border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--success)]"
+            }`}
+          >
+            🔒 Locked ({lockedCount})
+          </Link>
+          <Link
+            href={buildHref({ unlocked: onlyUnlocked ? undefined : "1", missing: undefined, locked: undefined })}
+            className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition ${
+              onlyUnlocked
+                ? "bg-[var(--primary)] text-white"
+                : "bg-white border border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--primary)]"
+            }`}
+          >
+            🔓 Unlocked
+          </Link>
         </div>
 
         {/* Category Quick Filter */}
