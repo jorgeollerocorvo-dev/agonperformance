@@ -43,9 +43,20 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
   const movements = await prisma.movement.findMany({
     where,
     orderBy: [{ category: "asc" }, { nameEn: "asc" }],
-    skip: (page - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
   });
+
+  // Group movements by category
+  const groupedMovements = movements.reduce(
+    (acc, m) => {
+      const cat = m.category || "Uncategorized";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(m);
+      return acc;
+    },
+    {} as Record<string, typeof movements>
+  );
+
+  const sortedCategories = Object.keys(groupedMovements).sort();
   const lockedCount = await prisma.movement.count({ where: { videoLocked: true } });
   const missingCount = await prisma.movement.count({ where: { videoUrl: null, isActive: true } });
   const totalActive = await prisma.movement.count({ where: { isActive: true } });
@@ -163,27 +174,64 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
         <Card><div className="text-xs uppercase tracking-wider text-[var(--ink-muted)]">Locked</div><div className="text-3xl font-bold mt-0.5">{lockedCount}</div></Card>
       </div>
 
-      <form method="GET" className="flex flex-wrap gap-2 items-center">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search by name, code, category…"
-          className="flex-1 min-w-48 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
-        />
-        <label className="text-sm flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5">
-          <input type="checkbox" name="missing" value="1" defaultChecked={onlyMissing} /> No video
-        </label>
-        <label className="text-sm flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5">
-          <input type="checkbox" name="locked" value="1" defaultChecked={onlyLocked} /> Locked
-        </label>
-        <Button type="submit">Filter</Button>
-        {(q || onlyMissing || onlyLocked) && (
-          <Link href={`/${lang}/coach/movements`} className="text-sm text-[var(--ink-muted)] hover:underline">Reset</Link>
-        )}
+      <form method="GET" className="space-y-4">
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search by name, code, category…"
+            className="flex-1 min-w-48 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-soft)] focus:border-[var(--primary)]"
+          />
+          <label className="text-sm flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5">
+            <input type="checkbox" name="missing" value="1" defaultChecked={onlyMissing} /> No video
+          </label>
+          <label className="text-sm flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5">
+            <input type="checkbox" name="locked" value="1" defaultChecked={onlyLocked} /> Locked
+          </label>
+          <Button type="submit">Filter</Button>
+          {(q || onlyMissing || onlyLocked) && (
+            <Link href={`/${lang}/coach/movements`} className="text-sm text-[var(--ink-muted)] hover:underline">Reset</Link>
+          )}
+        </div>
+
+        {/* Category Quick Filter */}
+        <div className="flex flex-wrap gap-2 items-start">
+          <span className="text-xs uppercase tracking-wide text-[var(--ink-muted)] font-semibold w-full">Filter by category:</span>
+          {sortedCategories.map((cat) => (
+            <Link
+              key={cat}
+              href={buildHref({ q: cat })}
+              className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition ${
+                q === cat
+                  ? "bg-[var(--primary)] text-white"
+                  : "bg-white border border-[var(--border)] text-[var(--ink-muted)] hover:border-[var(--primary)]"
+              }`}
+            >
+              {cat} ({groupedMovements[cat].length})
+            </Link>
+          ))}
+        </div>
       </form>
 
-      <ul className="space-y-3">
-        {movements.map((m) => (
+      <div className="space-y-8">
+        {sortedCategories.map((category) => (
+          <section key={category} className="space-y-3">
+            {/* Category Header */}
+            <div className="flex items-center gap-3 pb-3 border-b-2 border-[var(--primary)]">
+              <div className="flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold capitalize">{category}</h2>
+                <p className="text-xs sm:text-sm text-[var(--ink-muted)] mt-1">
+                  {groupedMovements[category].length} movement{groupedMovements[category].length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="flex-shrink-0 px-3 py-1.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] font-bold text-sm">
+                {groupedMovements[category].length}
+              </div>
+            </div>
+
+            {/* Movements in Category */}
+            <ul className="space-y-3">
+              {groupedMovements[category].map((m) => (
           <li key={m.id}>
             <Card padded={false} className="p-4 sm:p-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_320px]">
               <div>
@@ -195,7 +243,14 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
                 </div>
                 <div className="text-xs text-[var(--ink-subtle)] flex flex-wrap gap-2 mb-3">
                   <span><code className="bg-[var(--surface-2)] px-1 rounded">{m.code}</code></span>
-                  {m.category && <span>· {m.category}</span>}
+                  {m.category && (
+                    <Link
+                      href={buildHref({ q: m.category })}
+                      className="px-2 py-0.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] font-medium hover:bg-[var(--primary)] hover:text-white transition"
+                    >
+                      {m.category}
+                    </Link>
+                  )}
                 </div>
 
                 {m.videoUrl && (
@@ -270,8 +325,11 @@ export default async function MovementsAdmin({ params, searchParams }: PageProps
               </div>
             </Card>
           </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
+      </div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
