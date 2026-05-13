@@ -626,3 +626,78 @@ model Subscription {
 
   @@index([userId, status])
 }
+
+// ============================================================
+// Agon Catalog (Products/Merch)
+// ============================================================
+
+model CatalogProduct {
+  id            String   @id @default(cuid())
+  nameEn        String
+  nameEs        String?
+  nameAr        String?
+  descriptionEn String?
+  descriptionEs String?
+  descriptionAr String?
+  category      String   // e.g., "apparel", "accessories", "equipment"
+  price         Decimal  @db.Decimal(10, 2)
+  currency      String   @default("EUR")
+  sku           String   @unique
+  isActive      Boolean  @default(true)
+  featured      Boolean  @default(false)
+  order         Int      @default(0) // for display ordering
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  images        CatalogProductImage[]
+  variants      CatalogProductVariant[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([featured])
+  @@index([order])
+}
+
+model CatalogProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   CatalogProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageUrl  String   // high-quality image URL
+  altText   String?  // accessibility
+  order     Int      @default(0) // for display order
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model CatalogProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   CatalogProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String   // e.g., "Black", "Red - Size M", "Blue - Size L"
+  colorHex  String?  // e.g., "#000000"
+  size      String?
+  stock     Int      @default(0)
+  sku       String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images    CatalogProductVariantImage[]
+
+  @@index([productId])
+  @@unique([productId, name])
+}
+
+model CatalogProductVariantImage {
+  id        String   @id @default(cuid())
+  variantId String
+  variant   CatalogProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  imageUrl  String   // high-quality image URL for this specific variant
+  altText   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([variantId])
+}
