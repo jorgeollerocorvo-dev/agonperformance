@@ -124,22 +124,22 @@ export default async function AthleteCalendar({ params, searchParams }: PageProp
     <div className="space-y-6">
       <header className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-sm text-[var(--ink-muted)]">{dict.athlete.calendarTitle ?? "Calendar"}</p>
-          <h1 className="text-3xl font-bold capitalize">{monthStr}</h1>
+          <p className="text-xs sm:text-sm text-[var(--ink-muted)] uppercase tracking-wide font-medium">{dict.athlete.calendarTitle ?? "Calendar"}</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold capitalize">{monthStr}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={prevHref} className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-sm hover:bg-[var(--surface-2)]">←</Link>
-          <Link href={todayHref} className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-3 py-1.5 text-sm font-semibold hover:opacity-90">
+          <Link href={prevHref} className="rounded-full border border-[var(--border)] bg-white px-2 sm:px-3 py-1.5 text-xs sm:text-sm hover:bg-[var(--surface-2)] transition">←</Link>
+          <Link href={todayHref} className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold hover:opacity-90 transition whitespace-nowrap">
             {dict.athlete.todayBtn ?? "Today"}
           </Link>
-          <Link href={nextHref} className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-sm hover:bg-[var(--surface-2)]">→</Link>
+          <Link href={nextHref} className="rounded-full border border-[var(--border)] bg-white px-2 sm:px-3 py-1.5 text-xs sm:text-sm hover:bg-[var(--surface-2)] transition">→</Link>
         </div>
       </header>
 
       <Card padded={false} className="p-3 sm:p-5">
         <div className="grid grid-cols-7 gap-1 mb-2">
           {weekdayLabels.map((w) => (
-            <div key={w} className="text-center text-[10px] uppercase tracking-wider text-[var(--ink-subtle)] font-semibold">
+            <div key={w} className="text-center text-[8px] sm:text-[10px] uppercase tracking-wider text-[var(--ink-subtle)] font-semibold">
               {w}
             </div>
           ))}
@@ -165,9 +165,9 @@ export default async function AthleteCalendar({ params, searchParams }: PageProp
 
             const inner = (
               <>
-                <span className="font-semibold leading-none">{c.date.getDate()}</span>
+                <span className="font-semibold leading-none text-xs sm:text-sm">{c.date.getDate()}</span>
                 {hasSession && (
-                  <span className="text-[9px] sm:text-[10px] mt-0.5 line-clamp-1 max-w-full px-1 text-center leading-tight">
+                  <span className="text-[7px] sm:text-[9px] mt-0.5 line-clamp-1 max-w-full px-1 text-center leading-tight">
                     {s!.focus ? s!.focus : isCompleted ? "✓" : "•"}
                   </span>
                 )}

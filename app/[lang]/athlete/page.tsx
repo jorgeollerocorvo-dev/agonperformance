@@ -35,26 +35,26 @@ function SessionCard({
 
       <Card className={`space-y-3 ${isToday ? "border-l-4 sm:border-l-4 sm:border-2 border-[var(--primary)] bg-[var(--primary-soft)] sm:bg-transparent" : ""}`}>
         {/* Header with date and status */}
-        <header className="flex items-center justify-between gap-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <div className="text-sm text-[var(--ink-muted)]">{dayName}</div>
+        <header className="flex items-start justify-between gap-3 pb-3 border-b border-[var(--border)]">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="text-xs sm:text-sm text-[var(--ink-muted)] font-medium uppercase tracking-wide">{dayName}</div>
               {isToday && (
-                <span className="inline-block px-2 py-1 text-xs font-bold rounded-full bg-[var(--primary)] text-white">
+                <span className="inline-block px-2 py-0.5 text-xs font-bold rounded-full bg-[var(--primary)] text-white whitespace-nowrap">
                   TODAY
                 </span>
               )}
             </div>
-            <div className="text-lg font-bold">{dateStr}</div>
+            <div className="text-base sm:text-lg md:text-xl font-bold mt-1">{dateStr}</div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {isCompleted ? (
-              <div className="text-xl">✓</div>
+              <div className="text-lg sm:text-2xl">✓</div>
             ) : (
-              session.focus === "Rest" && <div className="text-xl">⚡</div>
+              session.focus === "Rest" && <div className="text-lg sm:text-2xl">⚡</div>
             )}
             {session.sessionLog?.intensityFeedback && (
-              <Pill color="primary" className="text-lg">
+              <Pill color="primary" className="text-base sm:text-lg">
                 {["😊", "😐", "😓", "💪", "😤"][session.sessionLog.intensityFeedback - 1]}
               </Pill>
             )}
@@ -62,10 +62,10 @@ function SessionCard({
         </header>
 
         {/* Session Title and Focus */}
-        <div>
-          <h3 className="text-lg font-bold">{session.programWeek.program.title}</h3>
+        <div className="pt-3">
+          <h3 className="text-base sm:text-lg md:text-xl font-bold line-clamp-2">{session.programWeek.program.title}</h3>
           {session.focus && (
-            <p className="text-sm text-[var(--ink-muted)] mt-1">{session.focus}</p>
+            <p className="text-xs sm:text-sm text-[var(--ink-muted)] mt-2 line-clamp-1">{session.focus}</p>
           )}
         </div>
 
@@ -73,13 +73,13 @@ function SessionCard({
         {session.blocks.length > 0 && (
           <>
             {session.blocks.map((b: any) => (
-              <Card key={b.id} className="space-y-3 bg-[var(--surface-2)]">
+              <Card key={b.id} className="space-y-3 bg-[var(--surface-2)] border-l-4 border-[var(--primary)]">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="w-7 h-7 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] grid place-items-center text-sm font-bold">
+                  <span className="w-7 h-7 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] grid place-items-center text-xs sm:text-sm font-bold flex-shrink-0">
                     {b.blockCode}
                   </span>
-                  <span className="font-semibold">{b.label}</span>
-                  {b.format && <span className="text-xs text-[var(--ink-muted)]">{b.format}</span>}
+                  <span className="font-semibold text-sm sm:text-base line-clamp-1">{b.label}</span>
+                  {b.format && <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap">{b.format}</span>}
                 </div>
                 <ul className="space-y-3">
                   {b.movements.map((m: any, idx: number) => {
@@ -103,21 +103,21 @@ function SessionCard({
                     const coachPinned = prescriptionUrl && !isYoutubeSearch(prescriptionUrl) ? prescriptionUrl : null;
                     const sourceUrl = coachPinned ?? m.movement?.videoUrl ?? resolvedVideoByMovement.get(m.id) ?? prescriptionUrl ?? null;
                     return (
-                      <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-3)]/40 p-3">
-                        <div className="flex items-baseline gap-2 mb-2">
-                          <span className="text-xs font-bold text-[var(--ink-subtle)]">
+                      <li key={m.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-3)]/40 p-2 sm:p-3 hover:bg-[var(--surface-3)]/60 transition-colors">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="text-xs font-bold text-[var(--ink-subtle)] flex-shrink-0 whitespace-nowrap">
                             {b.blockCode}
                             {idx + 1}
                           </span>
-                          <span className="font-semibold flex-1">{localName}</span>
+                          <span className="font-semibold text-xs sm:text-sm flex-1 line-clamp-2">{localName}</span>
                         </div>
-                        {bits && <div className="text-sm text-[var(--ink-muted)] mb-2">{bits}</div>}
+                        {bits && <div className="text-xs sm:text-sm text-[var(--ink-muted)] mb-2 line-clamp-2">{bits}</div>}
                         <MovementVideoPreview
                           url={sourceUrl}
                           name={localName}
                           ctaLabel={dict.athlete.findDemo ?? "Find demo"}
                         />
-                        {typeof p.notes === "string" && p.notes && <div className="text-xs text-[var(--ink-subtle)] italic mt-2">{p.notes}</div>}
+                        {typeof p.notes === "string" && p.notes && <div className="text-xs text-[var(--ink-subtle)] italic mt-2 line-clamp-3">{p.notes}</div>}
                       </li>
                     );
                   })}
@@ -138,7 +138,7 @@ function SessionCard({
               initialReview={null}
               dict={dict}
             />
-            <Button type="submit" size="lg" className="w-full bg-[#1A1A1A] text-white hover:bg-[#333333]">
+            <Button type="submit" size="lg" className="w-full bg-[#1A1A1A] text-white hover:bg-[#333333] text-xs sm:text-sm md:text-base">
               ✓ {dict.athlete.markDone || "Complete Workout"}
             </Button>
           </>
@@ -153,7 +153,7 @@ function SessionCard({
               initialReview={session.sessionLog.intensityReview}
               dict={dict}
             />
-            <Button type="button" disabled size="lg" className="w-full">
+            <Button type="button" disabled size="lg" className="w-full text-xs sm:text-sm md:text-base">
               ✓ {dict.athlete.completed || "Completed"}
             </Button>
           </>
@@ -274,34 +274,34 @@ export default async function AthleteToday({ params, searchParams }: PageProps<"
   return (
     <div className="space-y-6">
       {/* Header with Greeting */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#2E75B6] text-white grid place-items-center font-bold">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#2E75B6] text-white grid place-items-center font-bold text-sm sm:text-base flex-shrink-0">
             {link.athlete.fullName?.charAt(0).toUpperCase() ?? "A"}
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {link.athlete.fullName?.split(" ")[0] ?? "Athlete"}</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {link.athlete.fullName?.split(" ")[0] ?? "Athlete"}</h1>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-[#E5E5E5]">
+        {/* Tabs with enhanced visual separation */}
+        <div className="flex gap-1 sm:gap-2 bg-[var(--surface-1)] p-1 rounded-lg">
           <Link
             href={`?tab=upcoming`}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex-1 sm:flex-auto px-3 sm:px-6 py-2 sm:py-3 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 ${
               tab === "upcoming"
-                ? "border-[#2E75B6] text-[#2E75B6]"
-                : "border-transparent text-[#666666] hover:text-[#1A1A1A]"
+                ? "bg-[#2E75B6] text-white shadow-md"
+                : "text-[#666666] hover:text-[#1A1A1A] hover:bg-[var(--surface-2)]"
             }`}
           >
             Upcoming
           </Link>
           <Link
             href={`?tab=past`}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex-1 sm:flex-auto px-3 sm:px-6 py-2 sm:py-3 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 ${
               tab === "past"
-                ? "border-[#2E75B6] text-[#2E75B6]"
-                : "border-transparent text-[#666666] hover:text-[#1A1A1A]"
+                ? "bg-[#2E75B6] text-white shadow-md"
+                : "text-[#666666] hover:text-[#1A1A1A] hover:bg-[var(--surface-2)]"
             }`}
           >
             Past
