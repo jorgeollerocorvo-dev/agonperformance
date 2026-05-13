@@ -121,7 +121,7 @@ export default async function CatalogPage({ params }: PageProps<"/[lang]/admin/c
                     <p className="text-xs text-[var(--ink-muted)] mt-1">{product.category}</p>
                   </div>
 
-                  <div className="text-lg font-bold">${product.price}</div>
+                  <div className="text-lg font-bold">${product.price.toString()}</div>
 
                   {/* Variants & Images Count */}
                   <div className="text-xs text-[var(--ink-muted)] space-y-1 border-t border-[var(--border)] pt-3">

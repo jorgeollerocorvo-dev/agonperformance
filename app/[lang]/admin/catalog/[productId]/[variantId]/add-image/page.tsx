@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getDictionary, hasLocale } from "../../../../../../dictionaries";
+import { getDictionary, hasLocale } from "../../../../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";
 import { isJorge } from "@/lib/jorge";
 import Link from "next/link";
