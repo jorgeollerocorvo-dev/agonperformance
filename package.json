@@ -10,7 +10,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "echo 'Skipping postinstall prisma generate'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
