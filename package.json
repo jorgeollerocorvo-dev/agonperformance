@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "node scripts/start.js",
+    "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"
   },
