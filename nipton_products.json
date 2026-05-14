@@ -1,0 +1,302 @@
+{
+  "brand": "Nipton",
+  "categories": {
+    "bra": [
+      {
+        "sku": "YW542+KW421",
+        "source": "PDF1",
+        "name": "Bra + Shorts Set",
+        "price": 9.65,
+        "material": "75% Nylon+25% Spandex",
+        "available_colors": 2,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "sku": "YW548+KW423",
+        "source": "PDF1",
+        "name": "Bra + Shorts Set",
+        "price": 10.72,
+        "material": "75% Nylon+25% Spandex",
+        "available_colors": 2,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "JQ195",
+        "source": "PDF2",
+        "name": "Bra",
+        "price": 19.2,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 7,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "YW216",
+        "source": "PDF2",
+        "name": "Bra",
+        "price": 8.58,
+        "material": "75% Nylon+25% Spandex",
+        "available_colors": 7,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "YW432+KW241",
+        "source": "PDF2",
+        "name": "Bra + Shorts Set",
+        "price": 14.0,
+        "material": "75% Nylon+25% Spandex",
+        "available_colors": 7,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "YW440+KW247",
+        "source": "PDF2",
+        "name": "Bra + Shorts Set",
+        "price": 16.95,
+        "material": "75% Nylon+25% Spandex",
+        "available_colors": 6,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "CWX8552",
+        "source": "PDF2",
+        "name": "Bra",
+        "price": 8.81,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 8,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      }
+    ],
+    "leggings": [
+      {
+        "sku": "TZ8503",
+        "source": "PDF1",
+        "name": "Leggings",
+        "price": 8.37,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 1,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "sku": "TZ8863-1",
+        "source": "PDF1",
+        "name": "Leggings",
+        "price": 11.13,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 1,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "sku": "TZ9141",
+        "source": "PDF1",
+        "name": "Premium Leggings Set",
+        "price": 21.7,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 4,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "KW219",
+        "source": "PDF2",
+        "name": "Leggings",
+        "price": 10.16,
+        "material": "75% Nylon+25% Spandex",
+        "available_colors": 6,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "CCK8518",
+        "source": "PDF2",
+        "name": "Leggings",
+        "price": 11.29,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 12,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      }
+    ],
+    "shorts": [
+      {
+        "sku": "TZ8503",
+        "source": "PDF1",
+        "name": "Shorts",
+        "price": 6.85,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 1,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "sku": "TZ8863-1",
+        "source": "PDF1",
+        "name": "Shorts",
+        "price": 8.13,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 1,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "CDX8518",
+        "source": "PDF2",
+        "name": "Shorts",
+        "price": 9.56,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 9,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      }
+    ],
+    "pants": [
+      {
+        "sku": "TZ2000",
+        "source": "PDF1",
+        "name": "Pants",
+        "price": 11.26,
+        "material": "78% Nylon+22% Spandex (UPF50+)",
+        "available_colors": 1,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      },
+      {
+        "item_no": "KW221",
+        "source": "PDF2",
+        "name": "Pants",
+        "price": 14.68,
+        "material": "86% Cotton+14% Spandex",
+        "available_colors": 6,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      }
+    ],
+    "tops": [
+      {
+        "item_no": "CDX8552",
+        "source": "PDF2",
+        "name": "Long Sleeve",
+        "price": 9.48,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 5,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      }
+    ],
+    "jackets": [
+      {
+        "sku": "TZ8047",
+        "source": "PDF1",
+        "name": "Jackets",
+        "price": 10.7,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 1,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      }
+    ],
+    "skirts": [
+      {
+        "sku": "TZ9224",
+        "source": "PDF1",
+        "name": "Skirt",
+        "price": 12.17,
+        "material": "78% Nylon+22% Spandex",
+        "available_colors": 1,
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL"
+        ]
+      }
+    ],
+    "vests": [],
+    "other": []
+  },
+  "linked_items": []
+}
