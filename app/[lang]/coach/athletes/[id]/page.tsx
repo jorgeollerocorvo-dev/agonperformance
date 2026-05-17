@@ -26,13 +26,18 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   const sp = await searchParams;
   const importError = typeof sp?.importError === "string" ? decodeURIComponent(sp.importError) : null;
   const importedId = typeof sp?.importedId === "string" ? sp.importedId : null;
+
   const session = await auth();
-  const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session!.user.id } });
+  if (!session?.user?.id) redirect(`/${lang}/login?next=${encodeURIComponent(`/${lang}/coach/athletes/${id}`)}`);
+
+  const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coachProfile) notFound();
+
   const aiReady = hasAIKey();
   const showImport = aiImportEnabled();
 
   const athlete = await prisma.athlete.findFirst({
-    where: { id, coachProfileId: coachProfile!.id },
+    where: { id, coachProfileId: coachProfile.id },
     include: {
       user: true,
       programs: { orderBy: { startDate: "desc" } },
