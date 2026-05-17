@@ -73,13 +73,27 @@ export default function ProgramBuilder({
   // "focus"   = 1 day at a time, full width
   const [density, setDensity] = useState<"compact" | "wide" | "focus">(() => {
     if (typeof window === 'undefined') return "wide";
-    return (localStorage.getItem('programViewDensity') as any) || "wide";
+    try {
+      const stored = localStorage.getItem('programViewDensity');
+      if (stored === "compact" || stored === "wide" || stored === "focus") {
+        return stored;
+      }
+    } catch (e) {
+      // localStorage might be disabled or unavailable; silently fall back to default
+      console.warn("localStorage unavailable, using default view preference");
+    }
+    return "wide";
   });
   const [focusedDay, setFocusedDay] = useState(0);
 
   // Persist density preference to localStorage
   useEffect(() => {
-    localStorage.setItem('programViewDensity', density);
+    try {
+      localStorage.setItem('programViewDensity', density);
+    } catch (e) {
+      // localStorage might be full or disabled; log but don't crash
+      console.warn("Could not save view preference:", e);
+    }
   }, [density]);
 
   // Auto-save with debouncing (2s delay)
