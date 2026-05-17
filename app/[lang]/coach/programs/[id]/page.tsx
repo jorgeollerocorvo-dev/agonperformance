@@ -16,10 +16,15 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const session = await auth();
-  const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session!.user.id } });
+  if (!session?.user?.id) redirect(`/${lang}/login?next=${encodeURIComponent(`/${lang}/coach/programs/${id}`)}`);
+  const coachProfile = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coachProfile) notFound();
 
   const program = await prisma.program.findFirst({
-    where: { id, athlete: { coachProfileId: coachProfile!.id } },
+    where: {
+      OR: [{ id }, { programKey: id }],
+      athlete: { coachProfileId: coachProfile.id },
+    },
     include: {
       athlete: true,
       documents: { orderBy: { createdAt: "desc" }, take: 1 },
