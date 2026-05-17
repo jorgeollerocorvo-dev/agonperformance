@@ -41,21 +41,9 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   });
   if (!athlete) notFound();
 
-  // Auto-redirect to active program if set (with safety check)
+  // Auto-redirect to active program if set
   if (athlete.activeProgramId) {
-    // Verify the program exists and belongs to this athlete
-    const activeProgram = await prisma.program.findFirst({
-      where: {
-        id: athlete.activeProgramId,
-        athleteId: athlete.id,
-      },
-    });
-
-    // Only redirect if the program exists and is valid
-    if (activeProgram) {
-      redirect(`/${lang}/coach/programs/${athlete.activeProgramId}`);
-    }
-    // If program doesn't exist, fall through and show athlete detail (cleared stale activeProgramId will be handled by coach)
+    redirect(`/${lang}/coach/programs/${athlete.activeProgramId}`);
   }
 
   const accountCreated = sp?.accountCreated === "1" || sp?.loginCreated === "1";
