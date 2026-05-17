@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";
 import { isJorge } from "@/lib/jorge";
+import ColorSwatch from "@/components/ColorSwatch";
 
 export default async function CatalogPage({ params }: PageProps<"/[lang]/admin/catalog">) {
   const { lang } = await params;
@@ -122,6 +123,19 @@ export default async function CatalogPage({ params }: PageProps<"/[lang]/admin/c
                   </div>
 
                   <div className="text-lg font-bold">${product.price.toString()}</div>
+
+                  {/* Color Swatches */}
+                  {product.variants.length > 0 && (
+                    <div className="border-t border-[var(--border)] pt-3">
+                      <ColorSwatch
+                        colors={product.variants.map((v) => ({
+                          name: v.name,
+                          hex: v.colorHex || "#999999",
+                        }))}
+                        maxVisible={5}
+                      />
+                    </div>
+                  )}
 
                   {/* Variants & Images Count */}
                   <div className="text-xs text-[var(--ink-muted)] space-y-1 border-t border-[var(--border)] pt-3">
