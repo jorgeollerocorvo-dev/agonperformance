@@ -68,11 +68,19 @@ export default function ProgramBuilder({
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [draggedBlock, setDraggedBlock] = useState<{ weekIdx: number; dayIdx: number; blockIdx: number } | null>(null);
   // Density mode: how many days fit on screen at once.
-  // "compact" = 7-col week grid (default, lots-at-a-glance)
-  // "wide"    = 3-col grid (more breathing room for inputs)
+  // "compact" = 7-col week grid (lots-at-a-glance)
+  // "wide"    = 3-col grid (more breathing room for inputs, default)
   // "focus"   = 1 day at a time, full width
-  const [density, setDensity] = useState<"compact" | "wide" | "focus">("compact");
+  const [density, setDensity] = useState<"compact" | "wide" | "focus">(() => {
+    if (typeof window === 'undefined') return "wide";
+    return (localStorage.getItem('programViewDensity') as any) || "wide";
+  });
   const [focusedDay, setFocusedDay] = useState(0);
+
+  // Persist density preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('programViewDensity', density);
+  }, [density]);
 
   // Auto-save with debouncing (2s delay)
   useEffect(() => {

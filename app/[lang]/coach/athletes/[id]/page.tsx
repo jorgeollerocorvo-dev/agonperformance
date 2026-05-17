@@ -40,6 +40,12 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
     },
   });
   if (!athlete) notFound();
+
+  // Auto-redirect to active program if set
+  if (athlete.activeProgramId) {
+    redirect(`/${lang}/coach/programs/${athlete.activeProgramId}`);
+  }
+
   const accountCreated = sp?.accountCreated === "1" || sp?.loginCreated === "1";
   const passwordReset = sp?.passwordReset === "1";
 
