@@ -57,10 +57,12 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   async function updateAthlete(formData: FormData) {
     "use server";
     const s = await auth();
+    if (!s?.user?.id) return;
     const langParam = String(formData.get("lang") ?? lang);
     const athleteId = String(formData.get("athleteId") ?? id);
-    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
-    const a = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: cp!.id } });
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s.user.id } });
+    if (!cp) return;
+    const a = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: cp.id } });
     if (!a) return;
 
     const fullName = String(formData.get("fullName") ?? "").trim() || a.fullName;
@@ -110,10 +112,12 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   async function createLoginForAthlete(formData: FormData) {
     "use server";
     const s = await auth();
+    if (!s?.user?.id) return;
     const langParam = String(formData.get("lang") ?? lang);
     const athleteId = String(formData.get("athleteId") ?? id);
-    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
-    const a = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: cp!.id } });
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s.user.id } });
+    if (!cp) return;
+    const a = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: cp.id } });
     if (!a) return;
 
     const email = String(formData.get("loginEmail") ?? "").toLowerCase().trim();
@@ -149,8 +153,10 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
   async function resetAthletePassword(formData: FormData) {
     "use server";
     const s = await auth();
-    const cp = await prisma.coachProfile.findUnique({ where: { userId: s!.user.id } });
-    const a = await prisma.athlete.findFirst({ where: { id, coachProfileId: cp!.id }, include: { user: true } });
+    if (!s?.user?.id) return;
+    const cp = await prisma.coachProfile.findUnique({ where: { userId: s.user.id } });
+    if (!cp) return;
+    const a = await prisma.athlete.findFirst({ where: { id, coachProfileId: cp.id }, include: { user: true } });
     if (!a?.user) return;
     const password = String(formData.get("newPassword") ?? "");
     if (password.length < 6) redirect(`/${lang}/coach/athletes/${id}?loginErr=short`);
