@@ -66,14 +66,24 @@ export async function generateText(opts: AiCallOptions): Promise<string> {
     return await callAnthropic(opts);
   } catch (e) {
     const err = e as Error;
-    const isQuotaError = err.message.includes("rate limit") || err.message.includes("quota") || err.message.includes("429");
+    const msg = err.message ?? "";
+    // Fall back on quota/rate-limit AND transient server errors (503, 500, 502, 504, network errors)
+    const isRecoverable =
+      msg.includes("rate limit") ||
+      msg.includes("quota") ||
+      msg.includes("429") ||
+      msg.includes("503") ||
+      msg.includes("500") ||
+      msg.includes("502") ||
+      msg.includes("504") ||
+      /unavailable|overloaded|network error|timeout/i.test(msg);
 
-    if (!isQuotaError) throw e; // Only fallback for quota/rate-limit errors
+    if (!isRecoverable) throw e;
 
     const fallback = secondaryProvider();
     if (!fallback) throw e; // No fallback available
 
-    console.warn(`⚠️  ${primary} hit quota limit, falling back to ${fallback}...`);
+    console.warn(`⚠️  ${primary} failed (${msg.slice(0, 120)}), falling back to ${fallback}...`);
 
     if (fallback === "gemini") {
       return await callGemini(opts);
@@ -121,7 +131,13 @@ async function callGemini(opts: AiCallOptions): Promise<string> {
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     if (res.status === 429) {
-      throw new Error("Gemini rate limit hit (free tier: 15 req/min, 1500 req/day). System will automatically try Anthropic if available.");
+      throw new Error("Gemini rate limit hit (429: free tier 15 req/min, 1500 req/day). System will automatically try Anthropic if available.");
+    }
+    if (res.status === 503) {
+      throw new Error("Gemini 503 unavailable/overloaded. System will automatically try Anthropic if available.");
+    }
+    if (res.status >= 500) {
+      throw new Error(`Gemini ${res.status} server error (transient). System will automatically try Anthropic if available.`);
     }
     if (res.status === 400 && /quota|exceeded/i.test(errText)) {
       throw new Error("Gemini quota exhausted (free tier daily limit). System will automatically try Anthropic if available.");
