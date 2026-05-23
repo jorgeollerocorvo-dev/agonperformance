@@ -40,7 +40,19 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
     where: { id, coachProfileId: coachProfile.id },
     include: {
       user: true,
-      programs: { orderBy: { startDate: "desc" } },
+      programs: {
+        orderBy: { startDate: "desc" },
+        include: {
+          weeks: {
+            include: {
+              sessions: {
+                orderBy: { date: "asc" },
+                include: { sessionLog: true },
+              },
+            },
+          },
+        },
+      },
       testResults: { orderBy: { date: "desc" }, take: 10, include: { movement: true } },
     },
   });
@@ -381,6 +393,104 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
             })}
           </Card>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">{dict.coach.workoutSchedule ?? "Workout Schedule"}</h2>
+        {(() => {
+          // Flatten all workouts from all programs
+          const allWorkouts = athlete.programs.flatMap((prog) =>
+            prog.weeks.flatMap((week) =>
+              week.sessions.map((session) => ({
+                ...session,
+                programId: prog.id,
+                programTitle: prog.title,
+              }))
+            )
+          );
+
+          // Sort by date, with today first
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const sortedWorkouts = allWorkouts.sort((a, b) => {
+            const aDate = new Date(a.date);
+            const bDate = new Date(b.date);
+            aDate.setHours(0, 0, 0, 0);
+            bDate.setHours(0, 0, 0, 0);
+
+            // Prioritize today, then upcoming, then past
+            const aIsToday = aDate.getTime() === today.getTime();
+            const bIsToday = bDate.getTime() === today.getTime();
+
+            if (aIsToday && !bIsToday) return -1;
+            if (!aIsToday && bIsToday) return 1;
+
+            return aDate.getTime() - bDate.getTime();
+          });
+
+          if (sortedWorkouts.length === 0) {
+            return <Card><p className="text-sm text-[var(--ink-muted)]">{dict.coach.noWorkouts ?? "No workouts scheduled."}</p></Card>;
+          }
+
+          return (
+            <Card padded={false} className="divide-y divide-[var(--border)]">
+              {sortedWorkouts.map((workout) => {
+                const workoutDate = new Date(workout.date);
+                workoutDate.setHours(0, 0, 0, 0);
+                const isToday = workoutDate.getTime() === today.getTime();
+                const dateStr = toDateStr(workoutDate);
+                const dayName = new Intl.DateTimeFormat(lang === "es" ? "es-ES" : lang === "ar" ? "ar-AR" : "en-US", {
+                  weekday: "long",
+                }).format(workoutDate);
+
+                return (
+                  <div
+                    key={workout.id}
+                    className={`flex items-center justify-between px-4 sm:px-5 py-4 hover:bg-[var(--surface-2)] ${isToday ? "bg-[var(--primary-soft)]/40 border-l-4 border-[var(--primary)]" : ""}`}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <div className="font-semibold">
+                          {dateStr} · {dayName}
+                        </div>
+                        {isToday && (
+                          <span className="text-xs rounded-full bg-[var(--primary)] text-white px-2 py-0.5 font-semibold">
+                            {dict.coach.today ?? "TODAY"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[var(--ink-muted)] mt-1">
+                        {dict.coach.program ?? "Program"}: <span className="font-semibold">{workout.programTitle}</span>
+                      </div>
+                      {workout.focus && (
+                        <div className="text-xs text-[var(--ink-muted)] mt-0.5">
+                          {dict.coach.focus ?? "Focus"}: {workout.focus}
+                        </div>
+                      )}
+                      {workout.intensity && (
+                        <div className="text-xs text-[var(--ink-muted)]">
+                          {dict.coach.intensity ?? "Intensity"}: {workout.intensity}
+                        </div>
+                      )}
+                      {workout.sessionLog && (
+                        <div className="text-xs text-[var(--success)] mt-0.5">
+                          ✓ {dict.coach.completed ?? "Completed"}
+                        </div>
+                      )}
+                    </div>
+                    <Link
+                      href={`/${lang}/coach/programs/${athlete.programs.find(p => p.id === workout.programId)?.id}`}
+                      className="text-sm text-[var(--primary)] hover:underline ml-4"
+                    >
+                      {dict.coach.view ?? "View"} →
+                    </Link>
+                  </div>
+                );
+              })}
+            </Card>
+          );
+        })()}
       </section>
 
       {athlete.testResults.length > 0 && (
