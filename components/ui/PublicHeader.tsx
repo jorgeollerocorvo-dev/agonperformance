@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HomeLink from "../HomeLink";
 import LanguageSwitcher from "../LanguageSwitcher";
+import AuthHeaderActions from "../AuthHeaderActions";
 
 export default function PublicHeader({
   lang,
@@ -19,6 +20,8 @@ export default function PublicHeader({
         <div className="ml-auto flex items-center gap-2">
           {rightSlot}
           <LanguageSwitcher current={lang} compact />
+          {/* Auth actions: always visible — Login/Sign Up when logged out, Logout when logged in */}
+          <AuthHeaderActions lang={lang} />
         </div>
       </div>
     </header>

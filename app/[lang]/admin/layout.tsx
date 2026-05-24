@@ -6,6 +6,7 @@ import { getDictionary, hasLocale } from "../dictionaries";
 import HomeLink from "@/components/HomeLink";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import AccountLogoutButton from "@/components/AccountLogoutButton";
+import MobileMenu, { type MobileMenuItem } from "@/components/MobileMenu";
 
 export default async function AdminLayout({
   children,
@@ -25,6 +26,19 @@ export default async function AdminLayout({
   const dict = await getDictionary(lang);
 
   const navLink = "px-3 py-1.5 rounded-full text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]";
+
+  const items: MobileMenuItem[] = [
+    { href: `/${lang}/admin/coaches`, label: "Coaches Area" },
+    { href: `/${lang}/admin/catalog`, label: "🛍️ Catalog" },
+    { href: `/${lang}/coach`, label: dict.coach.dashboard ?? "Coach Dashboard" },
+    { href: `/${lang}/account`, label: dict.nav.account ?? "Account" },
+  ];
+
+  const logoutForm = (
+    <div className="px-2 py-2">
+      <AccountLogoutButton lang={lang} />
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -46,7 +60,11 @@ export default async function AdminLayout({
           <div className="ml-auto flex items-center gap-2">
             <LanguageSwitcher current={lang} compact />
             <div className="hidden sm:block">
-              <AccountLogoutButton lang={lang} />
+              <AccountLogoutButton lang={lang} compact />
+            </div>
+            {/* Mobile hamburger with logout in extra slot */}
+            <div className="sm:hidden">
+              <MobileMenu items={items} extraSlot={logoutForm} ariaLabel="Menu" />
             </div>
           </div>
         </div>

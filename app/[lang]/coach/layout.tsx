@@ -96,7 +96,7 @@ export default async function CoachLayout({
           <div className="ml-auto flex items-center gap-2">
             <LanguageSwitcher current={lang} compact />
             <div className="hidden sm:block">
-              <AccountLogoutButton lang={lang} />
+              <AccountLogoutButton lang={lang} compact />
             </div>
             {/* Mobile hamburger button */}
             <div className="sm:hidden">

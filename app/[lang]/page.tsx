@@ -6,6 +6,7 @@ import { primaryRole } from "@/lib/roles";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import BrandedHeader from "@/components/BrandedHeader";
 import HeroSection from "@/components/HeroSection";
+import AccountLogoutButton from "@/components/AccountLogoutButton";
 import { BRAND } from "@/lib/brand";
 
 export default async function LandingPage({ params }: PageProps<"/[lang]">) {
@@ -28,23 +29,26 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
       <BrandedHeader lang={lang}>
         <LanguageSwitcher current={lang} compact />
         {dashboardHref ? (
-          <Link 
-            href={dashboardHref} 
-            className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors"
-          >
-            {dict.nav.profile} →
-          </Link>
+          <>
+            <Link
+              href={dashboardHref}
+              className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors whitespace-nowrap"
+            >
+              {dict.nav.profile} →
+            </Link>
+            <AccountLogoutButton lang={lang} compact />
+          </>
         ) : (
           <>
-            <Link 
-              href={`/${lang}/login`} 
-              className="text-sm px-3 py-2 text-[#666666] hover:text-[#1A1A1A] hidden sm:inline transition-colors"
+            <Link
+              href={`/${lang}/login`}
+              className="text-sm px-3 py-2 text-[#666666] hover:text-[#1A1A1A] transition-colors whitespace-nowrap"
             >
               {dict.auth.signIn}
             </Link>
-            <Link 
-              href={`/${lang}/register`} 
-              className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors"
+            <Link
+              href={`/${lang}/register`}
+              className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors whitespace-nowrap"
             >
               {dict.auth.signUp}
             </Link>
