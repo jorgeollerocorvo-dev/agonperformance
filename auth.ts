@@ -17,10 +17,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(creds?.password ?? "");
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({
+        // Case-insensitive lookup — catches any legacy rows stored with mixed
+        // case (e.g. "Ravi@test.com") so users can sign in regardless of how
+        // they type their email. New rows are normalized to lowercase.
+        let user = await prisma.user.findUnique({
           where: { email },
           include: { roles: true },
         });
+        if (!user) {
+          user = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
+            include: { roles: true },
+          });
+        }
         if (!user || !user.passwordHash || user.isBanned) return null;
 
         const ok = await bcrypt.compare(password, user.passwordHash);

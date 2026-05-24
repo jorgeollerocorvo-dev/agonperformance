@@ -28,7 +28,7 @@ export async function updateAthleteProfile(
 
   const fullName = String(formData.get("fullName") ?? "").trim();
   const displayName = String(formData.get("displayName") ?? "").trim() || null;
-  const email = String(formData.get("email") ?? "").trim() || null;
+  const email = String(formData.get("email") ?? "").toLowerCase().trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const sex = String(formData.get("sex") ?? "").trim() || null;
   const age = formData.get("age") ? parseInt(String(formData.get("age")), 10) : null;
