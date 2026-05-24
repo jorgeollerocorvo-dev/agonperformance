@@ -136,16 +136,42 @@ ${reference}
 ` : ""}
 Return ONLY the JSON.`;
 
+  // Scale token budget with program length. A typical training day produces
+  // ~600-900 tokens of JSON (block layout + movements + cues). With 5-6 training
+  // days/week, that's ~3.5-5k tokens per week. We add a safety multiplier of
+  // ~1.5x and round up so 12-week programs comfortably fit.
+  //   1-2 wk →  12k  |  3-4 wk → 20k  |  5-8 wk → 32k  |  9-12 wk → 48k  |  13+ → 64k
+  const weeks = brief.durationWeeks;
+  const maxTokens =
+    weeks <= 2 ? 12_000 :
+    weeks <= 4 ? 20_000 :
+    weeks <= 8 ? 32_000 :
+    weeks <= 12 ? 48_000 :
+    64_000;
+
   const text = await generateText({
     systemPrompt: SYSTEM_PROMPT,
     userPrompt: userMessage,
     expectJson: true,
-    maxTokens: 8000,
+    maxTokens,
   });
   const raw = stripJsonFences(text);
+
+  // Detect truncation: a complete program always ends with "}" (after the closing
+  // ] of weeks). If the model ran out of token budget, the JSON ends mid-string
+  // or mid-object, which produces an unterminated-string parse error. Give the
+  // coach an actionable message instead of the raw parser error.
   try {
     return JSON.parse(raw) as ParsedProgram;
   } catch (e) {
+    const trimmed = raw.trimEnd();
+    const looksTruncated = !trimmed.endsWith("}") || /Unterminated|Unexpected end/i.test((e as Error).message);
+    if (looksTruncated) {
+      throw new Error(
+        `The AI ran out of output budget for a ${weeks}-week program (used ${maxTokens.toLocaleString()} tokens). ` +
+        `Try shortening the program (fewer weeks or fewer days/week), or break it into two halves.`,
+      );
+    }
     throw new Error(`AI returned invalid JSON: ${(e as Error).message}\n\nFirst 500 chars: ${raw.slice(0, 500)}`);
   }
 }
