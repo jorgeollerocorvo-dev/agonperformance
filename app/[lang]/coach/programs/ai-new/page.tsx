@@ -7,6 +7,7 @@ import { Card, Button } from "@/components/ui/Card";
 import { aiProgramGenEnabled } from "@/lib/features";
 import { generateAndRedirect } from "./actions";
 import { isJorge } from "@/lib/jorge";
+import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
 
 export default async function AiNewProgramPage({ params, searchParams }: PageProps<"/[lang]/coach/programs/ai-new">) {
   const { lang } = await params;
@@ -55,7 +56,7 @@ export default async function AiNewProgramPage({ params, searchParams }: PagePro
       )}
 
       <Card>
-        <form action={generateAndRedirect} className="space-y-4">
+        <form action={generateAndRedirect} encType="multipart/form-data" className="space-y-4">
           <input type="hidden" name="lang" value={lang} />
 
           <Field label={dict.coach.assignToAthlete ?? "Assign to athlete"}>
@@ -112,6 +113,43 @@ export default async function AiNewProgramPage({ params, searchParams }: PagePro
           <Field label={dict.coach.aiEquipment ?? "Equipment / constraints (optional)"}>
             <input name="equipment" placeholder="e.g. Home gym: barbell, plates to 100 kg, kettlebells, bands" className={inputCls} />
           </Field>
+
+          {/* Reference materials — optional. Coach can upload past programs / templates
+              and the AI will mirror their structure, movements, and load progression. */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 p-4 space-y-3">
+            <div>
+              <h3 className="font-semibold text-sm">📎 Reference materials (optional)</h3>
+              <p className="text-xs text-[var(--ink-muted)] mt-1">
+                Upload past programs, templates, or notes (PDF, Word, Excel, text). The AI will mirror their structure, reuse movements, and carry forward recorded weights when building the new program.
+              </p>
+            </div>
+
+            <label className="block text-sm">
+              <span className="mb-1 block text-[var(--ink-muted)]">Files (you can pick multiple)</span>
+              <input
+                type="file"
+                name="referenceFiles"
+                accept={ACCEPTED_MIME_TYPES}
+                multiple
+                className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-[var(--ink)] file:text-[var(--bg)] file:px-4 file:py-2 file:font-semibold hover:file:opacity-90 file:cursor-pointer"
+              />
+            </label>
+
+            <div className="flex items-center gap-3 text-xs text-[var(--ink-muted)]">
+              <span className="flex-1 border-t border-[var(--border)]" />
+              <span>or paste text</span>
+              <span className="flex-1 border-t border-[var(--border)]" />
+            </div>
+
+            <label className="block text-sm">
+              <textarea
+                name="referenceText"
+                rows={4}
+                placeholder="Paste a previous program, exercise list, or load progression notes here…"
+                className={inputCls}
+              />
+            </label>
+          </div>
 
           <div className="pt-2">
             <Button type="submit" size="lg" disabled={!enabled}>

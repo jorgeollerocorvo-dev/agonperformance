@@ -25,6 +25,12 @@ export type ProgramBrief = {
   daysPerWeek: number | null;   // null = infer from athlete's training frequency
   style: string | null;         // "crossfit", "bodybuilding", "rehab", "women glutes/abs/legs", "hybrid", etc.
   equipment: string | null;     // free-text constraints e.g. "home gym only, dumbbells + bands"
+  /**
+   * Optional reference materials: text extracted from coach-uploaded PDFs/Word/Excel/text
+   * plus any pasted text. Used by the AI to mirror structure, movement selection, and
+   * load progressions from a prior program when designing the new one.
+   */
+  referenceMaterials?: string | null;
 };
 
 const SYSTEM_PROMPT = `You are an elite strength & conditioning coach designing a training program.
@@ -82,6 +88,13 @@ DESIGN RULES
 - Avoid week 1 testing — schedule benchmark tests in the final week if program is ≥ 3 weeks.
 - Keep block count realistic: 3-5 blocks per training day (W + main + accessories). 5-12 movements total per day.
 - weekNumber is 1-indexed and sequential.
+
+WHEN <reference> MATERIALS ARE PROVIDED
+- Treat them as coach-supplied guidance: prior programs the athlete completed, sample templates, exercise libraries, or load-progression notes.
+- MIRROR the structure where it makes sense: block layout, session split, day count, weekly cadence.
+- REUSE specific movements that appear in the reference (unless the brief explicitly says to avoid them).
+- CARRY FORWARD the most recent recorded loads when programming the same lift again — bump them per the standard progression for the chosen style (strength: ~2.5-5% per week; hypertrophy: same load, more reps; etc.). If a 1RM is given in the athlete profile, prefer % of 1RM over absolute kilos.
+- The reference is GUIDANCE, not a literal copy. The new program must still satisfy the coach's <brief>; if the two conflict, the <brief> wins.
 `;
 
 export function hasGenKey(): boolean {
@@ -92,6 +105,14 @@ export async function generateProgramFromBrief(brief: ProgramBrief): Promise<Par
   if (!hasGenKey()) {
     throw new Error("No AI provider configured. Set GEMINI_API_KEY (free) at https://aistudio.google.com/app/apikey or ANTHROPIC_API_KEY on Railway.");
   }
+
+  // Cap reference materials at ~60k chars (~15k tokens) so the prompt stays well
+  // under model limits even when the coach uploads several long documents.
+  const refRaw = (brief.referenceMaterials ?? "").trim();
+  const REF_MAX = 60_000;
+  const reference = refRaw.length > REF_MAX
+    ? refRaw.slice(0, REF_MAX) + `\n\n[…truncated ${refRaw.length - REF_MAX} chars…]`
+    : refRaw;
 
   const userMessage = `Build a training program for the following athlete and brief.
 
@@ -108,7 +129,11 @@ Equipment: ${brief.equipment ?? "full gym assumed unless the athlete profile say
 Coach's goal for THIS program: ${brief.goalOverride ?? "use the athlete's standing goals"}
 Specific needs / focus: ${brief.needs || "general progressive training"}
 </brief>
-
+${reference ? `
+<reference>
+${reference}
+</reference>
+` : ""}
 Return ONLY the JSON.`;
 
   const text = await generateText({

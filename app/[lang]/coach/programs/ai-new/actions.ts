@@ -8,6 +8,7 @@ import { generateProgramFromBrief, type ProgramBrief } from "@/lib/ai-generate-p
 import { aiProgramGenEnabled } from "@/lib/features";
 import { movementYoutubeSearchUrl } from "@/lib/ai-parse-program";
 import { isJorge } from "@/lib/jorge";
+import { extractText } from "@/lib/parse-document";
 
 /* Build a compact athlete-context blob from the DB row, JSON-coercing the
  * coaching-tool fields that are stored as Prisma Json. */
@@ -87,6 +88,24 @@ export async function generateAndCreateProgram(
   const athlete = await prisma.athlete.findFirst({ where: { id: athleteId, coachProfileId: coach.id } });
   if (!athlete) return { error: "Athlete not found" };
 
+  // Collect optional reference materials: uploaded files (PDF/Word/Excel/text/etc.)
+  // plus pasted text. Both are concatenated into a single guidance blob for the AI.
+  const referenceText = String(formData.get("referenceText") ?? "").trim();
+  const referenceFiles = formData.getAll("referenceFiles").filter((f): f is File => f instanceof File && f.size > 0);
+
+  const referenceParts: string[] = [];
+  for (const f of referenceFiles) {
+    try {
+      const txt = (await extractText(f)).trim();
+      if (txt) referenceParts.push(`=== ${f.name} ===\n${txt}`);
+    } catch (e) {
+      // Skip unreadable files but surface the error so the coach knows.
+      return { error: `Could not read reference file "${f.name}": ${(e as Error).message}` };
+    }
+  }
+  if (referenceText) referenceParts.push(`=== Pasted notes ===\n${referenceText}`);
+  const referenceMaterials = referenceParts.length > 0 ? referenceParts.join("\n\n") : null;
+
   const brief: ProgramBrief = {
     athleteName: athlete.fullName,
     athleteContext: formatAthleteContext(athlete),
@@ -96,6 +115,7 @@ export async function generateAndCreateProgram(
     daysPerWeek,
     style,
     equipment,
+    referenceMaterials,
   };
 
   let parsed;
