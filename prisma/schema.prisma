@@ -334,8 +334,9 @@ model Program {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  weeks     ProgramWeek[]
-  documents ProgramDocument[]
+  weeks         ProgramWeek[]
+  documents     ProgramDocument[]
+  deletedWeeks  DeletedProgramWeek[]
 
   @@index([athleteId, startDate])
 }
@@ -367,6 +368,22 @@ model ProgramWeek {
   sessions ProgramSession[]
 
   @@unique([programId, weekNumber])
+}
+
+/// Soft-deleted week stash. When a coach deletes a ProgramWeek, the full tree
+/// (sessions → blocks → movements) is serialized into `snapshot` and the live
+/// row is hard-deleted. A restore action recreates the tree from the snapshot.
+model DeletedProgramWeek {
+  id         String   @id @default(cuid())
+  programId  String
+  program    Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  weekNumber Int
+  weekLabel  String?
+  snapshot   Json
+  deletedAt  DateTime @default(now())
+  deletedBy  String?
+
+  @@index([programId, deletedAt])
 }
 
 model ProgramSession {

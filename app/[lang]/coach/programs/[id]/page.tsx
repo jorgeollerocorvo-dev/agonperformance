@@ -9,7 +9,7 @@ import CoachMonthlyCalendar from "@/components/CoachMonthlyCalendar";
 import type { EditorProgram } from "./actions";
 import { Card } from "@/components/ui/Card";
 import { regenerateProgramFromDocument } from "../../import/actions";
-import { generateAIProgressionWeek } from "./actions";
+import { generateAIProgressionWeek, deleteProgramWeek, restoreProgramWeek, purgeDeletedWeek } from "./actions";
 import { isJorge } from "@/lib/jorge";
 import { aiProgramGenEnabled } from "@/lib/features";
 
@@ -56,6 +56,17 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
   const aiWeekError = typeof sp?.aiWeekError === "string" ? decodeURIComponent(sp.aiWeekError) : null;
   const aiWeekAdded = typeof sp?.aiWeekAdded === "string" ? sp.aiWeekAdded : null;
   const aiAvailable = isJorge(session) && aiProgramGenEnabled();
+  const weekDeletedId = typeof sp?.weekDeleted === "string" ? sp.weekDeleted : null;
+  const weekDeleteError = typeof sp?.weekDeleteError === "string" ? decodeURIComponent(sp.weekDeleteError) : null;
+  const weekRestored = typeof sp?.weekRestored === "string" ? sp.weekRestored : null;
+  const weekRestoreError = typeof sp?.weekRestoreError === "string" ? decodeURIComponent(sp.weekRestoreError) : null;
+
+  // Recently-deleted weeks for the trash card.
+  const deletedWeeks = await prisma.deletedProgramWeek.findMany({
+    where: { programId: program.id },
+    orderBy: { deletedAt: "desc" },
+    take: 20,
+  });
 
   async function regenerate() {
     "use server";
@@ -205,6 +216,132 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
         lang={lang}
         dict={dict}
       />
+
+      {/* Flash: week just deleted, with one-click undo */}
+      {weekDeletedId && (
+        <Card className="bg-[var(--warn)]/10 border-[var(--warn)]/30">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm">
+              <span className="font-semibold">🗑 Week deleted.</span>{" "}
+              <span className="text-[var(--ink-muted)]">You can restore it for as long as it stays in &quot;Recently deleted&quot; below.</span>
+            </div>
+            <form action={restoreProgramWeek}>
+              <input type="hidden" name="deletedId" value={weekDeletedId} />
+              <input type="hidden" name="programId" value={program.id} />
+              <input type="hidden" name="lang" value={lang} />
+              <button className="rounded-full bg-[var(--ink)] text-[var(--bg)] px-4 py-1.5 text-sm font-semibold hover:opacity-90">
+                ↶ Undo
+              </button>
+            </form>
+          </div>
+        </Card>
+      )}
+      {weekRestored && (
+        <Card className="bg-[var(--success-soft)] border-[var(--success)]/30 text-sm">
+          ✓ Week restored as Week {weekRestored}.
+        </Card>
+      )}
+      {(weekDeleteError || weekRestoreError) && (
+        <Card className="bg-[var(--danger-soft)] border-[var(--danger)]/30 text-sm text-[var(--danger)]">
+          ✕ {weekDeleteError ?? weekRestoreError}
+        </Card>
+      )}
+
+      {/* Manage weeks: per-week delete buttons */}
+      {program.weeks.length > 0 && (
+        <Card>
+          <div className="flex items-baseline justify-between gap-3 mb-3">
+            <h3 className="font-bold text-base">📋 Weeks</h3>
+            <span className="text-xs text-[var(--ink-muted)]">{program.weeks.length} total</span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {program.weeks.map((w) => (
+              <div
+                key={w.id}
+                className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm">Week {w.weekNumber}</div>
+                  {w.weekLabel && (
+                    <div className="text-xs text-[var(--ink-muted)] truncate">{w.weekLabel}</div>
+                  )}
+                  <div className="text-[0.65rem] text-[var(--ink-subtle)] mt-0.5">
+                    {w.sessions.length} day{w.sessions.length === 1 ? "" : "s"}
+                  </div>
+                </div>
+                <form action={deleteProgramWeek}>
+                  <input type="hidden" name="weekId" value={w.id} />
+                  <input type="hidden" name="programId" value={program.id} />
+                  <input type="hidden" name="lang" value={lang} />
+                  <button
+                    type="submit"
+                    title="Delete this week (can be restored)"
+                    className="text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-md p-1.5"
+                    aria-label={`Delete Week ${w.weekNumber}`}
+                  >
+                    🗑
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Trash: deleted weeks the coach can restore (or permanently purge) */}
+      {deletedWeeks.length > 0 && (
+        <Card className="bg-[var(--surface-2)]/40">
+          <div className="flex items-baseline justify-between gap-3 mb-3">
+            <h3 className="font-bold text-base">♻️ Recently deleted</h3>
+            <span className="text-xs text-[var(--ink-muted)]">{deletedWeeks.length} item{deletedWeeks.length === 1 ? "" : "s"}</span>
+          </div>
+          <div className="space-y-2">
+            {deletedWeeks.map((dw) => (
+              <div
+                key={dw.id}
+                className="flex items-center justify-between gap-2 rounded-lg bg-white border border-[var(--border)] px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-sm">
+                    Week {dw.weekNumber}
+                    {dw.weekLabel ? <span className="text-[var(--ink-muted)] font-normal"> — {dw.weekLabel}</span> : null}
+                  </div>
+                  <div className="text-[0.65rem] text-[var(--ink-subtle)]">
+                    Deleted {dw.deletedAt.toISOString().slice(0, 16).replace("T", " ")} UTC
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <form action={restoreProgramWeek}>
+                    <input type="hidden" name="deletedId" value={dw.id} />
+                    <input type="hidden" name="programId" value={program.id} />
+                    <input type="hidden" name="lang" value={lang} />
+                    <button
+                      type="submit"
+                      className="rounded-md bg-[var(--primary)] text-white px-3 py-1.5 text-xs font-semibold hover:bg-[var(--primary-hover)] whitespace-nowrap"
+                      title="Restore this week to the end of the program"
+                    >
+                      ↶ Restore
+                    </button>
+                  </form>
+                  <form action={purgeDeletedWeek}>
+                    <input type="hidden" name="deletedId" value={dw.id} />
+                    <input type="hidden" name="programId" value={program.id} />
+                    <input type="hidden" name="lang" value={lang} />
+                    <button
+                      type="submit"
+                      className="text-[var(--ink-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-md p-1.5"
+                      title="Permanently delete (not restorable)"
+                      aria-label="Purge permanently"
+                    >
+                      ✕
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* AI: append a new progression week */}
       {aiAvailable && (

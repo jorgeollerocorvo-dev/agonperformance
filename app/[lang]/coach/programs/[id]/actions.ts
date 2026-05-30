@@ -675,3 +675,246 @@ export async function generateAIProgressionWeek(formData: FormData) {
   revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
   redirect(`/${lang}/coach/programs/${programId}?aiWeekAdded=${nextWeek.weekNumber}`);
 }
+
+// ────────────────────────────────────────────────────────────
+// Week trash: soft-delete + restore
+// ────────────────────────────────────────────────────────────
+
+/** Shape of the snapshot we stash in DeletedProgramWeek.snapshot */
+type WeekSnapshot = {
+  weekNumber: number;
+  weekLabel: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  sessions: Array<{
+    date: string;
+    day: string | null;
+    focus: string | null;
+    intensity: string | null;
+    notes: string | null;
+    blocks: Array<{
+      blockCode: string;
+      label: string | null;
+      format: string | null;
+      restSec: number | null;
+      notes: string | null;
+      order: number;
+      movements: Array<{
+        movementId: string | null;
+        customName: string | null;
+        prescription: unknown;
+        order: number;
+        isTest: boolean;
+      }>;
+    }>;
+  }>;
+};
+
+/**
+ * Delete a single week. Snapshots the entire tree to DeletedProgramWeek first
+ * so the coach can restore via the Trash section if it was a mistake.
+ * Renumbers any later weeks down by 1 to keep weekNumber contiguous.
+ */
+export async function deleteProgramWeek(formData: FormData) {
+  "use server";
+  const weekId = String(formData.get("weekId") ?? "");
+  const programId = String(formData.get("programId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  if (!weekId || !programId) redirect(`/${lang}/coach/programs?error=missing_fields`);
+
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  const { coach } = await assertOwnsProgram(programId);
+
+  // Pull the entire week tree for the snapshot.
+  const week = await prisma.programWeek.findFirst({
+    where: { id: weekId, program: { id: programId, athlete: { coachProfileId: coach.id } } },
+    include: {
+      sessions: {
+        orderBy: { date: "asc" },
+        include: {
+          blocks: {
+            orderBy: { order: "asc" },
+            include: { movements: { orderBy: { order: "asc" } } },
+          },
+        },
+      },
+    },
+  });
+  if (!week) {
+    redirect(`/${lang}/coach/programs/${programId}?weekDeleteError=${encodeURIComponent("Week not found")}`);
+  }
+
+  const snapshot: WeekSnapshot = {
+    weekNumber: week.weekNumber,
+    weekLabel: week.weekLabel,
+    startDate: week.startDate ? week.startDate.toISOString().slice(0, 10) : null,
+    endDate: week.endDate ? week.endDate.toISOString().slice(0, 10) : null,
+    sessions: week.sessions.map((s) => ({
+      date: s.date.toISOString().slice(0, 10),
+      day: s.day,
+      focus: s.focus,
+      intensity: s.intensity,
+      notes: s.notes,
+      blocks: s.blocks.map((b) => ({
+        blockCode: b.blockCode,
+        label: b.label,
+        format: b.format,
+        restSec: b.restSec,
+        notes: b.notes,
+        order: b.order,
+        movements: b.movements.map((m) => ({
+          movementId: m.movementId,
+          customName: m.customName,
+          prescription: m.prescription,
+          order: m.order,
+          isTest: m.isTest,
+        })),
+      })),
+    })),
+  };
+
+  const deletedRow = await prisma.$transaction(async (tx) => {
+    const deleted = await tx.deletedProgramWeek.create({
+      data: {
+        programId,
+        weekNumber: week.weekNumber,
+        weekLabel: week.weekLabel,
+        snapshot: snapshot as unknown as object,
+        deletedBy: session.user.id ?? null,
+      },
+    });
+
+    // Hard-delete the live row — cascades to sessions/blocks/movements.
+    await tx.programWeek.delete({ where: { id: week.id } });
+
+    // Renumber later weeks down by 1 to keep the sequence contiguous.
+    // Use a temporary offset to avoid colliding with the unique [programId, weekNumber] index.
+    const later = await tx.programWeek.findMany({
+      where: { programId, weekNumber: { gt: week.weekNumber } },
+      orderBy: { weekNumber: "asc" },
+      select: { id: true, weekNumber: true },
+    });
+    // Bump them into a high range, then back down. Avoids unique-index conflicts.
+    for (const w of later) {
+      await tx.programWeek.update({
+        where: { id: w.id },
+        data: { weekNumber: w.weekNumber + 10_000 },
+      });
+    }
+    for (const w of later) {
+      await tx.programWeek.update({
+        where: { id: w.id },
+        data: { weekNumber: w.weekNumber - 1 },
+      });
+    }
+
+    return deleted;
+  }, { timeout: 30_000 });
+
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  redirect(`/${lang}/coach/programs/${programId}?weekDeleted=${deletedRow.id}`);
+}
+
+/**
+ * Restore a previously-deleted week from its snapshot. Inserts the week at the
+ * end of the program (new weekNumber = max existing + 1) and recreates every
+ * session/block/movement. Removes the snapshot row on success.
+ */
+export async function restoreProgramWeek(formData: FormData) {
+  "use server";
+  const deletedId = String(formData.get("deletedId") ?? "");
+  const programId = String(formData.get("programId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  if (!deletedId || !programId) redirect(`/${lang}/coach/programs?error=missing_fields`);
+
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  await assertOwnsProgram(programId);
+
+  const stash = await prisma.deletedProgramWeek.findFirst({
+    where: { id: deletedId, programId },
+  });
+  if (!stash) {
+    redirect(`/${lang}/coach/programs/${programId}?weekRestoreError=${encodeURIComponent("Deleted week not found or already restored")}`);
+  }
+
+  const snap = stash.snapshot as unknown as WeekSnapshot;
+
+  // Pick a weekNumber that doesn't collide: max + 1.
+  const maxRow = await prisma.programWeek.findFirst({
+    where: { programId },
+    orderBy: { weekNumber: "desc" },
+    select: { weekNumber: true },
+  });
+  const newWeekNumber = (maxRow?.weekNumber ?? 0) + 1;
+
+  await prisma.$transaction(async (tx) => {
+    const week = await tx.programWeek.create({
+      data: {
+        programId,
+        weekNumber: newWeekNumber,
+        weekLabel: snap.weekLabel ?? `Week ${newWeekNumber} (restored)`,
+        startDate: snap.startDate ? new Date(snap.startDate) : null,
+        endDate: snap.endDate ? new Date(snap.endDate) : null,
+      },
+    });
+
+    for (const s of snap.sessions) {
+      const day = await tx.programSession.create({
+        data: {
+          programWeekId: week.id,
+          date: new Date(s.date),
+          day: s.day,
+          focus: s.focus,
+          intensity: s.intensity,
+          notes: s.notes,
+        },
+      });
+      for (const b of s.blocks) {
+        await tx.programBlock.create({
+          data: {
+            programSessionId: day.id,
+            blockCode: b.blockCode,
+            label: b.label,
+            format: b.format,
+            restSec: b.restSec,
+            notes: b.notes,
+            order: b.order,
+            movements: {
+              create: b.movements.map((m) => ({
+                movementId: m.movementId,
+                customName: m.customName,
+                prescription: (m.prescription ?? undefined) as object | undefined,
+                order: m.order,
+                isTest: m.isTest,
+              })),
+            },
+          },
+        });
+      }
+    }
+
+    await tx.deletedProgramWeek.delete({ where: { id: stash.id } });
+  }, { timeout: 60_000 });
+
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  redirect(`/${lang}/coach/programs/${programId}?weekRestored=${newWeekNumber}`);
+}
+
+/** Permanently purge a snapshot (no longer restorable). */
+export async function purgeDeletedWeek(formData: FormData) {
+  "use server";
+  const deletedId = String(formData.get("deletedId") ?? "");
+  const programId = String(formData.get("programId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  if (!deletedId || !programId) return;
+
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  await assertOwnsProgram(programId);
+
+  await prisma.deletedProgramWeek.deleteMany({ where: { id: deletedId, programId } });
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  redirect(`/${lang}/coach/programs/${programId}`);
+}
