@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { generateProgressionWeek, type PriorWeek } from "@/lib/ai-progression-week";
+import { movementYoutubeSearchUrl } from "@/lib/ai-parse-program";
+import { aiProgramGenEnabled } from "@/lib/features";
 
 async function assertOwnsProgram(programId: string) {
   const session = await auth();
@@ -461,4 +464,214 @@ export async function updateSession(formData: FormData) {
   });
 
   revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+}
+
+// ────────────────────────────────────────────────────────────
+// AI: append ONE new progression week to an existing program
+// ────────────────────────────────────────────────────────────
+
+function formatAthleteContext(a: {
+  sex: string | null;
+  age: number | null;
+  division: string | null;
+  goals: string | null;
+  notes: string | null;
+  current1rms: unknown;
+}): string {
+  const lines: string[] = [];
+  if (a.sex) lines.push(`Sex: ${a.sex}`);
+  if (a.age) lines.push(`Age: ${a.age}`);
+  if (a.division) lines.push(`Division: ${a.division}`);
+  if (a.goals) lines.push(`Goals: ${a.goals}`);
+  if (a.notes) lines.push(`Notes: ${a.notes}`);
+  if (a.current1rms && typeof a.current1rms === "object") {
+    lines.push(`Current 1RMs: ${JSON.stringify(a.current1rms)}`);
+  }
+  return lines.join("\n");
+}
+
+export async function generateAIProgressionWeek(formData: FormData) {
+  const programId = String(formData.get("programId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  const coachHint = String(formData.get("coachHint") ?? "").trim() || null;
+
+  if (!programId) redirect(`/${lang}/coach/programs?error=missing_program`);
+
+  if (!aiProgramGenEnabled()) {
+    redirect(
+      `/${lang}/coach/programs/${programId}?aiWeekError=${encodeURIComponent(
+        "AI is disabled. Enable AI_PROGRAM_GEN_ENABLED on Railway.",
+      )}`,
+    );
+  }
+
+  const { program: prog } = await assertOwnsProgram(programId);
+
+  const full = await prisma.program.findUnique({
+    where: { id: prog.id },
+    include: {
+      athlete: true,
+      weeks: {
+        orderBy: { weekNumber: "asc" },
+        include: {
+          sessions: {
+            orderBy: { date: "asc" },
+            include: {
+              blocks: {
+                orderBy: { order: "asc" },
+                include: {
+                  movements: {
+                    orderBy: { order: "asc" },
+                    include: { movement: true },
+                  },
+                },
+              },
+              sessionLog: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!full) {
+    redirect(`/${lang}/coach/programs?error=not_found`);
+  }
+
+  const priorWeeks: PriorWeek[] = full.weeks.map((w) => ({
+    weekNumber: w.weekNumber,
+    weekLabel: w.weekLabel,
+    days: w.sessions.map((s) => {
+      const isRest = (s.focus ?? "").toLowerCase().includes("rest") || s.blocks.length === 0;
+      return {
+        dayOfWeek: s.day,
+        focus: s.focus,
+        isRest,
+        blocks: s.blocks.map((b) => ({
+          blockCode: b.blockCode,
+          label: b.label,
+          format: b.format,
+          movements: b.movements.map((m) => {
+            const p = (m.prescription ?? {}) as Record<string, unknown>;
+            return {
+              name: m.movement?.nameEn ?? m.customName ?? "(unnamed)",
+              sets: typeof p.sets === "string" || typeof p.sets === "number" ? String(p.sets) : null,
+              reps: typeof p.reps === "string" || typeof p.reps === "number" ? String(p.reps) : null,
+              load:
+                typeof p.load === "string" ? p.load :
+                typeof p.load_kg === "number" ? `${p.load_kg} kg` :
+                null,
+              rest: typeof p.rest === "string" ? p.rest : null,
+              notes: typeof p.notes === "string" ? p.notes : null,
+              actualLoad: null,
+            };
+          }),
+        })),
+      };
+    }),
+  }));
+
+  if (priorWeeks.length === 0) {
+    redirect(
+      `/${lang}/coach/programs/${programId}?aiWeekError=${encodeURIComponent(
+        "This program has no weeks yet — add at least one week of content first, then ask the AI to progress it.",
+      )}`,
+    );
+  }
+
+  const newWeekNumber = (full.weeks.at(-1)?.weekNumber ?? 0) + 1;
+
+  const lastSession = full.weeks.at(-1)?.sessions.at(-1);
+  const lastDate = lastSession?.date ?? full.endDate ?? full.startDate;
+  const newWeekStart = new Date(lastDate);
+  newWeekStart.setDate(newWeekStart.getDate() + 1);
+
+  let nextWeek;
+  try {
+    nextWeek = await generateProgressionWeek({
+      programTitle: full.title,
+      programGoal: full.goal,
+      athleteName: full.athlete.fullName,
+      athleteContext: formatAthleteContext(full.athlete),
+      priorWeeks,
+      newWeekNumber,
+      coachHint,
+    });
+  } catch (e) {
+    redirect(
+      `/${lang}/coach/programs/${programId}?aiWeekError=${encodeURIComponent((e as Error).message)}`,
+    );
+  }
+
+  await prisma.$transaction(
+    async (tx) => {
+      const week = await tx.programWeek.create({
+        data: {
+          programId: full.id,
+          weekNumber: nextWeek.weekNumber,
+          weekLabel: nextWeek.weekLabel ?? `Week ${nextWeek.weekNumber}`,
+        },
+      });
+
+      for (let di = 0; di < nextWeek.days.length; di++) {
+        const d = nextWeek.days[di];
+        const dayDate = new Date(newWeekStart);
+        dayDate.setDate(dayDate.getDate() + di);
+
+        const day = await tx.programSession.create({
+          data: {
+            programWeekId: week.id,
+            date: dayDate,
+            day: d.dayOfWeek ?? dayDate.toLocaleDateString("en-US", { weekday: "long" }),
+            focus: d.isRest ? "Rest day" : (d.focus ?? null),
+            intensity: d.isRest ? null : (d.intensity ?? null),
+            notes: d.notes ?? null,
+          },
+        });
+
+        for (let bi = 0; bi < (d.blocks ?? []).length; bi++) {
+          const b = d.blocks[bi];
+          await tx.programBlock.create({
+            data: {
+              programSessionId: day.id,
+              blockCode: b.blockCode || String.fromCharCode(65 + bi),
+              label: b.label ?? null,
+              format: b.format ?? null,
+              restSec: b.restSec ?? null,
+              notes: b.notes ?? null,
+              order: bi,
+              movements: {
+                create: b.movements.map((m, mi) => ({
+                  customName: m.name,
+                  prescription: {
+                    sets: m.sets ?? undefined,
+                    reps: m.reps ?? undefined,
+                    load: m.load ?? undefined,
+                    rest: m.rest ?? undefined,
+                    notes: m.notes ?? undefined,
+                    youtubeUrl: movementYoutubeSearchUrl(m.name),
+                  },
+                  order: mi,
+                  isTest: !!m.isTest,
+                })),
+              },
+            },
+          });
+        }
+      }
+
+      const newEnd = new Date(newWeekStart);
+      newEnd.setDate(newEnd.getDate() + nextWeek.days.length - 1);
+      await tx.program.update({
+        where: { id: full.id },
+        data: {
+          durationWeeks: nextWeek.weekNumber,
+          endDate: newEnd,
+        },
+      });
+    },
+    { timeout: 90_000, maxWait: 10_000 },
+  );
+
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  redirect(`/${lang}/coach/programs/${programId}?aiWeekAdded=${nextWeek.weekNumber}`);
 }
