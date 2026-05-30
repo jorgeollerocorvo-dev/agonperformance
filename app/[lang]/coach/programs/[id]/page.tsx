@@ -10,8 +10,8 @@ import type { EditorProgram } from "./actions";
 import { Card } from "@/components/ui/Card";
 import { regenerateProgramFromDocument } from "../../import/actions";
 import { generateAIProgressionWeek, deleteProgramWeek, restoreProgramWeek, purgeDeletedWeek } from "./actions";
-import { isJorge } from "@/lib/jorge";
 import { aiProgramGenEnabled } from "@/lib/features";
+import DeleteWeekButton from "@/components/DeleteWeekButton";
 
 export default async function ProgramDetail({ params, searchParams }: PageProps<"/[lang]/coach/programs/[id]">) {
   // Coach program detail with calendar for managing workouts
@@ -55,7 +55,10 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
   const regenerated = sp?.regen === "1";
   const aiWeekError = typeof sp?.aiWeekError === "string" ? decodeURIComponent(sp.aiWeekError) : null;
   const aiWeekAdded = typeof sp?.aiWeekAdded === "string" ? sp.aiWeekAdded : null;
-  const aiAvailable = isJorge(session) && aiProgramGenEnabled();
+  // AI progression-week button: available to ALL coaches whenever AI generation
+  // is enabled. Works for fresh / manually-created / empty / partially-filled
+  // weeks — the AI uses whatever history is available.
+  const aiAvailable = aiProgramGenEnabled();
   const weekDeletedId = typeof sp?.weekDeleted === "string" ? sp.weekDeleted : null;
   const weekDeleteError = typeof sp?.weekDeleteError === "string" ? decodeURIComponent(sp.weekDeleteError) : null;
   const weekRestored = typeof sp?.weekRestored === "string" ? sp.weekRestored : null;
@@ -269,19 +272,14 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
                     {w.sessions.length} day{w.sessions.length === 1 ? "" : "s"}
                   </div>
                 </div>
-                <form action={deleteProgramWeek}>
-                  <input type="hidden" name="weekId" value={w.id} />
-                  <input type="hidden" name="programId" value={program.id} />
-                  <input type="hidden" name="lang" value={lang} />
-                  <button
-                    type="submit"
-                    title="Delete this week (can be restored)"
-                    className="text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-md p-1.5"
-                    aria-label={`Delete Week ${w.weekNumber}`}
-                  >
-                    🗑
-                  </button>
-                </form>
+                <DeleteWeekButton
+                  weekId={w.id}
+                  programId={program.id}
+                  lang={lang}
+                  weekNumber={w.weekNumber}
+                  weekLabel={w.weekLabel}
+                  action={deleteProgramWeek}
+                />
               </div>
             ))}
           </div>
@@ -323,19 +321,16 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
                       ↶ Restore
                     </button>
                   </form>
-                  <form action={purgeDeletedWeek}>
-                    <input type="hidden" name="deletedId" value={dw.id} />
-                    <input type="hidden" name="programId" value={program.id} />
-                    <input type="hidden" name="lang" value={lang} />
-                    <button
-                      type="submit"
-                      className="text-[var(--ink-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-md p-1.5"
-                      title="Permanently delete (not restorable)"
-                      aria-label="Purge permanently"
-                    >
-                      ✕
-                    </button>
-                  </form>
+                  <DeleteWeekButton
+                    weekId={dw.id}
+                    programId={program.id}
+                    lang={lang}
+                    weekNumber={dw.weekNumber}
+                    weekLabel={dw.weekLabel}
+                    action={purgeDeletedWeek}
+                    variant="compact"
+                    permanent
+                  />
                 </div>
               </div>
             ))}
