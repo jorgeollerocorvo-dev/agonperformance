@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: NextRequest) {
+async function runMigrations(req: NextRequest) {
   try {
     // Create the ConsultationSlot table
     await prisma.$executeRawUnsafe(`
@@ -53,9 +53,38 @@ export async function POST(req: NextRequest) {
       // Constraint may already exist
     });
 
+    // Week-trash table (migration 20260530170000 — also create here as a safety
+    // net in case `prisma migrate deploy` didn't run during the Railway deploy).
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "DeletedProgramWeek" (
+        "id"         TEXT NOT NULL,
+        "programId"  TEXT NOT NULL,
+        "weekNumber" INTEGER NOT NULL,
+        "weekLabel"  TEXT,
+        "snapshot"   JSONB NOT NULL,
+        "deletedAt"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "deletedBy"  TEXT,
+        CONSTRAINT "DeletedProgramWeek_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "DeletedProgramWeek_programId_deletedAt_idx"
+        ON "DeletedProgramWeek" ("programId", "deletedAt");
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "DeletedProgramWeek"
+        ADD CONSTRAINT "DeletedProgramWeek_programId_fkey"
+        FOREIGN KEY ("programId") REFERENCES "Program"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    `).catch(() => {
+      // Constraint may already exist
+    });
+
     return NextResponse.json({ success: true, message: "Tables created successfully" });
   } catch (error) {
     console.error("Migration error:", error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }
+
+export const POST = runMigrations;
+export const GET = runMigrations;
