@@ -31,6 +31,12 @@ export type ProgramBrief = {
    * load progressions from a prior program when designing the new one.
    */
   referenceMaterials?: string | null;
+  /**
+   * Optional list of Movement library names to bias the AI toward. When provided,
+   * the model is told to prefer these exact names so each generated movement
+   * resolves to the curated library row (and inherits its locked videoUrl).
+   */
+  libraryMovementNames?: string[];
 };
 
 const SYSTEM_PROMPT = `You are an elite strength & conditioning coach designing a training program.
@@ -114,6 +120,23 @@ export async function generateProgramFromBrief(brief: ProgramBrief): Promise<Par
     ? refRaw.slice(0, REF_MAX) + `\n\n[…truncated ${refRaw.length - REF_MAX} chars…]`
     : refRaw;
 
+  // Optional library-name hint so the AI biases toward names that will resolve
+  // against the Movement library (and inherit their curated, possibly locked
+  // demo videos at persist time).
+  const lib = brief.libraryMovementNames ?? [];
+  const libHint = lib.length > 0
+    ? `
+<movement_library>
+The following ${lib.length} movement names exist in the coach's curated library
+with hand-picked demo videos. PREFER these exact names whenever possible — match
+casing and spelling exactly. If the perfect movement isn't in the list, use any
+plain-English name; the system will handle it.
+
+${lib.join(", ")}
+</movement_library>
+`
+    : "";
+
   const userMessage = `Build a training program for the following athlete and brief.
 
 <athlete>
@@ -129,7 +152,7 @@ Equipment: ${brief.equipment ?? "full gym assumed unless the athlete profile say
 Coach's goal for THIS program: ${brief.goalOverride ?? "use the athlete's standing goals"}
 Specific needs / focus: ${brief.needs || "general progressive training"}
 </brief>
-${reference ? `
+${libHint}${reference ? `
 <reference>
 ${reference}
 </reference>

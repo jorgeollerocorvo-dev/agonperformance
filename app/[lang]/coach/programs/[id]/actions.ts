@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { generateProgressionWeek, type PriorWeek } from "@/lib/ai-progression-week";
 import { movementYoutubeSearchUrl } from "@/lib/ai-parse-program";
 import { aiProgramGenEnabled } from "@/lib/features";
+import { resolveLibraryMovements, listLibraryMovementNames } from "@/lib/movement-resolver";
 
 async function assertOwnsProgram(programId: string) {
   const session = await auth();
@@ -585,6 +586,10 @@ export async function generateAIProgressionWeek(formData: FormData) {
   const newWeekStart = new Date(lastDate);
   newWeekStart.setDate(newWeekStart.getDate() + 1);
 
+  // Bias the AI toward curated library names so matched movements inherit
+  // their locked demo videos.
+  const libraryMovementNames = await listLibraryMovementNames();
+
   let nextWeek;
   try {
     nextWeek = await generateProgressionWeek({
@@ -595,12 +600,27 @@ export async function generateAIProgressionWeek(formData: FormData) {
       priorWeeks,
       newWeekNumber,
       coachHint,
+      libraryMovementNames,
     });
   } catch (e) {
     redirect(
       `/${lang}/coach/programs/${programId}?aiWeekError=${encodeURIComponent((e as Error).message)}`,
     );
   }
+
+  // Resolve every AI-invented movement name against the Movement library so
+  // matched ones inherit their curated (possibly locked) videoUrl and movementId.
+  const aiNames: string[] = [];
+  for (const d of nextWeek.days) {
+    for (const b of d.blocks ?? []) {
+      for (const m of b.movements ?? []) {
+        if (m.name) aiNames.push(m.name);
+      }
+    }
+  }
+  const libraryByName = await resolveLibraryMovements(aiNames);
+  const normalizeName = (s: string) =>
+    s.toLowerCase().trim().replace(/\s+/g, " ").replace(/[.,;:!?]+$/g, "");
 
   await prisma.$transaction(
     async (tx) => {
@@ -640,19 +660,24 @@ export async function generateAIProgressionWeek(formData: FormData) {
               notes: b.notes ?? null,
               order: bi,
               movements: {
-                create: b.movements.map((m, mi) => ({
-                  customName: m.name,
-                  prescription: {
-                    sets: m.sets ?? undefined,
-                    reps: m.reps ?? undefined,
-                    load: m.load ?? undefined,
-                    rest: m.rest ?? undefined,
-                    notes: m.notes ?? undefined,
-                    youtubeUrl: movementYoutubeSearchUrl(m.name),
-                  },
-                  order: mi,
-                  isTest: !!m.isTest,
-                })),
+                create: b.movements.map((m, mi) => {
+                  const lib = m.name ? libraryByName.get(normalizeName(m.name)) : undefined;
+                  const youtubeUrl = lib?.videoUrl ?? movementYoutubeSearchUrl(m.name);
+                  return {
+                    movementId: lib?.id,
+                    customName: lib ? null : m.name,
+                    prescription: {
+                      sets: m.sets ?? undefined,
+                      reps: m.reps ?? undefined,
+                      load: m.load ?? undefined,
+                      rest: m.rest ?? undefined,
+                      notes: m.notes ?? undefined,
+                      youtubeUrl,
+                    },
+                    order: mi,
+                    isTest: !!m.isTest,
+                  };
+                }),
               },
             },
           });

@@ -32,6 +32,11 @@ export type ProgressionWeekInput = {
   newWeekNumber: number;
   // Optional coach hint for THIS week ("deload", "test week", "harder squats").
   coachHint?: string | null;
+  /**
+   * Optional list of curated Movement library names. AI biases toward these so
+   * matched names inherit their locked demo videos at persist time.
+   */
+  libraryMovementNames?: string[];
 };
 
 export type PriorWeek = {
@@ -139,6 +144,20 @@ export async function generateProgressionWeek(
         `\n[…history truncated, showing first ${HISTORY_MAX} chars of ${historyJson.length}…]`
       : historyJson;
 
+  const lib = input.libraryMovementNames ?? [];
+  const libHint = lib.length > 0
+    ? `
+<movement_library>
+The following ${lib.length} movement names exist in the coach's curated library
+with hand-picked demo videos. PREFER these exact names when continuing the
+program — match casing and spelling exactly. If a movement that's clearly in
+the prior weeks isn't in the list, keep using the prior week's name.
+
+${lib.join(", ")}
+</movement_library>
+`
+    : "";
+
   const userPrompt = `Extend the following program by ONE week.
 
 <program>
@@ -152,7 +171,7 @@ ${input.athleteContext}
 </athlete>
 
 <new_week_number>${input.newWeekNumber}</new_week_number>
-${input.coachHint ? `<hint>${input.coachHint}</hint>\n` : ""}
+${input.coachHint ? `<hint>${input.coachHint}</hint>\n` : ""}${libHint}
 <prior_weeks_json>
 ${history}
 </prior_weeks_json>

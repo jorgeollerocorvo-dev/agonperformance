@@ -9,6 +9,7 @@ import { aiProgramGenEnabled } from "@/lib/features";
 import { movementYoutubeSearchUrl } from "@/lib/ai-parse-program";
 import { isJorge } from "@/lib/jorge";
 import { extractText } from "@/lib/parse-document";
+import { resolveLibraryMovements, listLibraryMovementNames } from "@/lib/movement-resolver";
 
 /* Build a compact athlete-context blob from the DB row, JSON-coercing the
  * coaching-tool fields that are stored as Prisma Json. */
@@ -106,6 +107,10 @@ export async function generateAndCreateProgram(
   if (referenceText) referenceParts.push(`=== Pasted notes ===\n${referenceText}`);
   const referenceMaterials = referenceParts.length > 0 ? referenceParts.join("\n\n") : null;
 
+  // Tell the AI which curated library names to prefer so generated movements
+  // resolve against locked videos.
+  const libraryMovementNames = await listLibraryMovementNames();
+
   const brief: ProgramBrief = {
     athleteName: athlete.fullName,
     athleteContext: formatAthleteContext(athlete),
@@ -116,6 +121,7 @@ export async function generateAndCreateProgram(
     style,
     equipment,
     referenceMaterials,
+    libraryMovementNames,
   };
 
   let parsed;
@@ -128,6 +134,23 @@ export async function generateAndCreateProgram(
   if (!parsed.weeks || parsed.weeks.length === 0) {
     return { error: "AI returned an empty program. Try a more specific brief." };
   }
+
+  // Resolve every movement name the AI invented against the Movement library so
+  // matched ones inherit their curated (possibly locked) videoUrl and keep a
+  // proper movementId — same lookup the manual saveProgram path already does.
+  const allNames: string[] = [];
+  for (const w of parsed.weeks) {
+    for (const d of w.days) {
+      for (const b of d.blocks ?? []) {
+        for (const m of b.movements ?? []) {
+          if (m.name) allNames.push(m.name);
+        }
+      }
+    }
+  }
+  const libraryByName = await resolveLibraryMovements(allNames);
+  const normalizeName = (s: string) =>
+    s.toLowerCase().trim().replace(/\s+/g, " ").replace(/[.,;:!?]+$/g, "");
 
   const startDate = new Date(startDateRaw);
 
@@ -184,19 +207,27 @@ export async function generateAndCreateProgram(
               notes: b.notes ?? null,
               order: bi,
               movements: {
-                create: b.movements.map((m, mi) => ({
-                  customName: m.name,
-                  prescription: {
-                    sets: m.sets ?? undefined,
-                    reps: m.reps ?? undefined,
-                    load: m.load ?? undefined,
-                    rest: m.rest ?? undefined,
-                    notes: m.notes ?? undefined,
-                    youtubeUrl: movementYoutubeSearchUrl(m.name),
-                  },
-                  order: mi,
-                  isTest: !!m.isTest,
-                })),
+                create: b.movements.map((m, mi) => {
+                  const lib = m.name ? libraryByName.get(normalizeName(m.name)) : undefined;
+                  // If matched: link to library row and use its (possibly locked)
+                  // curated video. Otherwise: keep the AI's free-text name and
+                  // fall back to a YouTube search URL.
+                  const youtubeUrl = lib?.videoUrl ?? movementYoutubeSearchUrl(m.name);
+                  return {
+                    movementId: lib?.id,
+                    customName: lib ? null : m.name,
+                    prescription: {
+                      sets: m.sets ?? undefined,
+                      reps: m.reps ?? undefined,
+                      load: m.load ?? undefined,
+                      rest: m.rest ?? undefined,
+                      notes: m.notes ?? undefined,
+                      youtubeUrl,
+                    },
+                    order: mi,
+                    isTest: !!m.isTest,
+                  };
+                }),
               },
             },
           });
