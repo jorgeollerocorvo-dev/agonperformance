@@ -98,9 +98,10 @@ export async function generateText(opts: AiCallOptions): Promise<string> {
 
 async function callGemini(opts: AiCallOptions): Promise<string> {
   const key = (process.env.GEMINI_API_KEY ?? "").trim();
-  // `gemini-flash-latest` resolves to whatever free-tier flash model is current
-  // (gemini-3-flash-preview as of 2026-04). Override via GEMINI_MODEL if needed.
-  const model = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
+  // Use a pinned model id, not the `latest` alias — observed that
+  // `gemini-flash-latest` started timing out at 30s with no response while
+  // `gemini-2.5-flash` returns in ~1.4s. Override via GEMINI_MODEL if needed.
+  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
 
   const body: Record<string, unknown> = {
