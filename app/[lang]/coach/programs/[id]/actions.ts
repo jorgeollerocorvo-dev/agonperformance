@@ -113,17 +113,13 @@ export async function saveProgram(input: EditorProgram) {
     movements.forEach(m => movementMap.set(m.id, m));
   }
 
-  // Also fetch by name to match movements even if movementId isn't set
+  // Also fetch by name. Prisma's `in` does NOT honor `mode: insensitive`, so
+  // this used to silently miss every library row that wasn't stored lowercase.
+  // resolveLibraryMovements uses OR + equals + insensitive correctly.
   if (movementNames.size > 0) {
-    const movementsByName = await prisma.movement.findMany({
-      where: {
-        nameEn: { in: Array.from(movementNames), mode: 'insensitive' }
-      },
-      select: { id: true, videoUrl: true, nameEn: true },
-    });
-    movementsByName.forEach(m => {
-      // Store by normalized name for lookup
-      movementMap.set(m.nameEn.toLowerCase(), m);
+    const byName = await resolveLibraryMovements(movementNames);
+    byName.forEach((m, key) => {
+      movementMap.set(key, { id: m.id, videoUrl: m.videoUrl, nameEn: m.nameEn });
     });
   }
 

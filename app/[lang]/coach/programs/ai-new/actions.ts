@@ -171,10 +171,14 @@ export async function generateAndCreateProgram(
 
     for (let wi = 0; wi < parsed.weeks.length; wi++) {
       const w = parsed.weeks[wi];
+      // Normalize the week number ONCE so the row and the date math agree.
+      // The AI sometimes emits weekNumber:0 or omits it entirely; without
+      // this the dates went negative and weeks visually collided.
+      const weekNumber = (typeof w.weekNumber === "number" && w.weekNumber > 0) ? w.weekNumber : wi + 1;
       const createdWeek = await tx.programWeek.create({
         data: {
           programId: prog.id,
-          weekNumber: w.weekNumber || wi + 1,
+          weekNumber,
           weekLabel: w.weekLabel ?? null,
         },
       });
@@ -182,7 +186,7 @@ export async function generateAndCreateProgram(
       for (let di = 0; di < w.days.length; di++) {
         const d = w.days[di];
         const dayDate = new Date(startDate);
-        dayDate.setDate(dayDate.getDate() + (w.weekNumber - 1) * 7 + di);
+        dayDate.setDate(dayDate.getDate() + (weekNumber - 1) * 7 + di);
 
         const createdDay = await tx.programSession.create({
           data: {

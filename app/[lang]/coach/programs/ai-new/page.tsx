@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
@@ -15,12 +15,15 @@ export default async function AiNewProgramPage({ params, searchParams }: PagePro
   const dict = await getDictionary(lang);
   const sp = await searchParams;
   const session = await auth();
+  if (!session?.user?.id) {
+    redirect(`/${lang}/login?next=${encodeURIComponent(`/${lang}/coach/programs/ai-new`)}`);
+  }
 
   // Only Jorge can use AI program generation
   if (!isJorge(session)) notFound();
 
   const coach = await prisma.coachProfile.findUnique({
-    where: { userId: session!.user.id },
+    where: { userId: session.user.id },
     include: { athletes: { orderBy: { fullName: "asc" } } },
   });
   if (!coach) notFound();
