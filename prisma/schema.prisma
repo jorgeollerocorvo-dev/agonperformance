@@ -397,10 +397,16 @@ model ProgramSession {
   intensity     String?  // "Hard" | "Light" | "—"
   notes         String?
 
+  /// Shared identifier for co-joint training sessions across multiple athletes.
+  /// When two athletes train together, both ProgramSessions get the same UUID
+  /// here. Used to render a chain badge and to keep their workouts in sync.
+  coJointKey    String?
+
   blocks     ProgramBlock[]
   sessionLog SessionLog?
 
   @@index([date])
+  @@index([coJointKey])
 }
 
 model ProgramBlock {

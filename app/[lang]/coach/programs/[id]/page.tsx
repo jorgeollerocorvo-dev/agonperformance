@@ -63,6 +63,9 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
   const weekDeleteError = typeof sp?.weekDeleteError === "string" ? decodeURIComponent(sp.weekDeleteError) : null;
   const weekRestored = typeof sp?.weekRestored === "string" ? sp.weekRestored : null;
   const weekRestoreError = typeof sp?.weekRestoreError === "string" ? decodeURIComponent(sp.weekRestoreError) : null;
+  const coJointLinked = typeof sp?.coJointLinked === "string" ? decodeURIComponent(sp.coJointLinked) : null;
+  const coJointUnlinked = sp?.coJointUnlinked === "1";
+  const coJointError = typeof sp?.coJointError === "string" ? decodeURIComponent(sp.coJointError) : null;
 
   // Recently-deleted weeks for the trash card.
   const deletedWeeks = await prisma.deletedProgramWeek.findMany({
@@ -91,6 +94,37 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
     .at(0)
     ?.date.toISOString()
     .slice(0, 10) ?? null;
+
+  // Resolve co-joint partners for any session that has a coJointKey set.
+  // We look up other ProgramSessions sharing each key and grab the owning
+  // athlete's name to display in a badge.
+  const coJointKeys = Array.from(
+    new Set(allSessions.map((s) => s.coJointKey).filter((k): k is string => !!k)),
+  );
+  const coJointPartnersByKey = new Map<string, { selfId: string; partnerName: string }[]>();
+  if (coJointKeys.length > 0) {
+    const linkedRows = await prisma.programSession.findMany({
+      where: { coJointKey: { in: coJointKeys } },
+      include: {
+        programWeek: { include: { program: { include: { athlete: { select: { id: true, fullName: true } } } } } },
+      },
+    });
+    for (const r of linkedRows) {
+      const key = r.coJointKey!;
+      const existing = coJointPartnersByKey.get(key) ?? [];
+      existing.push({ selfId: r.id, partnerName: r.programWeek.program.athlete.fullName });
+      coJointPartnersByKey.set(key, existing);
+    }
+  }
+  /** For a given session, find another athlete's name on the same coJointKey (the "partner"). */
+  const partnerNameFor = (sessionId: string, coJointKey: string | null): string | null => {
+    if (!coJointKey) return null;
+    const peers = coJointPartnersByKey.get(coJointKey) ?? [];
+    const others = peers.filter((p) => p.selfId !== sessionId);
+    if (others.length === 0) return null;
+    if (others.length === 1) return others[0].partnerName;
+    return `${others[0].partnerName} +${others.length - 1}`;
+  };
 
   // Convert to editor shape. If a week has no sessions yet, synthesize 7 empty days from its start dates.
   const startDate = program.startDate;
@@ -122,6 +156,8 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
             focus: existing.focus,
             intensity: existing.intensity,
             notes: existing.notes,
+            coJointKey: existing.coJointKey ?? null,
+            coJointWithName: partnerNameFor(existing.id, existing.coJointKey ?? null),
             blocks: existing.blocks.map((b) => ({
               id: b.id,
               blockCode: b.blockCode,
@@ -247,6 +283,23 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
       {(weekDeleteError || weekRestoreError) && (
         <Card className="bg-[var(--danger-soft)] border-[var(--danger)]/30 text-sm text-[var(--danger)]">
           ✕ {weekDeleteError ?? weekRestoreError}
+        </Card>
+      )}
+
+      {/* Flash: co-joint link / unlink */}
+      {coJointLinked && (
+        <Card className="bg-[var(--success-soft)] border-[var(--success)]/30 text-sm">
+          🔗 ✓ Co-joint workout copied to {coJointLinked}. Adjust their loads as needed.
+        </Card>
+      )}
+      {coJointUnlinked && (
+        <Card className="bg-[var(--surface-2)] border-[var(--border)] text-sm">
+          🔗 Unlinked.
+        </Card>
+      )}
+      {coJointError && (
+        <Card className="bg-[var(--danger-soft)] border-[var(--danger)]/30 text-sm text-[var(--danger)]">
+          ✕ {coJointError}
         </Card>
       )}
 

@@ -6,6 +6,7 @@ import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type
 import { ytEmbed as ytEmbedUrl } from "@/lib/youtube";
 import { getDayNameFromDateString } from "@/lib/day-utils";
 import MovementNameInput from "@/components/MovementNameInput";
+import CoJointLinkButton from "@/components/CoJointLinkButton";
 
 type Dict = {
   save: string;
@@ -433,6 +434,8 @@ export default function ProgramBuilder({
               clip={clip}
               draggedBlock={draggedBlock}
               isLastCompleted={lastCompletedDate === day.date}
+              programId={prog.id}
+              lang={lang}
               onFocus={(v) => patchDay(activeWeek, di, (d) => { d.focus = v; })}
               onNotes={(v) => patchDay(activeWeek, di, (d) => { d.notes = v; })}
               onIntensity={(v) => patchDay(activeWeek, di, (d) => { d.intensity = v; })}
@@ -474,6 +477,7 @@ export default function ProgramBuilder({
 
 function DayCard({
   day, index, weekIdx, dayIdx, dict, clip, draggedBlock, isLastCompleted = false,
+  programId, lang,
   onFocus, onNotes, onIntensity,
   onAddBlock, onDuplicate, onClear, onMarkRest, onCopyDay, onPasteDay, onPasteBlock,
   onBlockPatch, onBlockRemove, onBlockCopy, onBlockDragStart, onBlockDropped,
@@ -487,6 +491,8 @@ function DayCard({
   clip: Clip;
   draggedBlock: { weekIdx: number; dayIdx: number; blockIdx: number } | null;
   isLastCompleted?: boolean;
+  programId: string;
+  lang: string;
   onFocus: (v: string) => void;
   onNotes: (v: string) => void;
   onIntensity: (v: string) => void;
@@ -550,7 +556,21 @@ function DayCard({
             Last completed
           </div>
         )}
-        <div className="flex gap-1">
+        {day.coJointWithName && (
+          <div
+            className="px-2 py-0.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] text-[0.65rem] font-semibold whitespace-nowrap"
+            title={`Co-joint workout — linked with ${day.coJointWithName}`}
+          >
+            🔗 {day.coJointWithName}
+          </div>
+        )}
+        <div className="flex gap-1 items-center">
+          <CoJointLinkButton
+            sessionId={day.id}
+            programId={programId}
+            lang={lang}
+            linkedWithName={day.coJointWithName ?? null}
+          />
           <IconButton title={dict.copy + " (day)"} onClick={onCopyDay}>
             <span className="text-xs">📋</span>
           </IconButton>

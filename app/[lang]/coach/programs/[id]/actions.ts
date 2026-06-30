@@ -50,6 +50,10 @@ export type EditorDay = {
   intensity: string | null;
   notes: string | null;
   blocks: EditorBlock[];
+  /** Set when this session is co-joint with another athlete. Server-managed; the editor never mutates it. */
+  coJointKey?: string | null;
+  /** Display-only: the partner athlete's name, if linked. */
+  coJointWithName?: string | null;
 };
 
 export type EditorBlock = {
@@ -164,6 +168,16 @@ export async function saveProgram(input: EditorProgram) {
       for (const day of wk.days) {
         // Skip empty days (no blocks)
         if (day.blocks.length === 0 && !day.focus && !day.notes) continue;
+
+        // CRITICAL: find the matching old session BEFORE creating the new one,
+        // so we can carry forward both the sessionLog and the coJointKey
+        // (otherwise rebuilds would silently break co-joint links).
+        const matchingOldSession = existingSessions.find((s) => {
+          const oldDateStr = s.date.toISOString().slice(0, 10);
+          const newDateStr = new Date(day.date).toISOString().slice(0, 10);
+          return oldDateStr === newDateStr;
+        });
+
         const createdDay = await tx.programSession.create({
           data: {
             programWeekId: createdWeek.id,
@@ -172,15 +186,8 @@ export async function saveProgram(input: EditorProgram) {
             focus: day.focus,
             intensity: day.intensity,
             notes: day.notes,
+            coJointKey: matchingOldSession?.coJointKey ?? null,
           },
-        });
-
-        // CRITICAL: Restore SessionLog if this date had athlete feedback
-        // Match old sessions by date to preserve intensityFeedback and intensityReview
-        const matchingOldSession = existingSessions.find((s) => {
-          const oldDateStr = s.date.toISOString().slice(0, 10);
-          const newDateStr = new Date(day.date).toISOString().slice(0, 10);
-          return oldDateStr === newDateStr;
         });
         if (matchingOldSession?.sessionLog) {
           await tx.sessionLog.create({
@@ -942,4 +949,221 @@ export async function purgeDeletedWeek(formData: FormData) {
   await prisma.deletedProgramWeek.deleteMany({ where: { id: deletedId, programId } });
   revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
   redirect(`/${lang}/coach/programs/${programId}`);
+}
+
+// ────────────────────────────────────────────────────────────
+// Co-joint sessions: link two athletes' workouts on the same date
+// ────────────────────────────────────────────────────────────
+
+/**
+ * For a given session date, list the coach's OTHER athletes whose program
+ * covers that date (so the coach can pick one to link the workout to).
+ * Each entry includes the candidate target sessionId (if one exists on
+ * that date) and whether they're already linked to this source.
+ */
+export async function listCoJointCandidates(
+  sourceSessionId: string,
+  programId: string,
+): Promise<Array<{
+  athleteId: string;
+  athleteName: string;
+  targetSessionId: string | null;
+  isLinked: boolean;
+}>> {
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) return [];
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) return [];
+
+  const source = await prisma.programSession.findFirst({
+    where: {
+      id: sourceSessionId,
+      programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+    },
+    select: { date: true, coJointKey: true, programWeek: { select: { program: { select: { athleteId: true } } } } },
+  });
+  if (!source) return [];
+
+  const sourceAthleteId = source.programWeek.program.athleteId;
+
+  // All other athletes owned by this coach.
+  const athletes = await prisma.athlete.findMany({
+    where: { coachProfileId: coach.id, id: { not: sourceAthleteId } },
+    orderBy: { fullName: "asc" },
+    select: { id: true, fullName: true },
+  });
+
+  // For each, find a session on the same date in any of their programs.
+  const candidates = await Promise.all(
+    athletes.map(async (a) => {
+      const target = await prisma.programSession.findFirst({
+        where: {
+          date: source.date,
+          programWeek: { program: { athleteId: a.id } },
+        },
+        select: { id: true, coJointKey: true },
+      });
+      return {
+        athleteId: a.id,
+        athleteName: a.fullName,
+        targetSessionId: target?.id ?? null,
+        isLinked:
+          !!source.coJointKey &&
+          !!target?.coJointKey &&
+          source.coJointKey === target.coJointKey,
+      };
+    }),
+  );
+
+  return candidates;
+}
+
+/**
+ * Link a source ProgramSession to a target athlete's same-date session.
+ * Copies the source session's blocks (with movements + prescription) into
+ * the target's session, replacing whatever was there. Tags BOTH sessions
+ * with the same coJointKey so they appear as linked.
+ *
+ * If the target athlete has no session on that date, returns an error —
+ * we don't silently create new dates outside the target's existing program.
+ */
+export async function linkCoJointSession(formData: FormData) {
+  "use server";
+  const sourceSessionId = String(formData.get("sourceSessionId") ?? "");
+  const targetAthleteId = String(formData.get("targetAthleteId") ?? "");
+  const programId = String(formData.get("programId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  if (!sourceSessionId || !targetAthleteId || !programId) {
+    redirect(`/${lang}/coach/programs/${programId}?coJointError=${encodeURIComponent("Missing fields")}`);
+  }
+
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) throw new Error("no coach profile");
+
+  // Verify the coach owns the source program and the target athlete.
+  const source = await prisma.programSession.findFirst({
+    where: {
+      id: sourceSessionId,
+      programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+    },
+    include: {
+      blocks: {
+        orderBy: { order: "asc" },
+        include: { movements: { orderBy: { order: "asc" } } },
+      },
+    },
+  });
+  if (!source) {
+    redirect(`/${lang}/coach/programs/${programId}?coJointError=${encodeURIComponent("Source session not found")}`);
+  }
+
+  const targetAthlete = await prisma.athlete.findFirst({
+    where: { id: targetAthleteId, coachProfileId: coach.id },
+  });
+  if (!targetAthlete) {
+    redirect(`/${lang}/coach/programs/${programId}?coJointError=${encodeURIComponent("Target athlete not found")}`);
+  }
+
+  const target = await prisma.programSession.findFirst({
+    where: {
+      date: source.date,
+      programWeek: { program: { athleteId: targetAthleteId } },
+    },
+  });
+  if (!target) {
+    redirect(
+      `/${lang}/coach/programs/${programId}?coJointError=${encodeURIComponent(
+        `${targetAthlete.fullName} has no session on ${source.date.toISOString().slice(0, 10)} — create their program covering this date first.`,
+      )}`,
+    );
+  }
+
+  // Reuse existing coJointKey if either side already has one (so additional
+  // athletes can be added to an already-linked group), otherwise mint a new.
+  const coJointKey = source.coJointKey || target.coJointKey || crypto.randomUUID();
+
+  await prisma.$transaction(async (tx) => {
+    // Replace the target's blocks with a deep copy of the source's.
+    await tx.programBlock.deleteMany({ where: { programSessionId: target.id } });
+
+    for (const b of source.blocks) {
+      await tx.programBlock.create({
+        data: {
+          programSessionId: target.id,
+          blockCode: b.blockCode,
+          label: b.label,
+          format: b.format,
+          restSec: b.restSec,
+          notes: b.notes,
+          order: b.order,
+          movements: {
+            create: b.movements.map((m) => ({
+              movementId: m.movementId,
+              customName: m.customName,
+              prescription: (m.prescription ?? undefined) as object | undefined,
+              order: m.order,
+              isTest: m.isTest,
+            })),
+          },
+        },
+      });
+    }
+
+    // Mirror focus/intensity/notes from source for clarity.
+    await tx.programSession.update({
+      where: { id: target.id },
+      data: {
+        focus: source.focus,
+        intensity: source.intensity,
+        notes: source.notes,
+        coJointKey,
+      },
+    });
+
+    // Tag the source.
+    await tx.programSession.update({
+      where: { id: source.id },
+      data: { coJointKey },
+    });
+  }, { timeout: 30_000 });
+
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  redirect(
+    `/${lang}/coach/programs/${programId}?coJointLinked=${encodeURIComponent(targetAthlete.fullName)}`,
+  );
+}
+
+/**
+ * Remove the co-joint link from a session. Only clears this side — other
+ * linked athletes stay linked to each other unless they unlink too.
+ */
+export async function unlinkCoJointSession(formData: FormData) {
+  "use server";
+  const sessionId = String(formData.get("sessionId") ?? "");
+  const programId = String(formData.get("programId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  if (!sessionId || !programId) return;
+
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) throw new Error("no coach profile");
+
+  const owned = await prisma.programSession.findFirst({
+    where: {
+      id: sessionId,
+      programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+    },
+  });
+  if (!owned) return;
+
+  await prisma.programSession.update({
+    where: { id: sessionId },
+    data: { coJointKey: null },
+  });
+
+  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  redirect(`/${lang}/coach/programs/${programId}?coJointUnlinked=1`);
 }

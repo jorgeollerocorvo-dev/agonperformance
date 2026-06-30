@@ -53,6 +53,14 @@ async function runMigrations(req: NextRequest) {
       // Constraint may already exist
     });
 
+    // Co-joint training key on ProgramSession (migration 20260530220000).
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "ProgramSession" ADD COLUMN IF NOT EXISTS "coJointKey" TEXT;
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "ProgramSession_coJointKey_idx" ON "ProgramSession" ("coJointKey");
+    `);
+
     // Week-trash table (migration 20260530170000 — also create here as a safety
     // net in case `prisma migrate deploy` didn't run during the Railway deploy).
     await prisma.$executeRawUnsafe(`
