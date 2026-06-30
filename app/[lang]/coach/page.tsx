@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
@@ -10,9 +10,10 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const session = await auth();
+  if (!session?.user?.id) redirect(`/${lang}/login?next=${encodeURIComponent(`/${lang}/coach`)}`);
 
   const coachProfile = await prisma.coachProfile.findUnique({
-    where: { userId: session!.user.id },
+    where: { userId: session.user.id },
     include: {
       user: true,
       athletes: { orderBy: { createdAt: "desc" }, take: 8 },
@@ -33,7 +34,7 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
     where: { athlete: { coachProfileId: coachProfile.id } },
   });
   const convoCount = await prisma.conversation.count({
-    where: { coachUserId: session!.user.id },
+    where: { coachUserId: session.user.id },
   });
 
   // Get consultation bookings count (only for Jorge)
