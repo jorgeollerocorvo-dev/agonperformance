@@ -229,3 +229,56 @@ export async function createUserAccountForAthlete(
     return { error: errorMessage };
   }
 }
+
+/**
+ * Reassign an athlete from one coach to another. Jorge-only.
+ * The athlete's programs (owned via athleteId) come along automatically.
+ * Redirects to the target coach's detail page so Jorge can confirm.
+ */
+export async function reassignAthleteToCoach(formData: FormData) {
+  "use server";
+  const athleteId = String(formData.get("athleteId") ?? "");
+  const targetCoachProfileId = String(formData.get("targetCoachProfileId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  const currentCoachId = String(formData.get("currentCoachId") ?? "");
+
+  if (!athleteId || !targetCoachProfileId) {
+    redirect(`/${lang}/admin/coaches/${currentCoachId}?reassignError=${encodeURIComponent("Missing fields")}`);
+  }
+
+  const session = await auth();
+  if (!session?.user || !isJorge(session)) {
+    redirect(`/${lang}/admin/coaches/${currentCoachId}?reassignError=${encodeURIComponent("Forbidden")}`);
+  }
+
+  // Confirm the target coach exists
+  const target = await prisma.coachProfile.findUnique({
+    where: { id: targetCoachProfileId },
+    include: { user: { select: { fullName: true, displayName: true } } },
+  });
+  if (!target) {
+    redirect(`/${lang}/admin/coaches/${currentCoachId}?reassignError=${encodeURIComponent("Target coach not found")}`);
+  }
+
+  const athlete = await prisma.athlete.findUnique({
+    where: { id: athleteId },
+    select: { id: true, fullName: true, coachProfileId: true },
+  });
+  if (!athlete) {
+    redirect(`/${lang}/admin/coaches/${currentCoachId}?reassignError=${encodeURIComponent("Athlete not found")}`);
+  }
+
+  if (athlete.coachProfileId === targetCoachProfileId) {
+    redirect(`/${lang}/admin/coaches/${targetCoachProfileId}?reassignNoop=1`);
+  }
+
+  await prisma.athlete.update({
+    where: { id: athleteId },
+    data: { coachProfileId: targetCoachProfileId },
+  });
+
+  const targetName = target.user.displayName ?? target.user.fullName ?? "coach";
+  redirect(
+    `/${lang}/admin/coaches/${targetCoachProfileId}?reassigned=${encodeURIComponent(`${athlete.fullName} → ${targetName}`)}`,
+  );
+}

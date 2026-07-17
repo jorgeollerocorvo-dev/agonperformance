@@ -5,13 +5,21 @@ import { isJorge } from "@/lib/jorge";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 import { Card } from "@/components/ui/Card";
 import CoachAthleteDetail from "@/components/CoachAthleteDetail";
+import CoachAssignmentPicker from "@/components/CoachAssignmentPicker";
+import { reassignAthleteToCoach } from "./actions";
 
 export default async function CoachDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lang: string; coachId: string }>;
+  searchParams?: Promise<{ reassigned?: string; reassignNoop?: string; reassignError?: string }>;
 }) {
   const { lang, coachId } = await params;
+  const sp = (await searchParams) ?? {};
+  const reassignedMsg = typeof sp.reassigned === "string" ? decodeURIComponent(sp.reassigned) : null;
+  const reassignNoop = sp.reassignNoop === "1";
+  const reassignError = typeof sp.reassignError === "string" ? decodeURIComponent(sp.reassignError) : null;
   if (!hasLocale(lang)) notFound();
 
   const dict = await getDictionary(lang);
@@ -48,8 +56,35 @@ export default async function CoachDetailPage({
 
   if (!coach) notFound();
 
+  // Full list of coaches for the reassignment picker
+  const allCoaches = await prisma.coachProfile.findMany({
+    include: { user: { select: { displayName: true, fullName: true, email: true } } },
+    orderBy: [{ user: { displayName: "asc" } }],
+  });
+  const coachOptions = allCoaches.map((c) => ({
+    id: c.id,
+    name: c.user.displayName ?? c.user.fullName ?? c.user.email ?? "Unnamed coach",
+  }));
+
   return (
     <div className="space-y-8">
+      {/* Flash messages */}
+      {reassignedMsg && (
+        <div className="rounded-lg bg-[var(--success-soft)] border border-[var(--success)]/30 px-3 py-2 text-sm text-[var(--success)]">
+          ✓ Reassigned: {reassignedMsg}
+        </div>
+      )}
+      {reassignNoop && (
+        <div className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2 text-sm">
+          Athlete was already assigned to this coach.
+        </div>
+      )}
+      {reassignError && (
+        <div className="rounded-lg bg-[var(--danger-soft)] border border-[var(--danger)]/30 px-3 py-2 text-sm text-[var(--danger)]">
+          ✕ {reassignError}
+        </div>
+      )}
+
       {/* Coach Header */}
       <section>
         <h1 className="text-3xl font-bold">{coach.user.displayName || "Coach"}</h1>
@@ -106,7 +141,17 @@ export default async function CoachDetailPage({
         ) : (
           <div className="space-y-4">
             {coach.athletes.map((athlete) => (
-              <CoachAthleteDetail key={athlete.id} athlete={athlete} lang={lang} coachId={coachId} />
+              <div key={athlete.id} className="space-y-2">
+                <CoachAthleteDetail athlete={athlete} lang={lang} coachId={coachId} />
+                <CoachAssignmentPicker
+                  athleteId={athlete.id}
+                  athleteName={athlete.fullName}
+                  currentCoachProfileId={coachId}
+                  coachOptions={coachOptions}
+                  lang={lang}
+                  action={reassignAthleteToCoach}
+                />
+              </div>
             ))}
           </div>
         )}
