@@ -224,15 +224,16 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         athleteId={id}
       />
 
-      {/* Jorge-only: reassign this athlete to a different coach */}
-      {jorgeMode && coachPickerOptions.length > 1 && (
+      {/* Jorge-only: assign / reassign this athlete's coach. Always visible so
+          Jorge can confirm the current assignment or change it at any time. */}
+      {jorgeMode && (
         <Card>
           <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
             <h2 className="text-lg font-semibold">👤 Assign coach</h2>
             <span className="text-xs text-[var(--ink-muted)]">Admin only</span>
           </div>
           <p className="text-sm text-[var(--ink-muted)] mb-3">
-            Move this athlete to a different coach. Their programs and history follow them automatically.
+            Assign or change this athlete&apos;s coach. Programs and history follow the athlete automatically. Pick a coach and press Save — even if it&apos;s the same one, saving confirms the assignment.
           </p>
           <CoachAssignmentPicker
             athleteId={athlete.id}

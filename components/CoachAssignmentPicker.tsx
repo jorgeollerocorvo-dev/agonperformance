@@ -26,10 +26,13 @@ export default function CoachAssignmentPicker({
     const form = e.currentTarget;
     const select = form.querySelector<HTMLSelectElement>('select[name="targetCoachProfileId"]');
     const targetId = select?.value ?? "";
-    if (!targetId || targetId === currentCoachProfileId) {
+    if (!targetId) {
       e.preventDefault();
       return;
     }
+    // Same-coach save is allowed as a confirmation — the server treats it as a
+    // no-op with a friendly 'already assigned' flash.
+    if (targetId === currentCoachProfileId) return;
     const targetName = select?.options[select.selectedIndex]?.text ?? "another coach";
     if (
       !confirm(
