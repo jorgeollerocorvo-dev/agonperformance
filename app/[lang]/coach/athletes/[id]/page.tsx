@@ -12,6 +12,9 @@ import { aiImportEnabled } from "@/lib/features";
 import { deleteProgram } from "../../programs/[id]/actions";
 import DeleteProgramButton from "@/components/DeleteProgramButton";
 import AthleteProfileEditor from "@/components/AthleteProfileEditor";
+import CoachAssignmentPicker from "@/components/CoachAssignmentPicker";
+import { reassignAthleteToCoach } from "../../../admin/coaches/[coachId]/actions";
+import { isJorge } from "@/lib/jorge";
 
 async function deleteProgramAction(formData: FormData) {
   "use server";
@@ -45,6 +48,19 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
     },
   });
   if (!athlete) notFound();
+
+  // Jorge-only: fetch every coach profile for the reassignment picker.
+  const jorgeMode = isJorge(session);
+  const allCoachesForPicker = jorgeMode
+    ? await prisma.coachProfile.findMany({
+        include: { user: { select: { displayName: true, fullName: true, email: true } } },
+        orderBy: [{ user: { displayName: "asc" } }],
+      })
+    : [];
+  const coachPickerOptions = allCoachesForPicker.map((c) => ({
+    id: c.id,
+    name: c.user.displayName ?? c.user.fullName ?? c.user.email ?? "Unnamed coach",
+  }));
 
   // Auto-redirect to active program if it exists (resolve either by id or programKey)
   if (athlete.activeProgramId) {
@@ -207,6 +223,27 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         lang={lang}
         athleteId={id}
       />
+
+      {/* Jorge-only: reassign this athlete to a different coach */}
+      {jorgeMode && coachPickerOptions.length > 1 && (
+        <Card>
+          <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+            <h2 className="text-lg font-semibold">👤 Assign coach</h2>
+            <span className="text-xs text-[var(--ink-muted)]">Admin only</span>
+          </div>
+          <p className="text-sm text-[var(--ink-muted)] mb-3">
+            Move this athlete to a different coach. Their programs and history follow them automatically.
+          </p>
+          <CoachAssignmentPicker
+            athleteId={athlete.id}
+            athleteName={athlete.fullName}
+            currentCoachProfileId={coachProfile.id}
+            coachOptions={coachPickerOptions}
+            lang={lang}
+            action={reassignAthleteToCoach}
+          />
+        </Card>
+      )}
 
       {/* Login account for the athlete */}
       <Card>
