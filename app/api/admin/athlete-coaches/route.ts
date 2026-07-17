@@ -31,10 +31,23 @@ export async function GET(req: NextRequest) {
       id: true,
       fullName: true,
       email: true,
+      activeProgramId: true,
       coachProfile: {
         select: {
           id: true,
           user: { select: { fullName: true, displayName: true, email: true } },
+        },
+      },
+      programs: {
+        orderBy: { startDate: "desc" },
+        select: {
+          id: true,
+          title: true,
+          startDate: true,
+          endDate: true,
+          durationWeeks: true,
+          createdAt: true,
+          _count: { select: { weeks: true, documents: true } },
         },
       },
     },
@@ -46,11 +59,23 @@ export async function GET(req: NextRequest) {
       id: a.id,
       name: a.fullName,
       email: a.email,
+      activeProgramId: a.activeProgramId,
       coach: {
         id: a.coachProfile?.id ?? null,
         name: a.coachProfile?.user.displayName ?? a.coachProfile?.user.fullName ?? null,
         email: a.coachProfile?.user.email ?? null,
       },
+      programs: a.programs.map((p) => ({
+        id: p.id,
+        title: p.title,
+        startDate: p.startDate.toISOString().slice(0, 10),
+        endDate: p.endDate ? p.endDate.toISOString().slice(0, 10) : null,
+        durationWeeks: p.durationWeeks,
+        weeksCount: p._count.weeks,
+        documentsCount: p._count.documents,
+        createdAt: p.createdAt.toISOString(),
+      })),
+      programsCount: a.programs.length,
     })),
   });
 }
