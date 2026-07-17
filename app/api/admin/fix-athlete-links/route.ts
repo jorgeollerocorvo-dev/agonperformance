@@ -113,3 +113,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Allow GET too so it can be triggered from a browser link.
+export const GET = POST;
