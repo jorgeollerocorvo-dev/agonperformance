@@ -3,10 +3,10 @@
 import { useMemo, useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type EditorMovement } from "./actions";
-import { ytEmbed as ytEmbedUrl } from "@/lib/youtube";
 import { getDayNameFromDateString } from "@/lib/day-utils";
 import MovementNameInput from "@/components/MovementNameInput";
 import CoJointLinkButton from "@/components/CoJointLinkButton";
+import CoachMovementVideoThumb from "@/components/CoachMovementVideoThumb";
 
 type Dict = {
   save: string;
@@ -704,7 +704,6 @@ function BlockEditor({
 
       <ul className="space-y-2">
         {block.movements.map((m, mi) => {
-          const embed = ytEmbedUrl(m.youtubeUrl);
           return (
             <li key={mi} className="rounded-xl bg-white border border-[var(--border)] p-3 space-y-2">
               <div className="flex gap-1 items-center">
@@ -737,19 +736,7 @@ function BlockEditor({
                 placeholder="YouTube URL or search link"
                 className="w-full text-xs bg-[var(--surface-2)] rounded px-2 py-1 outline-none"
               />
-              {embed ? (
-                <div className="aspect-video rounded-lg overflow-hidden border border-[var(--border)]">
-                  <iframe src={embed} className="w-full h-full" allow="encrypted-media" allowFullScreen />
-                </div>
-              ) : m.youtubeUrl && m.youtubeUrl.includes("results?search_query") ? (
-                <a
-                  href={m.youtubeUrl}
-                  target="_blank" rel="noreferrer"
-                  className="block text-xs text-[var(--primary)] hover:underline"
-                >
-                  🔍 Search YouTube for "{m.name}" — pick a video and paste the URL above
-                </a>
-              ) : null}
+              <CoachMovementVideoThumb url={m.youtubeUrl} name={m.name} />
               <input
                 value={m.notes ?? ""}
                 onChange={(e) => onMovementPatch(mi, (v) => { v.notes = e.target.value; })}
