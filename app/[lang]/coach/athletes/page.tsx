@@ -52,52 +52,67 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
     // Optional client login account (email + password). Coach decides at create-time.
     const createLogin = formData.get("createLogin") === "on";
     const loginPassword = String(formData.get("loginPassword") ?? "");
-    let userId: string | null = null;
 
+    // Pre-flight validation so we redirect BEFORE opening the transaction.
     if (createLogin) {
       if (!email) redirect(`/${lang}/coach/athletes?error=login_email`);
       if (loginPassword.length < 6) redirect(`/${lang}/coach/athletes?error=login_password`);
       const exists = await prisma.user.findUnique({ where: { email: email! } });
       if (exists) redirect(`/${lang}/coach/athletes?error=email_taken`);
-      const hash = await bcrypt.hash(loginPassword, 10);
-      const u = await prisma.user.create({
+    }
+
+    // Wrap the full athlete-plus-login creation in a transaction so we never
+    // end up with a User but no Athlete, or an Athlete + userId but no
+    // AthleteLink (the exact failure mode that broke Shaima/Tarek/others).
+    const athlete = await prisma.$transaction(async (tx) => {
+      let userId: string | null = null;
+
+      if (createLogin) {
+        const hash = await bcrypt.hash(loginPassword, 10);
+        const u = await tx.user.create({
+          data: {
+            email,
+            passwordHash: hash,
+            fullName,
+            displayName: fullName,
+            preferredLanguage: lang === "es" ? "ES" : lang === "ar" ? "AR" : "EN",
+            roles: { create: [{ role: "CLIENT" }] },
+          },
+        });
+        userId = u.id;
+      }
+
+      const created = await tx.athlete.create({
         data: {
-          email,
-          passwordHash: hash,
+          athleteKey,
+          coachProfileId: cp.id,
+          userId,
           fullName,
-          displayName: fullName,
-          preferredLanguage: lang === "es" ? "ES" : lang === "ar" ? "AR" : "EN",
-          roles: { create: [{ role: "CLIENT" }] },
+          email,
+          phone,
+          sex,
+          age: ageRaw ? parseInt(ageRaw, 10) || null : null,
+          dob: dobRaw ? new Date(dobRaw) : null,
+          heightCm: heightRaw ? parseInt(heightRaw, 10) || null : null,
+          weightKg: weightRaw ? parseFloat(weightRaw) || null : null,
+          division,
+          goals,
+          notes,
         },
       });
-      userId = u.id;
-    }
 
-    const athlete = await prisma.athlete.create({
-      data: {
-        athleteKey,
-        coachProfileId: cp.id,
-        userId,
-        fullName,
-        email,
-        phone,
-        sex,
-        age: ageRaw ? parseInt(ageRaw, 10) || null : null,
-        dob: dobRaw ? new Date(dobRaw) : null,
-        heightCm: heightRaw ? parseInt(heightRaw, 10) || null : null,
-        weightKg: weightRaw ? parseFloat(weightRaw) || null : null,
-        division,
-        goals,
-        notes,
-      },
+      // Bridge row so the athlete's "Today" view finds their program.
+      // Upsert to survive partial-past-attempt leftovers.
+      if (userId) {
+        await tx.athleteLink.upsert({
+          where: { userId_athleteId: { userId, athleteId: created.id } },
+          create: { userId, athleteId: created.id, active: true },
+          update: { active: true },
+        });
+      }
+
+      return created;
     });
-
-    // Bridge entry so the athlete's "Today" view finds their program
-    if (userId) {
-      await prisma.athleteLink.create({
-        data: { userId, athleteId: athlete.id, active: true },
-      });
-    }
 
     redirect(`/${lang}/coach/athletes/${athlete.id}${createLogin ? "?accountCreated=1" : ""}`);
   }

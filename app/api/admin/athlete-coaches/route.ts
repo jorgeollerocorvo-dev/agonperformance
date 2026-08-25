@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
       id: true,
       fullName: true,
       email: true,
+      userId: true,
       activeProgramId: true,
       coachProfile: {
         select: {
@@ -38,6 +39,8 @@ export async function GET(req: NextRequest) {
           user: { select: { fullName: true, displayName: true, email: true } },
         },
       },
+      user: { select: { id: true, email: true } },
+      athleteLinks: { select: { userId: true, active: true } },
       programs: {
         orderBy: { startDate: "desc" },
         select: {
@@ -55,11 +58,20 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     count: athletes.length,
-    athletes: athletes.map((a) => ({
+    athletes: athletes.map((a) => {
+      const activeLink = a.athleteLinks.some((l) => l.active && l.userId === a.userId);
+      return {
       id: a.id,
       name: a.fullName,
       email: a.email,
       activeProgramId: a.activeProgramId,
+      // Status flags — one glance to see if the athlete can log in and see workouts
+      login: {
+        hasUserRow: !!a.user,
+        userEmail: a.user?.email ?? null,
+        hasActiveAthleteLink: activeLink,
+        canSeeWorkouts: !!a.user && activeLink,  // both must be true
+      },
       coach: {
         id: a.coachProfile?.id ?? null,
         name: a.coachProfile?.user.displayName ?? a.coachProfile?.user.fullName ?? null,
@@ -76,6 +88,7 @@ export async function GET(req: NextRequest) {
         createdAt: p.createdAt.toISOString(),
       })),
       programsCount: a.programs.length,
-    })),
+    };
+    }),
   });
 }

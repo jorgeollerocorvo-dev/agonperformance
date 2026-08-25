@@ -165,29 +165,27 @@ export async function createUserAccountForAthlete(
   try {
     const hashedPassword = await hash(initialPassword, 10);
 
-    // Try to create user account linked to the athlete
-    let user = await prisma.user.create({
-      data: {
-        email: athlete.email,
-        displayName: athlete.displayName || athlete.fullName,
-        passwordHash: hashedPassword,
-        isEmailVerified: true, // Jorge created it, so we verify automatically
-      },
-    });
-
-    // Link the athlete to the user
-    await prisma.athlete.update({
-      where: { id: athleteId },
-      data: { userId: user.id },
-    });
-
-    // Create AthleteLink so the athlete can access their profile
-    await prisma.athleteLink.create({
-      data: {
-        userId: user.id,
-        athleteId: athleteId,
-        active: true,
-      },
+    // Wrap the 3-step setup in a transaction — User creation, Athlete linking
+    // and AthleteLink insertion must all succeed together, otherwise the
+    // athlete ends up half-linked and can't see their workouts.
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: athlete.email,
+          displayName: athlete.displayName || athlete.fullName,
+          passwordHash: hashedPassword,
+          isEmailVerified: true, // Jorge created it, so we verify automatically
+        },
+      });
+      await tx.athlete.update({
+        where: { id: athleteId },
+        data: { userId: user.id },
+      });
+      await tx.athleteLink.upsert({
+        where: { userId_athleteId: { userId: user.id, athleteId } },
+        create: { userId: user.id, athleteId, active: true },
+        update: { active: true },
+      });
     });
 
     return { success: true, password: initialPassword };
@@ -202,23 +200,22 @@ export async function createUserAccountForAthlete(
       if (existingUser) {
         const hashedPassword = await hash(initialPassword, 10);
 
-        // Link the athlete to the existing user AND update password
-        await prisma.athlete.update({
-          where: { id: athleteId },
-          data: { userId: existingUser.id },
-        });
-
-        // Always update the password (whether user had one or not)
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: { passwordHash: hashedPassword },
-        });
-
-        // Create or update AthleteLink so the athlete can access their profile
-        await prisma.athleteLink.upsert({
-          where: { userId_athleteId: { userId: existingUser.id, athleteId } },
-          update: { active: true },
-          create: { userId: existingUser.id, athleteId, active: true },
+        // Same transaction guarantee for the merge path: link athlete →
+        // existing user, reset password, and ensure AthleteLink all together.
+        await prisma.$transaction(async (tx) => {
+          await tx.athlete.update({
+            where: { id: athleteId },
+            data: { userId: existingUser.id },
+          });
+          await tx.user.update({
+            where: { id: existingUser.id },
+            data: { passwordHash: hashedPassword },
+          });
+          await tx.athleteLink.upsert({
+            where: { userId_athleteId: { userId: existingUser.id, athleteId } },
+            update: { active: true },
+            create: { userId: existingUser.id, athleteId, active: true },
+          });
         });
 
         return { success: true, password: initialPassword };

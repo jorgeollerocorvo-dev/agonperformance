@@ -153,23 +153,33 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
     if (existing) redirect(`/${langParam}/coach/athletes/${athleteId}?loginErr=taken`);
 
     const hash = await bcrypt.hash(password, 10);
-    const u = await prisma.user.create({
-      data: {
-        email,
-        passwordHash: hash,
-        fullName: a.fullName,
-        displayName: a.fullName,
-        preferredLanguage: langParam === "es" ? "ES" : langParam === "ar" ? "AR" : "EN",
-        roles: { create: [{ role: "CLIENT" }] },
-      },
-    });
 
-    await prisma.athlete.update({
-      where: { id: a.id },
-      data: { userId: u.id, email },
-    });
-    await prisma.athleteLink.create({
-      data: { userId: u.id, athleteId: a.id, active: true },
+    // Wrap the 3-step login setup in a transaction: user creation, athlete
+    // linking (via userId), and AthleteLink insertion must all succeed or
+    // all fail. Previously these ran sequentially — if any middle step
+    // errored the athlete ended up half-linked and couldn't see workouts.
+    await prisma.$transaction(async (tx) => {
+      const u = await tx.user.create({
+        data: {
+          email,
+          passwordHash: hash,
+          fullName: a.fullName,
+          displayName: a.fullName,
+          preferredLanguage: langParam === "es" ? "ES" : langParam === "ar" ? "AR" : "EN",
+          roles: { create: [{ role: "CLIENT" }] },
+        },
+      });
+      await tx.athlete.update({
+        where: { id: a.id },
+        data: { userId: u.id, email },
+      });
+      // upsert instead of create so a leftover row from a partial past attempt
+      // doesn't unique-conflict here — the invariant is 'exactly one active link'.
+      await tx.athleteLink.upsert({
+        where: { userId_athleteId: { userId: u.id, athleteId: a.id } },
+        create: { userId: u.id, athleteId: a.id, active: true },
+        update: { active: true },
+      });
     });
 
     redirect(`/${langParam}/coach/athletes/${athleteId}?loginCreated=1`);

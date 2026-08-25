@@ -87,7 +87,40 @@ async function runMigrations(req: NextRequest) {
       // Constraint may already exist
     });
 
-    return NextResponse.json({ success: true, message: "Tables created successfully" });
+    // Self-heal any athletes that have a userId set but no active AthleteLink.
+    // Root-cause is now fixed (all creation paths are transactional) but this
+    // sweep catches historical orphans and belt-and-suspenders any edge cases.
+    // Safe & idempotent: only creates the missing link when one is missing.
+    const athletesWithUser = await prisma.athlete.findMany({
+      where: { userId: { not: null } },
+      select: {
+        id: true,
+        userId: true,
+        athleteLinks: { where: { active: true }, select: { userId: true } },
+      },
+    });
+    let athleteLinksHealed = 0;
+    for (const a of athletesWithUser) {
+      if (!a.userId) continue;
+      const alreadyLinked = a.athleteLinks.some((l) => l.userId === a.userId);
+      if (alreadyLinked) continue;
+      try {
+        await prisma.athleteLink.upsert({
+          where: { userId_athleteId: { userId: a.userId, athleteId: a.id } },
+          create: { userId: a.userId, athleteId: a.id, active: true },
+          update: { active: true },
+        });
+        athleteLinksHealed++;
+      } catch {
+        // ignore individual failures — don't block the migrate response
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Tables created successfully",
+      athleteLinksHealed,
+    });
   } catch (error) {
     console.error("Migration error:", error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
