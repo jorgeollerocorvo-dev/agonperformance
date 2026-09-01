@@ -9,6 +9,30 @@ import { movementYoutubeSearchUrl } from "@/lib/ai-parse-program";
 import { aiProgramGenEnabled } from "@/lib/features";
 import { resolveLibraryMovements, listLibraryMovementNames } from "@/lib/movement-resolver";
 
+/**
+ * Bust cached HTML for every surface that shows this program — both the coach
+ * builder AND every athlete view — across every locale prefix. Coach changes
+ * must land instantly on the athlete's Today / Calendar / History / Session
+ * pages regardless of which language they're on.
+ */
+function revalidateProgramSurfaces(programId: string) {
+  const LANGS = ["en", "es", "ar"] as const;
+  for (const lang of LANGS) {
+    // Coach builder view
+    revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+    revalidatePath(`/${lang}/coach/programs/${programId}`, "page");
+    // Athlete views — every path an athlete might have open
+    revalidatePath(`/${lang}/athlete`, "layout");
+    revalidatePath(`/${lang}/athlete`, "page");
+    revalidatePath(`/${lang}/athlete/calendar`, "page");
+    revalidatePath(`/${lang}/athlete/history`, "page");
+    // Session detail — dynamic segment; layout revalidation covers all IDs.
+    revalidatePath(`/${lang}/athlete/session/[id]`, "page");
+  }
+  // Root layout as a belt-and-suspenders sweep for anything we missed.
+  revalidatePath(`/`, "layout");
+}
+
 async function assertOwnsProgram(programId: string) {
   const session = await auth();
   if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
@@ -250,7 +274,7 @@ export async function saveProgram(input: EditorProgram) {
     }
   });
 
-  revalidatePath(`/`, "layout");
+  revalidateProgramSurfaces(program.id);
 }
 
 export async function createProgram(formData: FormData) {
@@ -325,7 +349,7 @@ export async function createProgram(formData: FormData) {
 export async function deleteProgram(programId: string) {
   const { program } = await assertOwnsProgram(programId);
   await prisma.program.delete({ where: { id: program.id } });
-  revalidatePath(`/`, "layout");
+  revalidateProgramSurfaces(program.id);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -351,7 +375,7 @@ export async function deleteSession(sessionId: string, programId: string, lang: 
 
   // Delete the session (cascades to blocks and movements)
   await prisma.programSession.delete({ where: { id: sessionId } });
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -424,7 +448,7 @@ export async function createSession(formData: FormData) {
     },
   });
 
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -467,7 +491,7 @@ export async function updateSession(formData: FormData) {
     },
   });
 
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -700,7 +724,7 @@ export async function generateAIProgressionWeek(formData: FormData) {
     { timeout: 90_000, maxWait: 10_000 },
   );
 
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
   redirect(`/${lang}/coach/programs/${programId}?aiWeekAdded=${nextWeek.weekNumber}`);
 }
 
@@ -840,7 +864,7 @@ export async function deleteProgramWeek(formData: FormData) {
     return deleted;
   }, { timeout: 30_000 });
 
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
   redirect(`/${lang}/coach/programs/${programId}?weekDeleted=${deletedRow.id}`);
 }
 
@@ -926,7 +950,7 @@ export async function restoreProgramWeek(formData: FormData) {
     await tx.deletedProgramWeek.delete({ where: { id: stash.id } });
   }, { timeout: 60_000 });
 
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
   redirect(`/${lang}/coach/programs/${programId}?weekRestored=${newWeekNumber}`);
 }
 
@@ -943,7 +967,7 @@ export async function purgeDeletedWeek(formData: FormData) {
   await assertOwnsProgram(programId);
 
   await prisma.deletedProgramWeek.deleteMany({ where: { id: deletedId, programId } });
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
   redirect(`/${lang}/coach/programs/${programId}`);
 }
 
@@ -1125,7 +1149,7 @@ export async function linkCoJointSession(formData: FormData) {
     });
   }, { timeout: 30_000 });
 
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
   redirect(
     `/${lang}/coach/programs/${programId}?coJointLinked=${encodeURIComponent(targetAthlete.fullName)}`,
   );
@@ -1160,6 +1184,6 @@ export async function unlinkCoJointSession(formData: FormData) {
     data: { coJointKey: null },
   });
 
-  revalidatePath(`/${lang}/coach/programs/${programId}`, "layout");
+  revalidateProgramSurfaces(programId);
   redirect(`/${lang}/coach/programs/${programId}?coJointUnlinked=1`);
 }

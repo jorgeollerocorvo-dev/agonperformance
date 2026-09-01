@@ -1,3 +1,10 @@
+// Every athlete-facing view must render fresh on every request — coaches edit
+// programs from another tab and we can't afford to serve stale HTML from the
+// Full Route Cache. Setting dynamic here propagates to every page under
+// /[lang]/athlete/*.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
