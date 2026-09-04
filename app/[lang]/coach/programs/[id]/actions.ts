@@ -8,6 +8,7 @@ import { generateProgressionWeek, type PriorWeek } from "@/lib/ai-progression-we
 import { movementYoutubeSearchUrl } from "@/lib/ai-parse-program";
 import { aiProgramGenEnabled } from "@/lib/features";
 import { resolveLibraryMovements, listLibraryMovementNames } from "@/lib/movement-resolver";
+import { isYoutubeSearch } from "@/lib/youtube";
 
 /**
  * Bust cached HTML for every surface that shows this program — both the coach
@@ -245,9 +246,26 @@ export async function saveProgram(input: EditorProgram) {
                     libraryMovement = movementMap.get(m.name.toLowerCase().trim());
                   }
 
-                  const libraryVideoUrl = libraryMovement?.videoUrl;
-                  // Priority: coach-pinned URL → movement library video
-                  const youtubeUrl = m.youtubeUrl || libraryVideoUrl || undefined;
+                  const libraryVideoUrl = libraryMovement?.videoUrl ?? null;
+                  const coachUrl = (m.youtubeUrl ?? "").trim() || null;
+                  // Was the coach's URL manually pinned to a specific YouTube
+                  // video (not a search results page)?
+                  const coachPinnedRealVideo = coachUrl && !isYoutubeSearch(coachUrl);
+
+                  // Priority — chosen to make video updates AUTOMATIC when the
+                  // coach renames a movement without touching the URL:
+                  //   1. Library match (respects videoLocked)
+                  //   2. Coach-pinned real YouTube video URL
+                  //   3. Fresh YouTube search URL for the CURRENT movement name
+                  // Previously we preferred any coach URL first — a stale
+                  // auto-generated search URL from the old name would win over
+                  // the fresh library match, so renaming a movement never
+                  // updated its video.
+                  const youtubeUrl =
+                    libraryVideoUrl ||
+                    (coachPinnedRealVideo ? coachUrl : null) ||
+                    (m.name ? movementYoutubeSearchUrl(m.name) : undefined);
+
                   // Use the matched movement's ID if we found one by name
                   const finalMovementId = movementId || (libraryMovement?.id ? libraryMovement.id : undefined);
 
