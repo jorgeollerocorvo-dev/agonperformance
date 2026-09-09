@@ -6,6 +6,28 @@ import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Pill } from "@/components/ui/Card";
 
 /**
+ * Map a session's focus text to a workout-type emoji so calendar cells read
+ * at a glance ("that's a HYROX day, that's strength"). Keep the emoji set
+ * small and unambiguous.
+ */
+function workoutIconFor(focus: string | null | undefined): string {
+  const f = (focus ?? "").toLowerCase();
+  if (!f) return "•";
+  if (/rest|off day|deload/.test(f)) return "😴";
+  if (/hyrox|metcon|conditioning|amrap|emom|wod|circuit/.test(f)) return "🏃";
+  if (/run|jog|zone[- ]?2|aerobic|endurance/.test(f)) return "🏃‍♂️";
+  if (/row|erg|bike|assault|echo/.test(f)) return "🚴";
+  if (/swim/.test(f)) return "🏊";
+  if (/snatch|clean|jerk|olympic|weightlifting/.test(f)) return "🥇";
+  if (/squat|deadlift|bench|press|strength|1rm|pr day|test/.test(f)) return "🏋️";
+  if (/hypertrophy|bodybuilding|arms|back day|leg day|upper|lower|glutes|chest/.test(f)) return "💪";
+  if (/mobility|stretch|yoga|recovery/.test(f)) return "🧘";
+  if (/warm[- ]?up/.test(f)) return "🔥";
+  if (/skill|gymnastic|hspu|muscle[- ]?up|handstand/.test(f)) return "🤸";
+  return "💪"; // default: some training happened
+}
+
+/**
  * Athlete calendar — month grid view of all program sessions.
  *
  * - Highlights every day with a scheduled session
@@ -163,12 +185,17 @@ export default async function AthleteCalendar({ params, searchParams }: PageProp
               : "bg-[var(--primary-soft)] border-[var(--primary)]/30 text-[var(--primary)] hover:bg-[var(--primary-soft)]/80";
             const ringCls = isToday ? "ring-2 ring-[var(--ink)] ring-offset-1" : "";
 
+            const icon = hasSession ? workoutIconFor(s!.focus) : "";
             const inner = (
               <>
                 <span className="font-semibold leading-none text-xs sm:text-sm">{c.date.getDate()}</span>
                 {hasSession && (
-                  <span className="text-[7px] sm:text-[9px] mt-0.5 line-clamp-1 max-w-full px-1 text-center leading-tight">
-                    {s!.focus ? s!.focus : isCompleted ? "✓" : "•"}
+                  <span
+                    className="mt-0.5 text-base sm:text-lg leading-none"
+                    aria-label={s!.focus ?? "workout"}
+                    title={s!.focus ?? "workout"}
+                  >
+                    {isCompleted ? "✓" : icon}
                   </span>
                 )}
               </>

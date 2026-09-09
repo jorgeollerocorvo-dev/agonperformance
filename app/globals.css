@@ -4,31 +4,33 @@
 @custom-variant dark (&:where(.__never__));
 
 :root {
-  /* Revolut-inspired palette: pure white + black + Revolut blue */
-  --bg:         #FFFFFF;
-  --bg-alt:     #F5F6F7;      /* section alt backgrounds */
-  --surface:    #FFFFFF;
-  --surface-2:  #F5F6F7;
+  /* Warm paper palette — cream base, keeps Revolut-blue accent + charcoal ink.
+     Softer than pure white while staying premium. */
+  --bg:         #F9F5EC;      /* warm cream — main app background */
+  --bg-alt:     #F1ECDD;      /* section alt backgrounds */
+  --surface:    #FFFFFF;      /* cards stay crisp white on cream */
+  --surface-2:  #F1ECDD;      /* muted panels, calendar slots, pills */
   --ink:        #0A0A0B;
-  --ink-muted:  #6B6B70;
-  --ink-subtle: #A0A0A6;
-  --border:     #EAEAEF;
-  --border-strong: #D9D9DE;
+  --ink-muted:  #6B665C;      /* very slight warm shift */
+  --ink-subtle: #A29B8B;
+  --border:     #E5DFCE;      /* warm border */
+  --border-strong: #D0C8B4;
 
-  --primary:        #0075EB;  /* Revolut blue */
+  --primary:        #0075EB;  /* Revolut blue — kept as accent */
   --primary-hover:  #0063C7;
-  --primary-soft:   #E5F0FD;
+  --primary-soft:   #E7F0FB;  /* slightly warmer soft blue */
   --primary-ink:    #FFFFFF;
 
   --accent-black:   #0A0A0B;
   --accent-purple:  #7A5CFF;
   --accent-pink:    #FF4F8B;
+  --accent-warm:    #B8956A;  /* brushed champagne gold (brochure accent) */
 
   --success:      #1EAD6B;
-  --success-soft: #E4F6EC;
+  --success-soft: #E2F0DE;    /* warm-tinted */
   --warn:         #F6A11A;
   --danger:       #E23A3A;
-  --danger-soft:  #FCE8E8;
+  --danger-soft:  #FBE6E1;    /* warm-tinted */
   --border-danger: #E8B4B4;
 
   --shadow-sm: 0 1px 2px rgba(10, 10, 11, 0.04), 0 0 1px rgba(10, 10, 11, 0.06);
