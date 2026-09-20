@@ -77,7 +77,7 @@ export async function updateAthleteProfile(
           });
         }
       }
-    });
+    }, { timeout: 15_000, maxWait: 5_000 });
 
     return { success: true };
   } catch (error) {
@@ -186,7 +186,7 @@ export async function createUserAccountForAthlete(
         create: { userId: user.id, athleteId, active: true },
         update: { active: true },
       });
-    });
+    }, { timeout: 15_000, maxWait: 5_000 });
 
     return { success: true, password: initialPassword };
   } catch (error) {
@@ -216,7 +216,7 @@ export async function createUserAccountForAthlete(
             update: { active: true },
             create: { userId: existingUser.id, athleteId, active: true },
           });
-        });
+        }, { timeout: 15_000, maxWait: 5_000 });
 
         return { success: true, password: initialPassword };
       }

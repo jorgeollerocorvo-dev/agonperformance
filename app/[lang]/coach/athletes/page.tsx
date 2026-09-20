@@ -112,7 +112,7 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
       }
 
       return created;
-    });
+    }, { timeout: 15_000, maxWait: 5_000 });
 
     redirect(`/${lang}/coach/athletes/${athlete.id}${createLogin ? "?accountCreated=1" : ""}`);
   }
@@ -134,35 +134,33 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
     });
     if (!athlete || athlete.coachProfileId !== cp.id) return;
 
-    // Delete in transaction to handle all related data
+    // Delete in transaction to handle all related data.
+    // Refactor note: the previous version used a triple-nested loop to delete
+    // SessionLog rows one-at-a-time (programs → weeks → sessions), which
+    // meant N+1 round trips to the DB. On Neon that easily blew past the
+    // default 5s Prisma transaction timeout for any athlete with a real
+    // training history. Now: one deleteMany with an IN-list of session ids
+    // (single round trip) followed by the parent cascades.
     await prisma.$transaction(async (tx) => {
-      // Delete all program sessions and their logs
-      const programs = await tx.program.findMany({
-        where: { athleteId },
-        select: { weeks: { select: { sessions: { select: { id: true } } } } },
+      const sessions = await tx.programSession.findMany({
+        where: { programWeek: { program: { athleteId } } },
+        select: { id: true },
       });
-      for (const prog of programs) {
-        for (const week of prog.weeks) {
-          for (const session of week.sessions) {
-            await tx.sessionLog.deleteMany({ where: { programSessionId: session.id } });
-          }
-        }
+      const sessionIds = sessions.map((s) => s.id);
+      if (sessionIds.length > 0) {
+        await tx.sessionLog.deleteMany({ where: { programSessionId: { in: sessionIds } } });
       }
 
-      // Delete all programs and related data
+      // Programs, weeks, sessions, blocks, movements all cascade from Program
+      // via Prisma's onDelete: Cascade — one deleteMany here clears the tree.
       await tx.program.deleteMany({ where: { athleteId } });
-
-      // Delete athlete links
       await tx.athleteLink.deleteMany({ where: { athleteId } });
-
-      // Delete athlete
       await tx.athlete.delete({ where: { id: athleteId } });
 
-      // Delete associated user if it exists
       if (athlete.userId) {
         await tx.user.delete({ where: { id: athlete.userId } }).catch(() => {});
       }
-    });
+    }, { timeout: 60_000, maxWait: 10_000 });
 
     revalidatePath(`/${lang}/coach/athletes`, "layout");
     redirect(`/${lang}/coach/athletes`);

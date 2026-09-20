@@ -180,7 +180,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         create: { userId: u.id, athleteId: a.id, active: true },
         update: { active: true },
       });
-    });
+    }, { timeout: 15_000, maxWait: 5_000 });
 
     redirect(`/${langParam}/coach/athletes/${athleteId}?loginCreated=1`);
   }

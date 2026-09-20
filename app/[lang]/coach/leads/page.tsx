@@ -110,7 +110,7 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
         where: { id: inquiryId },
         data: { status: "CONVERTED" },
       });
-    });
+    }, { timeout: 15_000, maxWait: 5_000 });
 
     // Revalidate both leads and athletes pages
     revalidatePath(`/${lang}/coach/leads`, "layout");

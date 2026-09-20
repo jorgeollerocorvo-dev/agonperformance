@@ -159,7 +159,7 @@ export default async function JorgeIntake({ params, searchParams }: PageProps<"/
             goals: goal || undefined,
           },
         });
-      });
+      }, { timeout: 15_000, maxWait: 5_000 });
     } catch (err) {
       console.error("ERROR creating inquiry/athlete:", err);
       redirect(`/${lang}/find/jorge?error=creation`);
