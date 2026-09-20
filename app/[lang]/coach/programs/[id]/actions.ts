@@ -148,6 +148,10 @@ export async function saveProgram(input: EditorProgram) {
     });
   }
 
+  // Bump the Prisma transaction timeout — the default 5s is too tight now that
+  // we hit Neon (us-east-2) from Railway. A 12-week program with ~1400
+  // ProgramMovement rows makes ~60 round trips; each ~50ms of latency adds up
+  // to well over the default budget. maxWait guards against pool exhaustion.
   await prisma.$transaction(async (tx) => {
     // CRITICAL: Save all existing SessionLog data before deleting sessions
     // This preserves athlete feedback (intensityFeedback, intensityReview) across program edits
@@ -290,7 +294,7 @@ export async function saveProgram(input: EditorProgram) {
         }
       }
     }
-  });
+  }, { timeout: 60_000, maxWait: 10_000 });
 
   revalidateProgramSurfaces(program.id);
 }
