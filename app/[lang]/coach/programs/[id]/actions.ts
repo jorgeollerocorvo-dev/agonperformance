@@ -1012,8 +1012,15 @@ export async function listCoJointCandidates(
   targetSessionId: string | null;
   isLinked: boolean;
 }>> {
+  // Note: we intentionally DON'T check session.user.roles.includes("COACH")
+  // here — that array is baked into the JWT at login and can be stale (e.g.
+  // if the User was recreated or the roles table was updated after login,
+  // the JWT still reflects the old state). The presence of a CoachProfile
+  // linked to this user is the authoritative signal that they can coach,
+  // and the source-session query below is scoped to that coach anyway, so
+  // there's no privilege escalation risk.
   const session = await auth();
-  if (!session?.user || !session.user.roles?.includes("COACH")) return [];
+  if (!session?.user?.id) return [];
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
   if (!coach) return [];
 
