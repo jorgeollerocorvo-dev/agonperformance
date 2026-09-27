@@ -1020,9 +1020,17 @@ export async function listCoJointCandidates(
   // and the source-session query below is scoped to that coach anyway, so
   // there's no privilege escalation risk.
   const session = await auth();
-  if (!session?.user?.id) return [];
+  console.log("[listCoJointCandidates] session.user.id:", session?.user?.id, "sessionId:", sourceSessionId, "programId:", programId);
+  if (!session?.user?.id) {
+    console.log("[listCoJointCandidates] NO SESSION USER");
+    return [];
+  }
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
-  if (!coach) return [];
+  console.log("[listCoJointCandidates] coach:", coach?.id, "userId lookup:", session.user.id);
+  if (!coach) {
+    console.log("[listCoJointCandidates] NO COACH PROFILE for user", session.user.id);
+    return [];
+  }
 
   const source = await prisma.programSession.findFirst({
     where: {
@@ -1031,7 +1039,12 @@ export async function listCoJointCandidates(
     },
     select: { date: true, coJointKey: true, programWeek: { select: { program: { select: { athleteId: true } } } } },
   });
-  if (!source) return [];
+  console.log("[listCoJointCandidates] source found?", !!source, "date:", source?.date);
+  if (!source) {
+    const rawSource = await prisma.programSession.findUnique({ where: { id: sourceSessionId }, select: { id: true, programWeek: { select: { program: { select: { id: true, athleteId: true, athlete: { select: { coachProfileId: true } } } } } } } });
+    console.log("[listCoJointCandidates] SOURCE MISMATCH — raw session:", JSON.stringify(rawSource));
+    return [];
+  }
 
   const sourceAthleteId = source.programWeek.program.athleteId;
 
@@ -1041,6 +1054,7 @@ export async function listCoJointCandidates(
     orderBy: { fullName: "asc" },
     select: { id: true, fullName: true },
   });
+  console.log("[listCoJointCandidates] athletes count:", athletes.length, "coach.id:", coach.id, "sourceAthleteId:", sourceAthleteId);
 
   // For each, find a session on the same date in any of their programs.
   const candidates = await Promise.all(
