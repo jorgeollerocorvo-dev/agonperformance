@@ -5,7 +5,7 @@ import Link from "next/link";
 import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type EditorMovement } from "./actions";
 import { getDayNameFromDateString } from "@/lib/day-utils";
 import MovementNameInput from "@/components/MovementNameInput";
-import CoJointLinkButton from "@/components/CoJointLinkButton";
+import CopyDayToAthleteButton from "@/components/CopyDayToAthleteButton";
 import CoachMovementVideoThumb from "@/components/CoachMovementVideoThumb";
 
 type Dict = {
@@ -556,20 +556,12 @@ function DayCard({
             Last completed
           </div>
         )}
-        {day.coJointWithName && (
-          <div
-            className="px-2 py-0.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] text-[0.65rem] font-semibold whitespace-nowrap"
-            title={`Co-joint workout — linked with ${day.coJointWithName}`}
-          >
-            🔗 {day.coJointWithName}
-          </div>
-        )}
         <div className="flex gap-1 items-center">
-          <CoJointLinkButton
+          {/* Copy this day's workout to another athlete's same-date session */}
+          <CopyDayToAthleteButton
             sessionId={day.id}
             programId={programId}
             lang={lang}
-            linkedWithName={day.coJointWithName ?? null}
           />
           <IconButton title={dict.copy + " (day)"} onClick={onCopyDay}>
             <span className="text-xs">📋</span>

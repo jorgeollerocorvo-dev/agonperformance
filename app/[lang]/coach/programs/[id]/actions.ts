@@ -1209,3 +1209,118 @@ export async function unlinkCoJointSession(formData: FormData) {
   revalidateProgramSurfaces(programId);
   redirect(`/${lang}/coach/programs/${programId}?coJointUnlinked=1`);
 }
+
+// ────────────────────────────────────────────────────────────
+// Copy a day's workout to another athlete (one-shot, no link)
+// ────────────────────────────────────────────────────────────
+
+/**
+ * One-way copy of a single day's workout from this program's session to another
+ * athlete's session on the same date. Different from linkCoJointSession:
+ *   - No coJointKey assigned — the two sessions are independent going forward.
+ *   - The source session's coJointKey (if any) is NOT propagated to the target.
+ *   - Used when a coach wants to reuse programming without pairing athletes.
+ *
+ * Requires the target athlete to already have a session on the same date.
+ * (We don't create days here — the coach adds a program covering that date
+ * first, then copies onto it.)
+ */
+export async function copyDayToAthlete(formData: FormData) {
+  "use server";
+  const sourceSessionId = String(formData.get("sourceSessionId") ?? "");
+  const targetAthleteId = String(formData.get("targetAthleteId") ?? "");
+  const programId = String(formData.get("programId") ?? "");
+  const lang = String(formData.get("lang") ?? "en");
+  if (!sourceSessionId || !targetAthleteId || !programId) {
+    redirect(`/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent("Missing fields")}`);
+  }
+
+  const session = await auth();
+  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
+  if (!coach) throw new Error("no coach profile");
+
+  // Verify: coach owns the source program AND the target athlete.
+  const source = await prisma.programSession.findFirst({
+    where: {
+      id: sourceSessionId,
+      programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+    },
+    include: {
+      blocks: {
+        orderBy: { order: "asc" },
+        include: { movements: { orderBy: { order: "asc" } } },
+      },
+    },
+  });
+  if (!source) {
+    redirect(`/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent("Source session not found")}`);
+  }
+
+  const targetAthlete = await prisma.athlete.findFirst({
+    where: { id: targetAthleteId, coachProfileId: coach.id },
+  });
+  if (!targetAthlete) {
+    redirect(`/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent("Target athlete not found")}`);
+  }
+
+  const target = await prisma.programSession.findFirst({
+    where: {
+      date: source.date,
+      programWeek: { program: { athleteId: targetAthleteId } },
+    },
+  });
+  if (!target) {
+    redirect(
+      `/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent(
+        `${targetAthlete.fullName} has no session on ${source.date.toISOString().slice(0, 10)} — create their program covering this date first.`,
+      )}`,
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Wipe target's existing blocks first (cascades to movements).
+    await tx.programBlock.deleteMany({ where: { programSessionId: target.id } });
+
+    // Deep-copy source's block tree onto the target.
+    for (const b of source.blocks) {
+      await tx.programBlock.create({
+        data: {
+          programSessionId: target.id,
+          blockCode: b.blockCode,
+          label: b.label,
+          format: b.format,
+          restSec: b.restSec,
+          notes: b.notes,
+          order: b.order,
+          movements: {
+            create: b.movements.map((m) => ({
+              movementId: m.movementId,
+              customName: m.customName,
+              prescription: (m.prescription ?? undefined) as object | undefined,
+              order: m.order,
+              isTest: m.isTest,
+            })),
+          },
+        },
+      });
+    }
+
+    // Mirror day-level metadata (focus/intensity/notes) so the target's day
+    // reads like the source. Explicitly do NOT touch coJointKey — copy is
+    // independent, not a link.
+    await tx.programSession.update({
+      where: { id: target.id },
+      data: {
+        focus: source.focus,
+        intensity: source.intensity,
+        notes: source.notes,
+      },
+    });
+  }, { timeout: 30_000, maxWait: 5_000 });
+
+  revalidateProgramSurfaces(programId);
+  redirect(
+    `/${lang}/coach/programs/${programId}?copyDayDone=${encodeURIComponent(targetAthlete.fullName)}`,
+  );
+}

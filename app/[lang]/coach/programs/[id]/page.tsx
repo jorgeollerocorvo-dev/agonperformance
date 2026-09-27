@@ -63,9 +63,9 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
   const weekDeleteError = typeof sp?.weekDeleteError === "string" ? decodeURIComponent(sp.weekDeleteError) : null;
   const weekRestored = typeof sp?.weekRestored === "string" ? sp.weekRestored : null;
   const weekRestoreError = typeof sp?.weekRestoreError === "string" ? decodeURIComponent(sp.weekRestoreError) : null;
-  const coJointLinked = typeof sp?.coJointLinked === "string" ? decodeURIComponent(sp.coJointLinked) : null;
-  const coJointUnlinked = sp?.coJointUnlinked === "1";
-  const coJointError = typeof sp?.coJointError === "string" ? decodeURIComponent(sp.coJointError) : null;
+  // Copy-day-to-athlete flash messages (from copyDayToAthlete server action).
+  const copyDayDone = typeof sp?.copyDayDone === "string" ? decodeURIComponent(sp.copyDayDone) : null;
+  const copyDayError = typeof sp?.copyDayError === "string" ? decodeURIComponent(sp.copyDayError) : null;
 
   // Recently-deleted weeks for the trash card.
   const deletedWeeks = await prisma.deletedProgramWeek.findMany({
@@ -286,20 +286,15 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
         </Card>
       )}
 
-      {/* Flash: co-joint link / unlink */}
-      {coJointLinked && (
+      {/* Flash: copy-day-to-athlete result */}
+      {copyDayDone && (
         <Card className="bg-[var(--success-soft)] border-[var(--success)]/30 text-sm">
-          🔗 ✓ Co-joint workout copied to {coJointLinked}. Adjust their loads as needed.
+          📤 ✓ Workout copied to {copyDayDone}. Their day was overwritten — adjust loads as needed on their program.
         </Card>
       )}
-      {coJointUnlinked && (
-        <Card className="bg-[var(--surface-2)] border-[var(--border)] text-sm">
-          🔗 Unlinked.
-        </Card>
-      )}
-      {coJointError && (
+      {copyDayError && (
         <Card className="bg-[var(--danger-soft)] border-[var(--danger)]/30 text-sm text-[var(--danger)]">
-          ✕ {coJointError}
+          ✕ {copyDayError}
         </Card>
       )}
 
