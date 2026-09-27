@@ -113,7 +113,7 @@ export default function CopyDayToAthleteButton({
             {candidates !== null && candidates.length > 0 && (
               <ul className="space-y-1 max-h-64 overflow-y-auto">
                 {candidates.map((c) => {
-                  const canCopy = !!c.targetSessionId && !busy;
+                  const canCopy = !busy;
                   return (
                     <li key={c.athleteId}>
                       <form
@@ -143,8 +143,8 @@ export default function CopyDayToAthleteButton({
                             {c.targetSessionId
                               ? c.isLinked
                                 ? "Has a session (already co-joint linked)"
-                                : "Has a session on this date"
-                              : "No session on this date"}
+                                : "Overwrites existing session"
+                              : "Will create a session on this date"}
                           </div>
                         </div>
                         <button
@@ -153,7 +153,7 @@ export default function CopyDayToAthleteButton({
                           className="text-xs text-[var(--primary)] font-semibold hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
                           title={
                             !c.targetSessionId
-                              ? "This athlete has no session on this date — create their program covering it first."
+                              ? "Create a session on this date and copy the workout to it"
                               : "Overwrite their workout with this one"
                           }
                         >

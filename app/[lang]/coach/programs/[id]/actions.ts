@@ -1257,7 +1257,7 @@ export async function copyDayToAthlete(formData: FormData) {
   }
 
   const session = await auth();
-  if (!session?.user || !session.user.roles?.includes("COACH")) throw new Error("unauthorized");
+  if (!session?.user?.id) throw new Error("unauthorized");
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
   if (!coach) throw new Error("no coach profile");
 
@@ -1285,18 +1285,48 @@ export async function copyDayToAthlete(formData: FormData) {
     redirect(`/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent("Target athlete not found")}`);
   }
 
-  const target = await prisma.programSession.findFirst({
+  let target = await prisma.programSession.findFirst({
     where: {
       date: source.date,
       programWeek: { program: { athleteId: targetAthleteId } },
     },
   });
+
   if (!target) {
-    redirect(
-      `/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent(
-        `${targetAthlete.fullName} has no session on ${source.date.toISOString().slice(0, 10)} — create their program covering this date first.`,
-      )}`,
-    );
+    // Auto-provision a session on the target date. Attach it to the target
+    // athlete's most recent program (any week); if the athlete has no program
+    // at all, create a lightweight one just to hold copied days.
+    let targetProgram = await prisma.program.findFirst({
+      where: { athleteId: targetAthleteId },
+      orderBy: { createdAt: "desc" },
+      include: { weeks: { orderBy: { weekNumber: "desc" }, take: 1 } },
+    });
+
+    if (!targetProgram) {
+      targetProgram = await prisma.program.create({
+        data: {
+          athleteId: targetAthleteId,
+          title: "Daily workouts",
+          startDate: source.date,
+          weeks: { create: [{ weekNumber: 1, weekLabel: "W1" }] },
+        },
+        include: { weeks: { orderBy: { weekNumber: "desc" }, take: 1 } },
+      });
+    }
+
+    let targetWeek = targetProgram.weeks[0];
+    if (!targetWeek) {
+      targetWeek = await prisma.programWeek.create({
+        data: { programId: targetProgram.id, weekNumber: 1, weekLabel: "W1" },
+      });
+    }
+
+    target = await prisma.programSession.create({
+      data: {
+        programWeekId: targetWeek.id,
+        date: source.date,
+      },
+    });
   }
 
   await prisma.$transaction(async (tx) => {
