@@ -1398,11 +1398,35 @@ export async function copyDayToAthlete(formData: FormData) {
     });
   }
 
+  // Verify every movementId in the source still exists in the Movement
+  // library. If one was deleted, we can't copy the FK (Prisma would reject),
+  // so we drop the movementId and preserve the name as customName — the
+  // exercise still appears on the target, just without its video.
+  const referencedMovementIds = Array.from(
+    new Set(
+      source.blocks.flatMap((b) => b.movements.map((m) => m.movementId).filter((id): id is string => !!id)),
+    ),
+  );
+  const liveMovements = referencedMovementIds.length
+    ? await prisma.movement.findMany({
+        where: { id: { in: referencedMovementIds } },
+        select: { id: true, nameEn: true, videoUrl: true },
+      })
+    : [];
+  const liveMovementIds = new Set(liveMovements.map((m) => m.id));
+  const liveMovementNameById = new Map(liveMovements.map((m) => [m.id, m.nameEn]));
+  const droppedRefs = referencedMovementIds.filter((id) => !liveMovementIds.has(id));
+  if (droppedRefs.length) {
+    console.warn("[copyDayToAthlete] dropped stale movementIds:", droppedRefs);
+  }
+
   await prisma.$transaction(async (tx) => {
     // Wipe target's existing blocks first (cascades to movements).
     await tx.programBlock.deleteMany({ where: { programSessionId: target.id } });
 
-    // Deep-copy source's block tree onto the target.
+    // Deep-copy source's block tree onto the target. Video URLs are joined
+    // from Movement via movementId on read, so a valid FK is sufficient to
+    // carry the video across athletes.
     for (const b of source.blocks) {
       await tx.programBlock.create({
         data: {
@@ -1414,13 +1438,22 @@ export async function copyDayToAthlete(formData: FormData) {
           notes: b.notes,
           order: b.order,
           movements: {
-            create: b.movements.map((m) => ({
-              movementId: m.movementId,
-              customName: m.customName,
-              prescription: (m.prescription ?? undefined) as object | undefined,
-              order: m.order,
-              isTest: m.isTest,
-            })),
+            create: b.movements.map((m) => {
+              const movementIdIsLive = !!m.movementId && liveMovementIds.has(m.movementId);
+              return {
+                // Keep the FK only if the library entry still exists.
+                movementId: movementIdIsLive ? m.movementId : null,
+                // Ensure the exercise name survives even when the FK is dropped:
+                // prefer the source's customName, fall back to the library's
+                // canonical name so nothing renders blank.
+                customName:
+                  m.customName ??
+                  (m.movementId ? liveMovementNameById.get(m.movementId) ?? null : null),
+                prescription: (m.prescription ?? undefined) as object | undefined,
+                order: m.order,
+                isTest: m.isTest,
+              };
+            }),
           },
         },
       });
