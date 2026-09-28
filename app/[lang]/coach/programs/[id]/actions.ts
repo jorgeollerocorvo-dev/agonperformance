@@ -1450,44 +1450,46 @@ export async function copyDayToAthlete(formData: FormData) {
     // Wipe target's existing blocks first (cascades to movements).
     await tx.programBlock.deleteMany({ where: { programSessionId: target.id } });
 
-    // Deep-copy source's block tree onto the target. Video URLs are joined
-    // from Movement via movementId on read, so a valid FK is sufficient to
-    // carry the video across athletes.
-    for (const b of source.blocks) {
-      await tx.programBlock.create({
-        data: {
-          programSessionId: target.id,
-          blockCode: b.blockCode,
-          label: b.label,
-          format: b.format,
-          restSec: b.restSec,
-          notes: b.notes,
-          order: b.order,
-          movements: {
-            create: b.movements.map((m) => {
-              const movementIdIsLive = !!m.movementId && liveMovementIds.has(m.movementId);
-              return {
-                // Keep the FK only if the library entry still exists.
-                movementId: movementIdIsLive ? m.movementId : null,
-                // Ensure the exercise name survives even when the FK is dropped:
-                // prefer the source's customName, fall back to the library's
-                // canonical name so nothing renders blank.
-                customName:
-                  m.customName ??
-                  (m.movementId ? liveMovementNameById.get(m.movementId) ?? null : null),
-                prescription: (m.prescription ?? undefined) as object | undefined,
-                order: m.order,
-                isTest: m.isTest,
-              };
-            }),
-          },
-        },
+    // Two round-trips instead of one-per-block:
+    //   1. createManyAndReturn all blocks (Postgres RETURNING gets ids back)
+    //   2. createMany all movements at once, mapped to their block ids by
+    //      the block's `order` (unique per session).
+    const createdBlocks = await tx.programBlock.createManyAndReturn({
+      data: source.blocks.map((b) => ({
+        programSessionId: target.id,
+        blockCode: b.blockCode,
+        label: b.label,
+        format: b.format,
+        restSec: b.restSec,
+        notes: b.notes,
+        order: b.order,
+      })),
+      select: { id: true, order: true },
+    });
+    const blockIdByOrder = new Map(createdBlocks.map((b) => [b.order, b.id]));
+
+    const movementRows = source.blocks.flatMap((b) => {
+      const blockId = blockIdByOrder.get(b.order);
+      if (!blockId) return [];
+      return b.movements.map((m) => {
+        const movementIdIsLive = !!m.movementId && liveMovementIds.has(m.movementId);
+        return {
+          programBlockId: blockId,
+          movementId: movementIdIsLive ? m.movementId : null,
+          customName:
+            m.customName ??
+            (m.movementId ? liveMovementNameById.get(m.movementId) ?? null : null),
+          prescription: (m.prescription ?? undefined) as object | undefined,
+          order: m.order,
+          isTest: m.isTest,
+        };
       });
+    });
+    if (movementRows.length > 0) {
+      await tx.programMovement.createMany({ data: movementRows });
     }
 
-    // Mirror day-level metadata (focus/intensity/notes) so the target's day
-    // reads like the source. Explicitly do NOT touch coJointKey — copy is
-    // independent, not a link.
+    // Mirror day-level metadata; do NOT touch coJointKey (copy is independent).
     await tx.programSession.update({
       where: { id: target.id },
       data: {
