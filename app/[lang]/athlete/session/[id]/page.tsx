@@ -6,7 +6,7 @@ import { getDictionary, hasLocale } from "../../../dictionaries";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
 import IntensityReview from "@/components/IntensityReview";
-import { ensureMovementVideoUrl } from "@/lib/youtube-search";
+import { ensureMovementVideoUrls } from "@/lib/youtube-search";
 import { isYoutubeSearch } from "@/lib/youtube";
 import { saveSessionFeedback } from "./actions";
 
@@ -49,12 +49,10 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
       targets.push({ id: m.id, movementId: m.movementId, name: m.movement?.nameEn ?? m.customName ?? "exercise" });
     }
   }
-  const resolved = await Promise.allSettled(
-    targets.map(async (t) => ({ id: t.id, url: await ensureMovementVideoUrl(t.movementId, t.name) })),
+  const resolvedMap = await ensureMovementVideoUrls(
+    targets.map((t) => ({ key: t.id, movementId: t.movementId, fallbackName: t.name })),
   );
-  for (const r of resolved) {
-    if (r.status === "fulfilled") resolvedVideoByMovement.set(r.value.id, r.value.url);
-  }
+  for (const [id, url] of resolvedMap) resolvedVideoByMovement.set(id, url);
 
   async function toggleComplete() {
     "use server";

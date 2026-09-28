@@ -157,8 +157,14 @@ export async function saveProgram(input: EditorProgram) {
   // we don't hammer YouTube with a burst on big programs.
   const unresolvedNames = Array.from(movementNames).filter((n) => !movementMap.has(n));
   if (unresolvedNames.length > 0) {
+    // Cap YouTube fan-out per save: an accidental 50-movement rename burst
+    // shouldn't spawn 50 sequential 8-second scrapes (~7 min of save time and
+    // a serious rate-limit risk). We resolve the first N here; the rest still
+    // save with a search-URL fallback and will resolve on the coach's next
+    // save or on the athlete's first page load.
+    const MAX_YT_PER_SAVE = 5;
     const { resolveOrCreateMovementByName } = await import("@/lib/youtube-search");
-    for (const name of unresolvedNames) {
+    for (const name of unresolvedNames.slice(0, MAX_YT_PER_SAVE)) {
       try {
         const r = await resolveOrCreateMovementByName(name);
         if (r) movementMap.set(name, { id: r.id, videoUrl: r.videoUrl, nameEn: name });

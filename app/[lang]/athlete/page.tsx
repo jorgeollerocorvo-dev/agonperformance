@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../dictionaries";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
 import IntensityReview from "@/components/IntensityReview";
-import { ensureMovementVideoUrl } from "@/lib/youtube-search";
+import { ensureMovementVideoUrls } from "@/lib/youtube-search";
 import { isYoutubeSearch } from "@/lib/youtube";
 import { getDayNameFromDate } from "@/lib/day-utils";
 import Link from "next/link";
@@ -245,12 +245,10 @@ export default async function AthleteToday({ params, searchParams }: PageProps<"
         }
       }
     }
-    const resolved = await Promise.allSettled(
-      targets.map(async (t) => ({ id: t.id, url: await ensureMovementVideoUrl(t.movementId, t.name) })),
+    const resolvedMap = await ensureMovementVideoUrls(
+      targets.map((t) => ({ key: t.id, movementId: t.movementId, fallbackName: t.name })),
     );
-    for (const r of resolved) {
-      if (r.status === "fulfilled") resolvedVideoByMovement.set(r.value.id, r.value.url);
-    }
+    for (const [id, url] of resolvedMap) resolvedVideoByMovement.set(id, url);
   }
 
   if (futureSessions.length === 0) {

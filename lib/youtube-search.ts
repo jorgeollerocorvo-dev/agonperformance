@@ -281,22 +281,96 @@ export async function findBestYoutubeVideo(query: string): Promise<string | null
  * Locked URLs (videoLocked = true) are returned unchanged — the admin can pin a
  * curated demo and the auto-resolver leaves it alone forever.
  */
+// Cache empty-search-result attempts for this long before re-hitting YouTube.
+// A movement with no video that we already couldn't resolve doesn't need to
+// be rechecked on every page load — that's the biggest source of Railway
+// egress + wasted CPU in the current design.
+const NEGATIVE_CACHE_MS = 7 * 24 * 60 * 60 * 1000;
+
 export async function ensureMovementVideoUrl(
   movementId: string | null,
   fallbackName: string,
 ): Promise<string | null> {
   if (movementId) {
     const m = await prisma.movement.findUnique({ where: { id: movementId } });
-    if (m?.videoUrl) return m.videoUrl;            // already cached (locked or not)
-    const found = await findBestYoutubeVideo(`${m?.nameEn ?? fallbackName} exercise demo`);
-    if (found) {
-      await prisma.movement.update({ where: { id: movementId }, data: { videoUrl: found } });
-      return found;
+    if (m?.videoUrl) return m.videoUrl;
+    // Negative-cache: if the last attempt (updatedAt) was within a week and
+    // still produced nothing, skip re-hitting YouTube — that call is the
+    // single largest cost driver on athlete page loads.
+    if (m && Date.now() - new Date(m.updatedAt ?? m.createdAt).getTime() < NEGATIVE_CACHE_MS) {
+      return null;
     }
-    return null;
+    const found = await findBestYoutubeVideo(`${m?.nameEn ?? fallbackName} exercise demo`);
+    // Always bump updatedAt (via the update below) so a null result still
+    // starts the 7-day cooldown.
+    await prisma.movement.update({
+      where: { id: movementId },
+      data: found ? { videoUrl: found } : { updatedAt: new Date() },
+    });
+    return found;
   }
-  // Custom (non-library) movement — search but don't persist
+  // Custom (non-library) movement — search but don't persist.
   return await findBestYoutubeVideo(`${fallbackName} exercise demo`);
+}
+
+/**
+ * Batched equivalent of `ensureMovementVideoUrl` for a set of (movementId,
+ * name) pairs — one Movement.findMany up front so N athlete-page movements
+ * don't fire N SELECTs, then YouTube fallback only for the (few) rows that
+ * are actually missing videos AND outside the negative-cache window.
+ *
+ * Returns a Map keyed by whatever the caller uses as `key` in each pair.
+ */
+export async function ensureMovementVideoUrls<K>(
+  pairs: { key: K; movementId: string | null; fallbackName: string }[],
+): Promise<Map<K, string | null>> {
+  const out = new Map<K, string | null>();
+  const ids = Array.from(new Set(pairs.map((p) => p.movementId).filter((id): id is string => !!id)));
+  const rows = ids.length
+    ? await prisma.movement.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, nameEn: true, videoUrl: true, updatedAt: true, createdAt: true },
+      })
+    : [];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const now = Date.now();
+  // Only the pairs that still need a YouTube hit.
+  const misses: { key: K; movementId: string | null; name: string }[] = [];
+  for (const p of pairs) {
+    const row = p.movementId ? byId.get(p.movementId) : null;
+    if (row?.videoUrl) {
+      out.set(p.key, row.videoUrl);
+      continue;
+    }
+    if (row && now - new Date(row.updatedAt ?? row.createdAt).getTime() < NEGATIVE_CACHE_MS) {
+      out.set(p.key, null);
+      continue;
+    }
+    out.set(p.key, null);
+    misses.push({ key: p.key, movementId: p.movementId, name: row?.nameEn ?? p.fallbackName });
+  }
+  // Run misses in parallel, but keep the number small — an athlete page with
+  // 50 unresolved movements shouldn't burst 50 YouTube requests. Cap at 5.
+  const capped = misses.slice(0, 5);
+  const results = await Promise.allSettled(
+    capped.map(async (m) => ({ key: m.key, id: m.movementId, url: await findBestYoutubeVideo(`${m.name} exercise demo`) })),
+  );
+  const toPersist: { id: string; url: string | null }[] = [];
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue;
+    if (r.value.url) out.set(r.value.key, r.value.url);
+    if (r.value.id) toPersist.push({ id: r.value.id, url: r.value.url });
+  }
+  // Persist in parallel — small burst of UPDATEs is fine.
+  await Promise.allSettled(
+    toPersist.map((t) =>
+      prisma.movement.update({
+        where: { id: t.id },
+        data: t.url ? { videoUrl: t.url } : { updatedAt: new Date() },
+      }),
+    ),
+  );
+  return out;
 }
 
 // Back-compat: older imports that still use the name
@@ -331,19 +405,22 @@ export async function resolveOrCreateMovementByName(
         { nameAr: { equals: trimmed, mode: "insensitive" } },
       ],
     },
-    select: { id: true, videoUrl: true, videoLocked: true },
+    select: { id: true, videoUrl: true, videoLocked: true, updatedAt: true, createdAt: true },
   });
   if (existing) {
-    // If the library entry has no video and isn't locked, opportunistically
-    // fetch one now so the coach sees it immediately.
-    if (!existing.videoUrl && !existing.videoLocked) {
-      const found = await findBestYoutubeVideo(`${trimmed} exercise demo`);
-      if (found) {
-        await prisma.movement.update({ where: { id: existing.id }, data: { videoUrl: found } });
-        return { id: existing.id, videoUrl: found };
-      }
+    if (existing.videoUrl || existing.videoLocked) {
+      return { id: existing.id, videoUrl: existing.videoUrl };
     }
-    return { id: existing.id, videoUrl: existing.videoUrl };
+    // Negative-cache: don't re-search YouTube for a library row we just tried.
+    if (Date.now() - new Date(existing.updatedAt ?? existing.createdAt).getTime() < NEGATIVE_CACHE_MS) {
+      return { id: existing.id, videoUrl: null };
+    }
+    const found = await findBestYoutubeVideo(`${trimmed} exercise demo`);
+    await prisma.movement.update({
+      where: { id: existing.id },
+      data: found ? { videoUrl: found } : { updatedAt: new Date() },
+    });
+    return { id: existing.id, videoUrl: found };
   }
 
   // No library entry yet — search YouTube then bootstrap the library.
