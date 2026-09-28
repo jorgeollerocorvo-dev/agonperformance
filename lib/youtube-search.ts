@@ -301,3 +301,62 @@ export async function ensureMovementVideoUrl(
 
 // Back-compat: older imports that still use the name
 export { findBestYoutubeVideo as findFirstYoutubeVideo };
+
+/**
+ * Given a free-text movement name, either return the matching Movement library
+ * entry (case-insensitive across nameEn/nameEs/nameAr) or create a new one
+ * whose videoUrl is a real YouTube video discovered via findBestYoutubeVideo.
+ *
+ * Used when the coach renames a movement in the program builder: if the new
+ * name doesn't already exist in the library, we bootstrap a library entry
+ * (with a real video) so the program row can point its movementId at it and
+ * the joined videoUrl works everywhere reads happen.
+ *
+ * Returns null only if the name is empty. Otherwise always returns an id
+ * (videoUrl may still be null if YouTube search found nothing).
+ */
+export async function resolveOrCreateMovementByName(
+  name: string,
+): Promise<{ id: string; videoUrl: string | null } | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const q = trimmed.toLowerCase();
+
+  // Case-insensitive exact match against any of the localized names.
+  const existing = await prisma.movement.findFirst({
+    where: {
+      OR: [
+        { nameEn: { equals: trimmed, mode: "insensitive" } },
+        { nameEs: { equals: trimmed, mode: "insensitive" } },
+        { nameAr: { equals: trimmed, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, videoUrl: true, videoLocked: true },
+  });
+  if (existing) {
+    // If the library entry has no video and isn't locked, opportunistically
+    // fetch one now so the coach sees it immediately.
+    if (!existing.videoUrl && !existing.videoLocked) {
+      const found = await findBestYoutubeVideo(`${trimmed} exercise demo`);
+      if (found) {
+        await prisma.movement.update({ where: { id: existing.id }, data: { videoUrl: found } });
+        return { id: existing.id, videoUrl: found };
+      }
+    }
+    return { id: existing.id, videoUrl: existing.videoUrl };
+  }
+
+  // No library entry yet — search YouTube then bootstrap the library.
+  const found = await findBestYoutubeVideo(`${trimmed} exercise demo`);
+  const code = q.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || `custom_${Date.now()}`;
+
+  // Race-safe upsert on the unique `code` — two coaches saving the same new
+  // name concurrently should converge on one row, not throw.
+  const created = await prisma.movement.upsert({
+    where: { code },
+    update: found ? { videoUrl: found } : {},
+    create: { code, nameEn: trimmed, videoUrl: found },
+    select: { id: true, videoUrl: true },
+  });
+  return created;
+}

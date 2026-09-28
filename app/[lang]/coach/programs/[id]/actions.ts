@@ -148,6 +148,26 @@ export async function saveProgram(input: EditorProgram) {
     });
   }
 
+  // For any name still unresolved after the library sweep, hit YouTube and
+  // bootstrap a new library entry with a real video URL. This is what makes
+  // "rename a movement → its video updates automatically" work: without this,
+  // an unknown name saves with a search-results URL, not a real video, and
+  // the coach has to paste one manually. Runs OUTSIDE the transaction so
+  // network latency doesn't blow the tx budget. Sequential (not parallel) so
+  // we don't hammer YouTube with a burst on big programs.
+  const unresolvedNames = Array.from(movementNames).filter((n) => !movementMap.has(n));
+  if (unresolvedNames.length > 0) {
+    const { resolveOrCreateMovementByName } = await import("@/lib/youtube-search");
+    for (const name of unresolvedNames) {
+      try {
+        const r = await resolveOrCreateMovementByName(name);
+        if (r) movementMap.set(name, { id: r.id, videoUrl: r.videoUrl, nameEn: name });
+      } catch (e) {
+        console.warn("[saveProgram] video resolve failed for", name, e);
+      }
+    }
+  }
+
   // Bump the Prisma transaction timeout — the default 5s is too tight now that
   // we hit Neon (us-east-2) from Railway. A 12-week program with ~1400
   // ProgramMovement rows makes ~60 round trips; each ~50ms of latency adds up
@@ -243,35 +263,35 @@ export async function saveProgram(input: EditorProgram) {
               movements: {
                 create: b.movements.map((m, mi) => {
                   const movementId = m.movementId || undefined;
+                  const nameKey = m.name?.toLowerCase().trim();
 
-                  // Try to get library video by ID first, then by name
-                  let libraryMovement = movementId ? movementMap.get(movementId) : null;
-                  if (!libraryMovement && m.name) {
-                    libraryMovement = movementMap.get(m.name.toLowerCase().trim());
-                  }
+                  // Look up by name AND by id. Prefer the name match when
+                  // it diverges from the id's canonical name — i.e. the
+                  // coach renamed the movement, so the old FK is stale and
+                  // we should point at whatever the new name resolves to
+                  // (existing library entry, or a fresh one bootstrapped
+                  // by resolveOrCreateMovementByName in the sweep above).
+                  const byId = movementId ? movementMap.get(movementId) : null;
+                  const byName = nameKey ? movementMap.get(nameKey) : null;
+                  const idNameMatches =
+                    byId?.nameEn &&
+                    nameKey &&
+                    byId.nameEn.toLowerCase().trim() === nameKey;
+                  const libraryMovement = byName && !idNameMatches ? byName : byId;
 
                   const libraryVideoUrl = libraryMovement?.videoUrl ?? null;
                   const coachUrl = (m.youtubeUrl ?? "").trim() || null;
-                  // Was the coach's URL manually pinned to a specific YouTube
-                  // video (not a search results page)?
                   const coachPinnedRealVideo = coachUrl && !isYoutubeSearch(coachUrl);
 
-                  // Priority — chosen to make video updates AUTOMATIC when the
-                  // coach renames a movement without touching the URL:
-                  //   1. Library match (respects videoLocked)
-                  //   2. Coach-pinned real YouTube video URL
-                  //   3. Fresh YouTube search URL for the CURRENT movement name
-                  // Previously we preferred any coach URL first — a stale
-                  // auto-generated search URL from the old name would win over
-                  // the fresh library match, so renaming a movement never
-                  // updated its video.
+                  // Priority: library match (respects videoLocked) → coach-
+                  // pinned real URL → search fallback. The library match
+                  // now reflects the CURRENT name, not the stale FK.
                   const youtubeUrl =
                     libraryVideoUrl ||
                     (coachPinnedRealVideo ? coachUrl : null) ||
                     (m.name ? movementYoutubeSearchUrl(m.name) : undefined);
 
-                  // Use the matched movement's ID if we found one by name
-                  const finalMovementId = movementId || (libraryMovement?.id ? libraryMovement.id : undefined);
+                  const finalMovementId = libraryMovement?.id ?? movementId;
 
                   return {
                     movementId: finalMovementId,
