@@ -183,7 +183,10 @@ Return ONLY the JSON for the single new week.`;
     systemPrompt: SYSTEM_PROMPT,
     userPrompt,
     expectJson: true,
-    maxTokens: 16_000,
+    // One week of programming ≈ 3.5-5k JSON tokens (per the sizing math in
+    // ai-generate-program). 6k gives comfortable headroom without paying for
+    // unused budget on every fallback to the paid tier.
+    maxTokens: 6_000,
   });
 
   const raw = stripJsonFences(text);

@@ -1,28 +1,28 @@
 /**
- * Provider-agnostic AI text-generation wrapper with automatic fallback.
+ * Provider-agnostic AI text-generation wrapper with tiered fallback.
  *
- * Primary provider:
- *   1. Google Gemini (FREE tier: 15 req/min, 1500 req/day)  — if  GEMINI_API_KEY  is set
+ * Tier 1 (free):   Google Gemini  — GEMINI_API_KEY   (15 req/min, 1500 req/day)
+ * Tier 2 (free):   Groq           — GROQ_API_KEY     (free tier, very fast)
+ * Tier 3 (paid):   Anthropic      — ANTHROPIC_API_KEY (only used if both free tiers fail)
  *
- * Fallback provider (triggered if primary hits quota/rate-limit):
- *   2. Anthropic Claude — if  ANTHROPIC_API_KEY  is set
- *
- * Both providers are called via REST. If Gemini quota is exhausted, the system
- * automatically retries with Anthropic—no manual intervention needed.
+ * We only fall back to a PAID provider after every free provider is exhausted
+ * or errored — Groq going in the middle turns almost all Gemini-rate-limit
+ * events into free calls instead of Anthropic bills.
  *
  * Setup (on Railway):
- *   # For free Gemini (recommended):
- *   railway variables --set "GEMINI_API_KEY=AIza..."
- *
- *   # For fallback (optional but recommended):
- *   railway variables --set "ANTHROPIC_API_KEY=sk-ant-..."
+ *   railway variables --set "GEMINI_API_KEY=AIza..."     # tier 1
+ *   railway variables --set "GROQ_API_KEY=gsk_..."       # tier 2 — grab at console.groq.com
+ *   railway variables --set "ANTHROPIC_API_KEY=sk-ant-..." # tier 3 last resort
  *
  * Optional model overrides:
- *   GEMINI_MODEL=gemini-flash-latest     (default; resolves to current free model)
- *   ANTHROPIC_GEN_MODEL=claude-haiku-4-5 (default fallback model)
+ *   GEMINI_MODEL=gemini-2.5-flash        (pinned; latest alias has 30s timeouts)
+ *   GROQ_MODEL=openai/gpt-oss-120b       (large fast model on Groq's free tier)
+ *   ANTHROPIC_GEN_MODEL=claude-haiku-4-5 (cheapest Claude)
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import crypto from "crypto";
+import { prisma } from "@/lib/prisma";
 
 export type AiCallOptions = {
   systemPrompt: string;
@@ -33,63 +33,115 @@ export type AiCallOptions = {
   maxTokens?: number;
 };
 
-export function activeProvider(): "gemini" | "anthropic" | null {
-  if ((process.env.GEMINI_API_KEY ?? "").trim()) return "gemini";
-  if ((process.env.ANTHROPIC_API_KEY ?? "").trim()) return "anthropic";
-  return null;
+type Provider = "gemini" | "groq" | "anthropic";
+
+function hasKey(name: string): boolean {
+  return (process.env[name] ?? "").trim().length > 0;
 }
 
-export function secondaryProvider(): "gemini" | "anthropic" | null {
-  const primary = activeProvider();
-  // Return the other one if primary exists, null otherwise
-  if (primary === "gemini" && (process.env.ANTHROPIC_API_KEY ?? "").trim()) return "anthropic";
-  if (primary === "anthropic" && (process.env.GEMINI_API_KEY ?? "").trim()) return "gemini";
-  return null;
+/** Tiered chain: free providers first, paid only as last resort. */
+function providerChain(): Provider[] {
+  const chain: Provider[] = [];
+  if (hasKey("GEMINI_API_KEY")) chain.push("gemini");
+  if (hasKey("GROQ_API_KEY")) chain.push("groq");
+  if (hasKey("ANTHROPIC_API_KEY")) chain.push("anthropic");
+  return chain;
+}
+
+export function activeProvider(): Provider | null {
+  return providerChain()[0] ?? null;
+}
+
+export function secondaryProvider(): Provider | null {
+  return providerChain()[1] ?? null;
+}
+
+async function callProvider(p: Provider, opts: AiCallOptions): Promise<string> {
+  if (p === "gemini") return callGemini(opts);
+  if (p === "groq") return callGroq(opts);
+  return callAnthropic(opts);
+}
+
+function isRecoverable(err: Error): boolean {
+  const msg = err.message ?? "";
+  return (
+    msg.includes("rate limit") ||
+    msg.includes("quota") ||
+    msg.includes("429") ||
+    /\b5\d\d\b/.test(msg) ||
+    /unavailable|overloaded|network error|timeout/i.test(msg)
+  );
+}
+
+/** DB-backed response cache TTL. Keeps regenerations free when a coach hits
+ * the same brief twice (page reload, minor toggle, retry). Coach only pays a
+ * fresh AI call when their input actually changes. */
+const AI_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function cacheKey(opts: AiCallOptions): string {
+  const payload = JSON.stringify({
+    s: opts.systemPrompt,
+    u: opts.userPrompt,
+    j: !!opts.expectJson,
+    m: opts.maxTokens ?? null,
+  });
+  return crypto.createHash("sha256").update(payload).digest("hex");
 }
 
 /**
- * Generate text with automatic fallback.
- * If the primary provider fails with quota/rate-limit, tries the secondary.
+ * Generate text — walks the tiered provider chain until one succeeds or we
+ * hit an unrecoverable error. Paid provider is only reached if EVERY free
+ * provider errored on this call.
+ *
+ * Wrapped with a persistent response cache keyed by (system+user+opts) hash.
+ * Cache hits are FREE — no provider call, no quota spent. Set opts.noCache
+ * to bypass (currently unused; add if a caller ever needs fresh randomness).
  */
-export async function generateText(opts: AiCallOptions): Promise<string> {
-  const primary = activeProvider();
-  if (!primary) {
+export async function generateText(opts: AiCallOptions & { noCache?: boolean }): Promise<string> {
+  const chain = providerChain();
+  if (chain.length === 0) {
     throw new Error(
-      "No AI provider configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY on Railway.",
+      "No AI provider configured. Set GEMINI_API_KEY (free), GROQ_API_KEY (free), or ANTHROPIC_API_KEY on Railway.",
     );
   }
 
-  try {
-    if (primary === "gemini") {
-      return await callGemini(opts);
+  const key = opts.noCache ? null : cacheKey(opts);
+  if (key) {
+    try {
+      const hit = await prisma.aiCache.findUnique({ where: { promptHash: key } });
+      if (hit && Date.now() - hit.createdAt.getTime() < AI_CACHE_TTL_MS) {
+        return hit.response;
+      }
+    } catch {
+      // Cache lookup failures are non-fatal — fall through to provider call.
     }
-    return await callAnthropic(opts);
-  } catch (e) {
-    const err = e as Error;
-    const msg = err.message ?? "";
-    // Fall back on quota/rate-limit AND transient server errors (503, 500, 502, 504, network errors)
-    const isRecoverable =
-      msg.includes("rate limit") ||
-      msg.includes("quota") ||
-      msg.includes("429") ||
-      msg.includes("503") ||
-      msg.includes("500") ||
-      msg.includes("502") ||
-      msg.includes("504") ||
-      /unavailable|overloaded|network error|timeout/i.test(msg);
-
-    if (!isRecoverable) throw e;
-
-    const fallback = secondaryProvider();
-    if (!fallback) throw e; // No fallback available
-
-    console.warn(`⚠️  ${primary} failed (${msg.slice(0, 120)}), falling back to ${fallback}...`);
-
-    if (fallback === "gemini") {
-      return await callGemini(opts);
-    }
-    return await callAnthropic(opts);
   }
+
+  let lastErr: Error | null = null;
+  for (let i = 0; i < chain.length; i++) {
+    const p = chain[i];
+    try {
+      const out = await callProvider(p, opts);
+      if (key) {
+        // Fire-and-forget upsert: don't block the response on cache write.
+        prisma.aiCache
+          .upsert({
+            where: { promptHash: key },
+            create: { promptHash: key, response: out, provider: p },
+            update: { response: out, provider: p, createdAt: new Date() },
+          })
+          .catch(() => {});
+      }
+      return out;
+    } catch (e) {
+      const err = e as Error;
+      lastErr = err;
+      const nextP = chain[i + 1];
+      if (!nextP || !isRecoverable(err)) throw err;
+      console.warn(`AI ${p} failed (${err.message.slice(0, 120)}) — trying ${nextP}...`);
+    }
+  }
+  throw lastErr ?? new Error("All AI providers failed");
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -160,7 +212,52 @@ async function callGemini(opts: AiCallOptions): Promise<string> {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- * Anthropic Claude (fallback)
+ * Groq (OpenAI-compatible; free tier — sits between Gemini and Anthropic)
+ * ────────────────────────────────────────────────────────────────────────── */
+
+async function callGroq(opts: AiCallOptions): Promise<string> {
+  const key = (process.env.GROQ_API_KEY ?? "").trim();
+  const model = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
+  const body: Record<string, unknown> = {
+    model,
+    max_tokens: opts.maxTokens ?? 8000,
+    temperature: 0.4,
+    messages: [
+      { role: "system", content: opts.systemPrompt },
+      { role: "user", content: opts.userPrompt },
+    ],
+    ...(opts.expectJson ? { response_format: { type: "json_object" } } : {}),
+  };
+  let res: Response;
+  try {
+    res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(90_000),
+    });
+  } catch (e) {
+    throw new Error(`Groq network error: ${(e as Error).message}`);
+  }
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    if (res.status === 429) throw new Error("Groq rate limit hit (429).");
+    if (res.status === 401) throw new Error("Groq rejected the API key.");
+    if (res.status >= 500) throw new Error(`Groq ${res.status} server error (transient).`);
+    throw new Error(`Groq error ${res.status}: ${errText.slice(0, 300)}`);
+  }
+  type GroqResponse = { choices?: Array<{ message?: { content?: string } }> };
+  const json = (await res.json()) as GroqResponse;
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Groq returned an empty response.");
+  return text.trim();
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Anthropic Claude (paid last resort)
  * ────────────────────────────────────────────────────────────────────────── */
 
 async function callAnthropic(opts: AiCallOptions): Promise<string> {

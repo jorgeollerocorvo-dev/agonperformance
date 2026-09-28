@@ -724,3 +724,18 @@ model CatalogProductVariantImage {
 
   @@index([variantId])
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// AiCache — response cache for AI generations to avoid re-paying / re-hitting
+// the free-tier quota when the same brief comes in twice (page reloads,
+// coach experimenting with variations, etc.).
+// ──────────────────────────────────────────────────────────────────────────
+model AiCache {
+  id          String   @id @default(cuid())
+  promptHash  String   @unique
+  response    String   // Text — can be large JSON
+  provider    String?  // which provider produced this hit — for observability
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
