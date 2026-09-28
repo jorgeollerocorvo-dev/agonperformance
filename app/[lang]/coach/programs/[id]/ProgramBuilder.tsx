@@ -560,6 +560,7 @@ function DayCard({
           {/* Copy this day's workout to another athlete's same-date session */}
           <CopyDayToAthleteButton
             sessionId={day.id}
+            date={day.date}
             programId={programId}
             lang={lang}
           />

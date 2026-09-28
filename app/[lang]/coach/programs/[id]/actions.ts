@@ -1003,8 +1003,13 @@ export async function purgeDeletedWeek(formData: FormData) {
  * Each entry includes the candidate target sessionId (if one exists on
  * that date) and whether they're already linked to this source.
  */
+/**
+ * Look up a source session by (programId, date) — the client's session id
+ * can be stale after a save (saveProgram deletes+recreates rows with new
+ * ids), but the date it renders from is stable, so we resolve here.
+ */
 export async function listCoJointCandidates(
-  sourceSessionId: string,
+  sourceSessionIdOrDate: string,
   programId: string,
 ): Promise<Array<{
   athleteId: string;
@@ -1020,30 +1025,58 @@ export async function listCoJointCandidates(
   // and the source-session query below is scoped to that coach anyway, so
   // there's no privilege escalation risk.
   const session = await auth();
-  console.log("[listCoJointCandidates] session.user.id:", session?.user?.id, "sessionId:", sourceSessionId, "programId:", programId);
-  if (!session?.user?.id) {
-    console.log("[listCoJointCandidates] NO SESSION USER");
-    return [];
-  }
+  if (!session?.user?.id) return [];
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
-  console.log("[listCoJointCandidates] coach:", coach?.id, "userId lookup:", session.user.id);
-  if (!coach) {
-    console.log("[listCoJointCandidates] NO COACH PROFILE for user", session.user.id);
-    return [];
-  }
+  if (!coach) return [];
 
-  const source = await prisma.programSession.findFirst({
-    where: {
-      id: sourceSessionId,
-      programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
-    },
-    select: { date: true, coJointKey: true, programWeek: { select: { program: { select: { athleteId: true } } } } },
-  });
-  console.log("[listCoJointCandidates] source found?", !!source, "date:", source?.date);
+  // Accept either a session id OR a YYYY-MM-DD date string. We try id first
+  // (fast, uses the unique index) then fall back to (programId, date).
+  const isDate = /^\d{4}-\d{2}-\d{2}$/.test(sourceSessionIdOrDate);
+  let source = null as null | { date: Date; coJointKey: string | null; programWeek: { program: { athleteId: string } } };
+  if (!isDate) {
+    source = await prisma.programSession.findFirst({
+      where: {
+        id: sourceSessionIdOrDate,
+        programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+      },
+      select: { date: true, coJointKey: true, programWeek: { select: { program: { select: { athleteId: true } } } } },
+    });
+  }
   if (!source) {
-    const rawSource = await prisma.programSession.findUnique({ where: { id: sourceSessionId }, select: { id: true, programWeek: { select: { program: { select: { id: true, athleteId: true, athlete: { select: { coachProfileId: true } } } } } } } });
-    console.log("[listCoJointCandidates] SOURCE MISMATCH — raw session:", JSON.stringify(rawSource));
-    return [];
+    // Fall back to (programId, date). The date string might be the second arg
+    // or embedded in sourceSessionIdOrDate.
+    const dateStr = isDate ? sourceSessionIdOrDate : null;
+    if (dateStr) {
+      source = await prisma.programSession.findFirst({
+        where: {
+          date: new Date(dateStr),
+          programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+        },
+        select: { date: true, coJointKey: true, programWeek: { select: { program: { select: { athleteId: true } } } } },
+      });
+    }
+  }
+  if (!source) {
+    // No session exists yet on that date. Return all athletes anyway so the
+    // coach can still copy — copyDayToAthlete will create the source session
+    // on-the-fly. We need the date + sourceAthleteId though; derive from the
+    // program.
+    const prog = await prisma.program.findFirst({
+      where: { id: programId, athlete: { coachProfileId: coach.id } },
+      select: { athleteId: true },
+    });
+    if (!prog) return [];
+    const athletes = await prisma.athlete.findMany({
+      where: { coachProfileId: coach.id, id: { not: prog.athleteId } },
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true },
+    });
+    return athletes.map((a) => ({
+      athleteId: a.id,
+      athleteName: a.fullName,
+      targetSessionId: null,
+      isLinked: false,
+    }));
   }
 
   const sourceAthleteId = source.programWeek.program.athleteId;
@@ -1261,21 +1294,44 @@ export async function copyDayToAthlete(formData: FormData) {
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
   if (!coach) throw new Error("no coach profile");
 
-  // Verify: coach owns the source program AND the target athlete.
-  const source = await prisma.programSession.findFirst({
-    where: {
-      id: sourceSessionId,
-      programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
-    },
-    include: {
-      blocks: {
-        orderBy: { order: "asc" },
-        include: { movements: { orderBy: { order: "asc" } } },
-      },
-    },
-  });
+  // Also accept a YYYY-MM-DD date in the sourceSessionId slot — the client's
+  // session id can be stale after a save.
+  const sourceIsDate = /^\d{4}-\d{2}-\d{2}$/.test(sourceSessionId);
+  let source = sourceIsDate
+    ? null
+    : await prisma.programSession.findFirst({
+        where: {
+          id: sourceSessionId,
+          programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+        },
+        include: {
+          blocks: {
+            orderBy: { order: "asc" },
+            include: { movements: { orderBy: { order: "asc" } } },
+          },
+        },
+      });
   if (!source) {
-    redirect(`/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent("Source session not found")}`);
+    const sourceDate = sourceIsDate ? String(formData.get("sourceSessionId")) : String(formData.get("sourceDate") ?? "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sourceDate)) {
+      redirect(`/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent("Source session not found")}`);
+    }
+    source = await prisma.programSession.findFirst({
+      where: {
+        date: new Date(sourceDate),
+        programWeek: { program: { id: programId, athlete: { coachProfileId: coach.id } } },
+      },
+      include: {
+        blocks: {
+          orderBy: { order: "asc" },
+          include: { movements: { orderBy: { order: "asc" } } },
+        },
+      },
+    });
+    if (!source) {
+      // Nothing to copy — source day is empty/unsaved. Silently redirect.
+      redirect(`/${lang}/coach/programs/${programId}?copyDayError=${encodeURIComponent("This day is empty — save the workout first before copying.")}`);
+    }
   }
 
   const targetAthlete = await prisma.athlete.findFirst({

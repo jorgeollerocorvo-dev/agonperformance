@@ -28,10 +28,12 @@ type Candidate = {
  */
 export default function CopyDayToAthleteButton({
   sessionId,
+  date,
   programId,
   lang,
 }: {
   sessionId: string | null;
+  date: string; // YYYY-MM-DD — used as fallback when sessionId is stale
   programId: string;
   lang: string;
 }) {
@@ -40,12 +42,16 @@ export default function CopyDayToAthleteButton({
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [busy, startBusy] = useTransition();
 
+  // Send date as the source identifier: it's stable across saves, whereas
+  // sessionId can be stale after saveProgram (which delete+recreates rows).
+  const sourceKey = date;
+
   useEffect(() => {
-    if (!open || candidates !== null || !sessionId) return;
+    if (!open || candidates !== null) return;
     let cancelled = false;
     (async () => {
       try {
-        const r = await listCoJointCandidates(sessionId, programId);
+        const r = await listCoJointCandidates(sourceKey, programId);
         if (!cancelled) setCandidates(r);
       } catch (e) {
         if (!cancelled) setLoadErr((e as Error).message);
@@ -54,18 +60,7 @@ export default function CopyDayToAthleteButton({
     return () => {
       cancelled = true;
     };
-  }, [open, candidates, sessionId, programId]);
-
-  if (!sessionId) {
-    return (
-      <span
-        title="Save this day first to copy it to another athlete"
-        className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--ink-subtle)] cursor-not-allowed"
-      >
-        📤
-      </span>
-    );
-  }
+  }, [open, candidates, sourceKey, programId]);
 
   return (
     <div className="relative inline-block">
@@ -133,7 +128,8 @@ export default function CopyDayToAthleteButton({
                         }}
                         className="flex items-center justify-between gap-2 rounded-lg hover:bg-[var(--surface-2)] px-2 py-1.5"
                       >
-                        <input type="hidden" name="sourceSessionId" value={sessionId} />
+                        <input type="hidden" name="sourceSessionId" value={sourceKey} />
+                        <input type="hidden" name="sourceDate" value={date} />
                         <input type="hidden" name="targetAthleteId" value={c.athleteId} />
                         <input type="hidden" name="programId" value={programId} />
                         <input type="hidden" name="lang" value={lang} />
