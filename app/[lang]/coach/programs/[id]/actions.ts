@@ -1349,16 +1349,19 @@ export async function copyDayToAthlete(formData: FormData) {
   });
 
   if (!target) {
-    // Auto-provision a session on the target date. Attach it to the target
-    // athlete's most recent program (any week); if the athlete has no program
-    // at all, create a lightweight one just to hold copied days.
+    // Auto-provision a session on the target date. We must attach it to the
+    // RIGHT week — the UI computes each week's calendar as startDate + wi*7
+    // and only renders sessions whose date falls in that range. Attaching to
+    // an arbitrary "most recent" week means the row exists in the DB but
+    // never appears in the target athlete's program view.
     let targetProgram = await prisma.program.findFirst({
       where: { athleteId: targetAthleteId },
       orderBy: { createdAt: "desc" },
-      include: { weeks: { orderBy: { weekNumber: "desc" }, take: 1 } },
+      include: { weeks: true },
     });
 
     if (!targetProgram) {
+      // Athlete has no program yet — create one starting on the source date.
       targetProgram = await prisma.program.create({
         data: {
           athleteId: targetAthleteId,
@@ -1366,14 +1369,24 @@ export async function copyDayToAthlete(formData: FormData) {
           startDate: source.date,
           weeks: { create: [{ weekNumber: 1, weekLabel: "W1" }] },
         },
-        include: { weeks: { orderBy: { weekNumber: "desc" }, take: 1 } },
+        include: { weeks: true },
       });
     }
 
-    let targetWeek = targetProgram.weeks[0];
+    // Which week number should own source.date? floor((date - startDate)/7)+1.
+    const startMs = new Date(targetProgram.startDate).getTime();
+    const dateMs = new Date(source.date).getTime();
+    const daysDiff = Math.floor((dateMs - startMs) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.max(1, Math.floor(daysDiff / 7) + 1);
+
+    let targetWeek = targetProgram.weeks.find((w) => w.weekNumber === weekNumber);
     if (!targetWeek) {
       targetWeek = await prisma.programWeek.create({
-        data: { programId: targetProgram.id, weekNumber: 1, weekLabel: "W1" },
+        data: {
+          programId: targetProgram.id,
+          weekNumber,
+          weekLabel: `W${weekNumber}`,
+        },
       });
     }
 
@@ -1426,7 +1439,18 @@ export async function copyDayToAthlete(formData: FormData) {
     });
   }, { timeout: 30_000, maxWait: 5_000 });
 
+  // Revalidate BOTH sides: the coach's source program page (for the flash
+  // message) and the target athlete's own program page (so a follow-up
+  // navigation there shows the freshly copied day).
   revalidateProgramSurfaces(programId);
+  const targetProgramId = (await prisma.programSession.findUnique({
+    where: { id: target.id },
+    select: { programWeek: { select: { programId: true } } },
+  }))?.programWeek.programId;
+  if (targetProgramId && targetProgramId !== programId) {
+    revalidateProgramSurfaces(targetProgramId);
+  }
+
   redirect(
     `/${lang}/coach/programs/${programId}?copyDayDone=${encodeURIComponent(targetAthlete.fullName)}`,
   );
