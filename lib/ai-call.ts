@@ -293,3 +293,154 @@ export function stripJsonFences(text: string): string {
   if (raw.startsWith("```")) raw = raw.replace(/^```(?:json)?\s*/, "").replace(/```$/, "").trim();
   return raw;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Vision: extract structured text from images. Gemini's free tier accepts
+ * images natively, so it's the primary. Groq's OSS models don't do vision,
+ * so it's skipped here. Anthropic is the paid last resort.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export type AiVisionOptions = {
+  systemPrompt: string;
+  userPrompt: string;
+  /** base64-encoded image bytes and MIME type (e.g. "image/jpeg"). */
+  images: { base64: string; mimeType: string }[];
+  expectJson?: boolean;
+  maxTokens?: number;
+};
+
+function visionChain(): Provider[] {
+  const chain: Provider[] = [];
+  if (hasKey("GEMINI_API_KEY")) chain.push("gemini");
+  if (hasKey("ANTHROPIC_API_KEY")) chain.push("anthropic");
+  return chain;
+}
+
+/**
+ * Multi-modal generation. Reuses the DB response cache: the hash includes the
+ * image bytes, so re-uploading the same photo is free.
+ */
+export async function generateFromImages(opts: AiVisionOptions & { noCache?: boolean }): Promise<string> {
+  const chain = visionChain();
+  if (chain.length === 0) {
+    throw new Error("No vision-capable AI provider configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY.");
+  }
+
+  const key = opts.noCache
+    ? null
+    : crypto
+        .createHash("sha256")
+        .update(JSON.stringify({ s: opts.systemPrompt, u: opts.userPrompt, j: !!opts.expectJson, m: opts.maxTokens ?? null, imgs: opts.images.map((i) => `${i.mimeType}:${i.base64.length}:${i.base64.slice(0, 64)}${i.base64.slice(-64)}`) }))
+        .digest("hex");
+
+  if (key) {
+    try {
+      const hit = await prisma.aiCache.findUnique({ where: { promptHash: key } });
+      if (hit && Date.now() - hit.createdAt.getTime() < AI_CACHE_TTL_MS) return hit.response;
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  let lastErr: Error | null = null;
+  for (let i = 0; i < chain.length; i++) {
+    const p = chain[i];
+    try {
+      const out = p === "gemini" ? await callGeminiVision(opts) : await callAnthropicVision(opts);
+      if (key) {
+        prisma.aiCache
+          .upsert({
+            where: { promptHash: key },
+            create: { promptHash: key, response: out, provider: p },
+            update: { response: out, provider: p, createdAt: new Date() },
+          })
+          .catch(() => {});
+      }
+      return out;
+    } catch (e) {
+      const err = e as Error;
+      lastErr = err;
+      const nextP = chain[i + 1];
+      if (!nextP || !isRecoverable(err)) throw err;
+      console.warn(`AI vision ${p} failed (${err.message.slice(0, 120)}) — trying ${nextP}...`);
+    }
+  }
+  throw lastErr ?? new Error("All vision providers failed");
+}
+
+async function callGeminiVision(opts: AiVisionOptions): Promise<string> {
+  const key = (process.env.GEMINI_API_KEY ?? "").trim();
+  const model = process.env.GEMINI_VISION_MODEL ?? process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+
+  const parts: Array<Record<string, unknown>> = [{ text: opts.userPrompt }];
+  for (const img of opts.images) {
+    parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+  }
+  const body = {
+    system_instruction: { parts: [{ text: opts.systemPrompt }] },
+    contents: [{ role: "user", parts }],
+    generationConfig: {
+      maxOutputTokens: opts.maxTokens ?? 8000,
+      temperature: 0.2,
+      thinkingConfig: { thinkingBudget: 0 },
+      ...(opts.expectJson ? { responseMimeType: "application/json" } : {}),
+    },
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch (e) {
+    throw new Error(`Gemini vision network error: ${(e as Error).message}`);
+  }
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    if (res.status === 429) throw new Error("Gemini rate limit hit (429). Falling back if configured.");
+    if (res.status === 503) throw new Error("Gemini 503 unavailable (transient).");
+    if (res.status >= 500) throw new Error(`Gemini ${res.status} server error (transient).`);
+    throw new Error(`Gemini vision error ${res.status}: ${errText.slice(0, 300)}`);
+  }
+  type GResp = { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>; promptFeedback?: { blockReason?: string } };
+  const json = (await res.json()) as GResp;
+  if (json.promptFeedback?.blockReason) throw new Error(`Gemini blocked the image prompt: ${json.promptFeedback.blockReason}`);
+  const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("");
+  if (!text) throw new Error("Gemini vision returned an empty response.");
+  return text.trim();
+}
+
+async function callAnthropicVision(opts: AiVisionOptions): Promise<string> {
+  const key = (process.env.ANTHROPIC_API_KEY ?? "").trim();
+  const model = process.env.ANTHROPIC_VISION_MODEL ?? process.env.ANTHROPIC_GEN_MODEL ?? "claude-haiku-4-5";
+  const client = new Anthropic({ apiKey: key });
+  const content: Array<Anthropic.ContentBlockParam> = [];
+  for (const img of opts.images) {
+    content.push({
+      type: "image",
+      source: { type: "base64", media_type: img.mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif", data: img.base64 },
+    });
+  }
+  content.push({ type: "text", text: opts.userPrompt });
+  let msg;
+  try {
+    msg = await client.messages.create({
+      model,
+      max_tokens: opts.maxTokens ?? 4000,
+      system: [{ type: "text", text: opts.systemPrompt, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content }],
+    });
+  } catch (e) {
+    const err = e as { status?: number; message?: string };
+    if (err.status === 401) throw new Error("Anthropic rejected the API key.");
+    if (err.status === 429) throw new Error("Anthropic rate limit hit.");
+    throw new Error(`Anthropic vision error: ${err.message ?? "unknown"}`);
+  }
+  const block = msg.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") throw new Error("No text response from Anthropic vision");
+  return block.text.trim();
+}

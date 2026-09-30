@@ -146,6 +146,21 @@ export default async function ImportProgramPage({ params, searchParams }: PagePr
           </p>
         </Card>
       )}
+
+      <Card className="bg-[var(--surface-2)]">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">📸</span>
+          <div className="flex-1">
+            <h3 className="font-semibold mb-1">Importar desde fotos de libreta</h3>
+            <p className="text-sm text-[var(--ink-muted)] mb-2">
+              ¿Tienes fotos de una libreta de entrenamiento? La IA lee la fecha, los ejercicios y los pesos usados de cada foto y los escribe automáticamente en el calendario del atleta como notas de sesión.
+            </p>
+            <Link href={`/${lang}/coach/import/photos`} className="inline-block text-sm font-semibold text-[var(--primary)] hover:underline">
+              → Abrir importación por fotos
+            </Link>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
