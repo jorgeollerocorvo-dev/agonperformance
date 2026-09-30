@@ -26,27 +26,29 @@ export default async function CoachesDirectoryPage({ params, searchParams }: Pag
   const cityFilter = typeof sp?.city === "string" ? sp.city.trim() : "";
   const genderFilter = typeof sp?.gender === "string" ? sp.gender : "";
 
-  const geo = await detectGeo();
-  const specialties = await prisma.specialty.findMany({ where: { isActive: true }, orderBy: { labelEn: "asc" } });
-
-  const coaches = await prisma.coachProfile.findMany({
-    where: {
-      listingStatus: "APPROVED",
-      ...(specialtyFilter ? { specialties: { some: { specialty: { code: specialtyFilter } } } } : {}),
-      ...(cityFilter ? { homeBaseCity: { contains: cityFilter, mode: "insensitive" } } : {}),
-      ...(genderFilter ? { user: { gender: genderFilter.toUpperCase() as "MALE" | "FEMALE" } } : {}),
-    },
-    include: {
-      user: true,
-      specialties: { include: { specialty: true } },
-    },
-    orderBy: [
-      { subscriptionTier: "desc" },
-      { ratingAvg: "desc" },
-      { createdAt: "desc" },
-    ],
-    take: 100,
-  });
+  // geo + specialties + coaches are independent — fetch in parallel.
+  const [geo, specialties, coaches] = await Promise.all([
+    detectGeo(),
+    prisma.specialty.findMany({ where: { isActive: true }, orderBy: { labelEn: "asc" } }),
+    prisma.coachProfile.findMany({
+      where: {
+        listingStatus: "APPROVED",
+        ...(specialtyFilter ? { specialties: { some: { specialty: { code: specialtyFilter } } } } : {}),
+        ...(cityFilter ? { homeBaseCity: { contains: cityFilter, mode: "insensitive" } } : {}),
+        ...(genderFilter ? { user: { gender: genderFilter.toUpperCase() as "MALE" | "FEMALE" } } : {}),
+      },
+      include: {
+        user: true,
+        specialties: { include: { specialty: true } },
+      },
+      orderBy: [
+        { subscriptionTier: "desc" },
+        { ratingAvg: "desc" },
+        { createdAt: "desc" },
+      ],
+      take: 100,
+    }),
+  ]);
 
   const dirItems: CoachDirItem[] = coaches.map((c) => ({
     id: c.id,

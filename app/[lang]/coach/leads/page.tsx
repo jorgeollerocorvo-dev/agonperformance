@@ -21,25 +21,25 @@ export default async function LeadsInbox({ params, searchParams }: PageProps<"/[
   // Jorge sees every inquiry that recommends him as a coach,
   // regardless of which short-URL source tag (j, jorge, train, anything custom).
   const jorgeCoachId = await findJorgeCoachProfileId();
-  const inquiries = await prisma.inquiry.findMany({
-    where: jorgeCoachId
-      ? { recommendedCoachIds: { has: jorgeCoachId } }
-      : { source: { startsWith: JORGE_INQUIRY_SOURCE } },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
 
-  // Fetch consultations for the consultations tab
-  let consultations: any[] = [];
-  try {
-    consultations = await prisma.consultationBooking.findMany({
-      orderBy: { startTime: "desc" },
+  // Parallel: inquiries and consultations don't depend on each other. Saves
+  // one Neon round-trip per page load (~50ms on us-east-2).
+  const [inquiries, consultationsRes] = await Promise.all([
+    prisma.inquiry.findMany({
+      where: jorgeCoachId
+        ? { recommendedCoachIds: { has: jorgeCoachId } }
+        : { source: { startsWith: JORGE_INQUIRY_SOURCE } },
+      orderBy: { createdAt: "desc" },
       take: 200,
-    });
-  } catch (error) {
-    // Consultations table may not exist yet
-    console.error("Error fetching consultations:", error);
-  }
+    }),
+    prisma.consultationBooking
+      .findMany({ orderBy: { startTime: "desc" }, take: 200 })
+      .catch((error) => {
+        console.error("Error fetching consultations:", error);
+        return [] as any[];
+      }),
+  ]);
+  const consultations: any[] = consultationsRes;
 
   async function updateStatus(formData: FormData) {
     "use server";
