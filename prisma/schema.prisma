@@ -311,6 +311,7 @@ model Movement {
   attributes  Json?    // { calf_loading: "low", overhead_demand: false, ... }
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
   programMovements ProgramMovement[]
   testResults      TestResult[]
