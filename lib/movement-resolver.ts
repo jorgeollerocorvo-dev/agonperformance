@@ -32,20 +32,31 @@ export async function resolveLibraryMovements(
   if (uniqueNames.size === 0) return new Map();
 
   // Case-insensitive `in` requires per-row OR'd `equals`. Prisma's `in` is
-  // exact-match only, so we fetch a superset and filter in JS.
+  // exact-match only, so we fetch a superset and filter in JS. We check all
+  // three localized name columns so a coach typing "sentadilla" or "‫قرفصاء‬"
+  // finds the same row an English-typing coach would — matters because
+  // library hits are free (curated videos), and misses fall through to
+  // YouTube scraping which costs Railway egress.
+  const namesArray = Array.from(uniqueNames);
   const rows = await prisma.movement.findMany({
     where: {
       isActive: true,
-      OR: Array.from(uniqueNames).map((n) => ({
-        nameEn: { equals: n, mode: "insensitive" as const },
-      })),
+      OR: namesArray.flatMap((n) => [
+        { nameEn: { equals: n, mode: "insensitive" as const } },
+        { nameEs: { equals: n, mode: "insensitive" as const } },
+        { nameAr: { equals: n, mode: "insensitive" as const } },
+      ]),
     },
-    select: { id: true, nameEn: true, videoUrl: true },
+    select: { id: true, nameEn: true, nameEs: true, nameAr: true, videoUrl: true },
   });
 
   const map = new Map<string, LibraryMatch>();
   for (const r of rows) {
-    map.set(normalize(r.nameEn), r);
+    // Index by every localized name so the caller's lookup key matches.
+    const match: LibraryMatch = { id: r.id, nameEn: r.nameEn, videoUrl: r.videoUrl };
+    if (r.nameEn) map.set(normalize(r.nameEn), match);
+    if (r.nameEs) map.set(normalize(r.nameEs), match);
+    if (r.nameAr) map.set(normalize(r.nameAr), match);
   }
   return map;
 }
