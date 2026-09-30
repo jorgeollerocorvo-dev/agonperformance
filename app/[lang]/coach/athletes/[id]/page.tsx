@@ -223,6 +223,9 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
       <header className="flex flex-wrap items-baseline gap-3">
         <h1 className="text-2xl sm:text-3xl font-semibold">{athlete.fullName}</h1>
         <span className="text-sm text-zinc-500">{athlete.division ?? ""}</span>
+        <Link href={`/${lang}/coach/athletes/${id}/engagement`} className="ml-auto text-xs rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1.5 font-semibold hover:opacity-80">
+          📊 Progreso · Check-ins · Hábitos
+        </Link>
       </header>
 
       <AthleteProfileEditor

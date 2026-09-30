@@ -8,6 +8,7 @@ import { ensureMovementVideoUrls } from "@/lib/youtube-search";
 import { isYoutubeSearch } from "@/lib/youtube";
 import { getDayNameFromDate } from "@/lib/day-utils";
 import Link from "next/link";
+import PushEnableButton from "@/components/PushEnableButton";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import { saveSessionFeedback } from "./actions";
 
@@ -277,8 +278,14 @@ export default async function AthleteToday({ params, searchParams }: PageProps<"
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#2E75B6] text-white grid place-items-center font-bold text-sm sm:text-base flex-shrink-0">
             {link.athlete.fullName?.charAt(0).toUpperCase() ?? "A"}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {link.athlete.fullName?.split(" ")[0] ?? "Athlete"}</h1>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Link href={`/${lang}/athlete/engagement`} className="text-xs rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1.5 font-semibold hover:opacity-80">
+              📊 Progreso
+            </Link>
+            <PushEnableButton />
           </div>
         </div>
 

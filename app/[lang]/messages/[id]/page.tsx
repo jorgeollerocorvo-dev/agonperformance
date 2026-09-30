@@ -47,6 +47,22 @@ export default async function ConversationPage({ params }: PageProps<"/[lang]/me
       },
     });
     await prisma.conversation.update({ where: { id }, data: { lastMessageAt: new Date() } });
+    // Fire-and-forget web push to the other party. Re-read the conversation
+    // inside the server action rather than capturing from the render closure —
+    // safer under concurrent edits and satisfies TS's flow analysis.
+    const fresh = await prisma.conversation.findUnique({
+      where: { id },
+      select: { clientUserId: true, coachUserId: true },
+    });
+    if (fresh) {
+      const recipientId = fresh.clientUserId === s.user.id ? fresh.coachUserId : fresh.clientUserId;
+      const { pushToUser } = await import("@/lib/push");
+      pushToUser(recipientId, {
+        title: "Nuevo mensaje",
+        body: body.slice(0, 140),
+        url: `/${lang}/messages/${id}`,
+      }).catch(() => {});
+    }
     redirect(`/${lang}/messages/${id}`);
   }
 

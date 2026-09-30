@@ -208,6 +208,9 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
     <div className="space-y-6">
       <div className="flex items-baseline gap-3">
         <Link href={`/${lang}/coach/athletes/${program.athleteId}`} className="text-sm text-[var(--ink-muted)] hover:underline">← {program.athlete.fullName}</Link>
+        <a href={`/api/programs/${program.id}/pdf`} className="ml-auto text-xs rounded-full bg-white border border-[var(--border)] px-3 py-1.5 hover:bg-[var(--surface-2)]">
+          📄 Descargar PDF
+        </a>
       </div>
 
       {regenerated && (

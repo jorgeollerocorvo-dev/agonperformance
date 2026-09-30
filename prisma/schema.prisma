@@ -59,6 +59,8 @@ model User {
   clientInquiries   Inquiry[]
   clientReviews     Review[]          @relation("ClientReviews")
   subscriptions     Subscription[]
+  messageTemplates  MessageTemplate[] @relation("CoachTemplates")
+  pushSubscriptions PushSubscription[] @relation("UserPushSubs")
 }
 
 model UserRole {
@@ -275,13 +277,22 @@ model Athlete {
 
   activeProgramId String?
 
+  // Coach-visible status tag — surfaces on the athletes-list dashboard so
+  // the coach can filter quickly. Defaults to ACTIVE; ARCHIVED hides from
+  // default views without deleting.
+  status         AthleteStatus @default(ACTIVE)
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  programs      Program[]
-  sessionLogs   SessionLog[]
-  testResults   TestResult[]
-  athleteLinks  AthleteLink[]
+  programs         Program[]
+  sessionLogs      SessionLog[]
+  testResults      TestResult[]
+  athleteLinks     AthleteLink[]
+  progressPhotos   ProgressPhoto[]   @relation("AthleteProgressPhotos")
+  measurements     BodyMeasurement[] @relation("AthleteMeasurements")
+  checkIns         CheckIn[]         @relation("AthleteCheckIns")
+  habits           Habit[]           @relation("AthleteHabits")
 }
 
 model AthleteLink {
@@ -739,4 +750,126 @@ model AiCache {
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Client engagement / retention models — progress photos, body measurements,
+// weekly check-ins, habits, message templates, push subscriptions, and a
+// coach-visible client status tag. All keep costs at $0 (blob-free storage
+// where possible, no external services).
+// ──────────────────────────────────────────────────────────────────────────
+
+model ProgressPhoto {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    Athlete  @relation("AthleteProgressPhotos", fields: [athleteId], references: [id], onDelete: Cascade)
+  // Data URL / base64 for the MVP. Small (~300KB max after client resize).
+  // Moving to Cloudflare R2 later is a one-column swap.
+  dataUrl    String   @db.Text
+  takenAt    DateTime @default(now())
+  angle      String?  // "front" | "side" | "back" | null
+  weightKg   Float?
+  notes      String?
+
+  @@index([athleteId, takenAt])
+}
+
+model BodyMeasurement {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    Athlete  @relation("AthleteMeasurements", fields: [athleteId], references: [id], onDelete: Cascade)
+  date       DateTime @db.Date
+  // All optional so the athlete can log just what they track.
+  weightKg   Float?
+  chestCm    Float?
+  waistCm    Float?
+  hipCm      Float?
+  armCm      Float?
+  thighCm    Float?
+  bodyFatPct Float?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([athleteId, date])
+  @@index([athleteId, date])
+}
+
+model CheckIn {
+  id           String   @id @default(cuid())
+  athleteId    String
+  athlete      Athlete  @relation("AthleteCheckIns", fields: [athleteId], references: [id], onDelete: Cascade)
+  weekOf       DateTime @db.Date // Monday of the ISO week
+  energy       Int?     // 1-5
+  sleep        Int?     // 1-5
+  stress       Int?     // 1-5
+  motivation   Int?     // 1-5
+  mood         String?
+  weightKg     Float?
+  weekSummary  String?
+  questions    String?  // free-text questions for the coach
+  coachReply   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([athleteId, weekOf])
+  @@index([athleteId, weekOf])
+}
+
+model Habit {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    Athlete  @relation("AthleteHabits", fields: [athleteId], references: [id], onDelete: Cascade)
+  name       String
+  icon       String?  // an emoji: 💧, 😴, 🥗, 🚶, 💊
+  targetPerWeek Int   @default(7) // 7 = daily; 3 = 3x per week, etc.
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  logs       HabitLog[]
+
+  @@index([athleteId, isActive])
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  completed Boolean  @default(true)
+
+  @@unique([habitId, date])
+  @@index([habitId, date])
+}
+
+model MessageTemplate {
+  id             String   @id @default(cuid())
+  coachUserId    String
+  coachUser      User     @relation("CoachTemplates", fields: [coachUserId], references: [id], onDelete: Cascade)
+  label          String
+  body           String   @db.Text
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([coachUserId, order])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserPushSubs", fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum AthleteStatus {
+  ACTIVE
+  NEW
+  PAUSED
+  AT_RISK
+  ON_STREAK
+  ARCHIVED
 }
