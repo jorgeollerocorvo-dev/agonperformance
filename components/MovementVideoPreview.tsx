@@ -3,19 +3,17 @@
 /**
  * Athlete-side movement video preview.
  *
- * Lazy + auto-play (muted) when the card scrolls into view.
+ * Standard #2: videos DO NOT autoplay. The default state is a static YouTube
+ * thumbnail with a play button overlay. The iframe is only mounted when the
+ * athlete taps/clicks the thumbnail. This keeps the calendar + session views
+ * instant on load (no third-party JS, no network beyond a single image) and
+ * stops N videos playing when the page has multiple exercises.
  *
- * - The iframe is NOT rendered on initial paint — we paint a lightweight placeholder
- *   (YouTube thumbnail or gradient card) and only swap in the iframe when the card
- *   enters the viewport via IntersectionObserver. Once swapped in, it stays.
- * - The iframe URL embeds `autoplay=1&mute=1`, so playback starts the moment it loads,
- *   silently. Browsers allow muted autoplay everywhere.
- * - The first card on the page is always in view at mount → it starts immediately.
- * - For movements without a specific video URL, we render a tappable gradient
- *   placeholder that opens YouTube search.
+ * Scroll performance: 100% static markup until a click. No IntersectionObserver,
+ * no auto-mount.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ytEmbed, ytSearchUrl } from "@/lib/youtube";
 
 function ytId(url?: string | null): string | null {
@@ -46,34 +44,9 @@ export default function MovementVideoPreview({
 }) {
   const embedUrl = ytEmbed(url);
   const videoId = ytId(url);
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
-  useEffect(() => {
-    if (!embedUrl) return;
-    const node = ref.current;
-    if (!node) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setInView(true); // SSR / older browser fallback: just load it
-      return;
-    }
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            setInView(true);
-            obs.disconnect();
-            break;
-          }
-        }
-      },
-      { rootMargin: "200px 0px", threshold: 0.01 },
-    );
-    obs.observe(node);
-    return () => obs.disconnect();
-  }, [embedUrl]);
-
-  // — No specific YouTube video URL → gradient placeholder that links to YT search —
+  // No specific YouTube video URL → gradient placeholder that links to YT search.
   if (!embedUrl) {
     const searchUrl = ytSearchUrl(name);
     return (
@@ -102,41 +75,46 @@ export default function MovementVideoPreview({
 
   const thumb = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 
-  return (
-    <div
-      ref={ref}
-      className="relative aspect-video max-w-2xl rounded-xl overflow-hidden bg-black"
-    >
-      {inView ? (
+  if (playing) {
+    // Append autoplay=1 ONLY here, after the user clicked. ytEmbed itself
+    // never includes autoplay (standard #2).
+    const url = `${embedUrl}${embedUrl.includes("?") ? "&" : "?"}autoplay=1`;
+    return (
+      <div className="relative aspect-video max-w-2xl rounded-xl overflow-hidden bg-black">
         <iframe
-          src={embedUrl}
+          src={url}
           className="absolute inset-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           loading="lazy"
         />
-      ) : (
-        // Lightweight placeholder: YouTube's static thumbnail + play overlay.
-        // No JS, no network beyond the thumbnail image.
-        <>
-          {thumb && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={thumb}
-              alt={name}
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-          )}
-          <div className="absolute inset-0 grid place-items-center">
-            <div className="w-14 h-10 sm:w-16 sm:h-11 rounded-xl bg-red-600/90 grid place-items-center shadow-lg">
-              <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5 sm:w-6 sm:h-6">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </div>
-          </div>
-        </>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setPlaying(true)}
+      className="relative aspect-video max-w-2xl rounded-xl overflow-hidden bg-black block w-full group"
+      aria-label={`Play ${name}`}
+    >
+      {thumb && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumb}
+          alt={name}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
       )}
-    </div>
+      <div className="absolute inset-0 grid place-items-center bg-black/10 group-hover:bg-black/0 transition">
+        <div className="w-14 h-10 sm:w-16 sm:h-11 rounded-xl bg-red-600/90 group-hover:bg-red-600 grid place-items-center shadow-lg transition">
+          <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5 sm:w-6 sm:h-6">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      </div>
+    </button>
   );
 }

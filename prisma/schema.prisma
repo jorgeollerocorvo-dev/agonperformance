@@ -448,6 +448,7 @@ model ProgramMovement {
   altGroup       String?  // "A"/"B" for alternating formats
   pattern        String?  // e.g. "3 rounds" for nested QF3 pattern
   isTest         Boolean  @default(false)
+  createdAt      DateTime @default(now())
 }
 
 model SessionLog {

@@ -19,6 +19,18 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
   });
   if (!coachProfile) notFound();
 
+  // Standard #4: fire-and-forget promotion of stable movements (>24h with a
+  // demo URL) into this coach's CoachMovement library. Runs in the background
+  // so it never adds latency to the athletes page load.
+  void (async () => {
+    try {
+      const { promoteStableMovementsToCoachLibrary } = await import("@/lib/promote-movements");
+      await promoteStableMovementsToCoachLibrary(coachProfile.id);
+    } catch {
+      /* standard #1: page loads must never fail from a side-effect */
+    }
+  })();
+
   async function createAthlete(formData: FormData) {
     "use server";
     const s = await auth();
