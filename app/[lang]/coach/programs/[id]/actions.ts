@@ -148,30 +148,30 @@ export async function saveProgram(input: EditorProgram) {
     });
   }
 
-  // For any name still unresolved after the library sweep, hit YouTube and
-  // bootstrap a new library entry with a real video URL. This is what makes
-  // "rename a movement → its video updates automatically" work: without this,
-  // an unknown name saves with a search-results URL, not a real video, and
-  // the coach has to paste one manually. Runs OUTSIDE the transaction so
-  // network latency doesn't blow the tx budget. Sequential (not parallel) so
-  // we don't hammer YouTube with a burst on big programs.
+  // NOTE: we deliberately do NOT hit YouTube from the save path. It was
+  // adding up to 5 × 8s = 40s of serial network latency before the tx even
+  // started, which hung the save and timed out the HTTP response. Unresolved
+  // names fall through with movementId=null + customName + a search-URL
+  // fallback. The athlete-side page resolver (ensureMovementVideoUrls)
+  // already handles YouTube bootstrap lazily — on first view — with its own
+  // 5-cap and 7-day negative cache, so renames still get a real video; just
+  // not inside the save round-trip.
+  //
+  // Kick off a fire-and-forget sweep AFTER the response is sent, so a few
+  // common renames get videos warmed before anyone opens the page. Promise
+  // intentionally not awaited.
   const unresolvedNames = Array.from(movementNames).filter((n) => !movementMap.has(n));
   if (unresolvedNames.length > 0) {
-    // Cap YouTube fan-out per save: an accidental 50-movement rename burst
-    // shouldn't spawn 50 sequential 8-second scrapes (~7 min of save time and
-    // a serious rate-limit risk). We resolve the first N here; the rest still
-    // save with a search-URL fallback and will resolve on the coach's next
-    // save or on the athlete's first page load.
-    const MAX_YT_PER_SAVE = 5;
-    const { resolveOrCreateMovementByName } = await import("@/lib/youtube-search");
-    for (const name of unresolvedNames.slice(0, MAX_YT_PER_SAVE)) {
+    void (async () => {
       try {
-        const r = await resolveOrCreateMovementByName(name);
-        if (r) movementMap.set(name, { id: r.id, videoUrl: r.videoUrl, nameEn: name });
-      } catch (e) {
-        console.warn("[saveProgram] video resolve failed for", name, e);
+        const { resolveOrCreateMovementByName } = await import("@/lib/youtube-search");
+        await Promise.allSettled(
+          unresolvedNames.slice(0, 3).map((n) => resolveOrCreateMovementByName(n)),
+        );
+      } catch {
+        /* fire-and-forget */
       }
-    }
+    })();
   }
 
   // Bump the Prisma transaction timeout — the default 5s is too tight now that
@@ -1113,7 +1113,6 @@ export async function listCoJointCandidates(
     orderBy: { fullName: "asc" },
     select: { id: true, fullName: true },
   });
-  console.log("[listCoJointCandidates] athletes count:", athletes.length, "coach.id:", coach.id, "sourceAthleteId:", sourceAthleteId);
 
   // For each, find a session on the same date in any of their programs.
   const candidates = await Promise.all(
