@@ -205,120 +205,172 @@ export async function saveProgram(input: EditorProgram) {
       },
     });
 
-    // Destroy and rebuild the week tree (simpler than diffing)
+    // Destroy and rebuild the week tree (simpler than diffing).
     await tx.programWeek.deleteMany({ where: { programId: program.id } });
 
+    // Previous implementation ran one Prisma round-trip per week + per
+    // session + per block (~400+ for a 12-week program). On Neon's us-east-2
+    // latency that's 20-30s per save and the main cause of the "hang on
+    // save" bug. We now batch each level into a single createManyAndReturn
+    // and wire the resulting ids back via maps — same shape, 5 round-trips
+    // total regardless of program size.
+
+    // Step 1: all weeks in one shot.
+    const createdWeeks = await tx.programWeek.createManyAndReturn({
+      data: input.weeks.map((wk) => ({
+        programId: program.id,
+        weekNumber: wk.weekNumber,
+        weekLabel: wk.weekLabel,
+      })),
+      select: { id: true, weekNumber: true },
+    });
+    const weekIdByNumber = new Map(createdWeeks.map((w) => [w.weekNumber, w.id]));
+
+    // Step 2: collect every non-empty day across every week, each tagged
+    // with its parent weekId. We also carry over coJointKey from the matching
+    // old-session (same date) so the two-athletes link survives rebuilds.
+    const oldSessionByDate = new Map(
+      existingSessions.map((s) => [s.date.toISOString().slice(0, 10), s] as const),
+    );
+    type DayPlan = {
+      weekId: string;
+      day: typeof input.weeks[number]["days"][number];
+      oldSession: typeof existingSessions[number] | undefined;
+    };
+    const dayPlans: DayPlan[] = [];
     for (const wk of input.weeks) {
-      const createdWeek = await tx.programWeek.create({
-        data: {
-          programId: program.id,
-          weekNumber: wk.weekNumber,
-          weekLabel: wk.weekLabel,
-        },
-      });
+      const weekId = weekIdByNumber.get(wk.weekNumber);
+      if (!weekId) continue;
       for (const day of wk.days) {
-        // Skip empty days (no blocks)
         if (day.blocks.length === 0 && !day.focus && !day.notes) continue;
-
-        // CRITICAL: find the matching old session BEFORE creating the new one,
-        // so we can carry forward both the sessionLog and the coJointKey
-        // (otherwise rebuilds would silently break co-joint links).
-        const matchingOldSession = existingSessions.find((s) => {
-          const oldDateStr = s.date.toISOString().slice(0, 10);
-          const newDateStr = new Date(day.date).toISOString().slice(0, 10);
-          return oldDateStr === newDateStr;
-        });
-
-        const createdDay = await tx.programSession.create({
-          data: {
-            programWeekId: createdWeek.id,
-            date: new Date(day.date),
-            day: day.day,
-            focus: day.focus,
-            intensity: day.intensity,
-            notes: day.notes,
-            coJointKey: matchingOldSession?.coJointKey ?? null,
-          },
-        });
-        if (matchingOldSession?.sessionLog) {
-          await tx.sessionLog.create({
-            data: {
-              programSessionId: createdDay.id,
-              athleteId: matchingOldSession.sessionLog.athleteId,
-              intensityFeedback: matchingOldSession.sessionLog.intensityFeedback,
-              intensityReview: matchingOldSession.sessionLog.intensityReview,
-              completedAt: matchingOldSession.sessionLog.completedAt,
-              rating: matchingOldSession.sessionLog.rating,
-              notes: matchingOldSession.sessionLog.notes,
-              actuals: matchingOldSession.sessionLog.actuals ?? undefined,
-              mediaData: matchingOldSession.sessionLog.mediaData ?? undefined,
-            },
-          });
-        }
-        for (let bi = 0; bi < day.blocks.length; bi++) {
-          const b = day.blocks[bi];
-          await tx.programBlock.create({
-            data: {
-              programSessionId: createdDay.id,
-              blockCode: b.blockCode || String.fromCharCode(65 + bi),
-              label: b.label,
-              format: b.format,
-              restSec: b.restSec,
-              notes: b.notes,
-              order: bi,
-              movements: {
-                create: b.movements.map((m, mi) => {
-                  const movementId = m.movementId || undefined;
-                  const nameKey = m.name?.toLowerCase().trim();
-
-                  // Look up by name AND by id. Prefer the name match when
-                  // it diverges from the id's canonical name — i.e. the
-                  // coach renamed the movement, so the old FK is stale and
-                  // we should point at whatever the new name resolves to
-                  // (existing library entry, or a fresh one bootstrapped
-                  // by resolveOrCreateMovementByName in the sweep above).
-                  const byId = movementId ? movementMap.get(movementId) : null;
-                  const byName = nameKey ? movementMap.get(nameKey) : null;
-                  const idNameMatches =
-                    byId?.nameEn &&
-                    nameKey &&
-                    byId.nameEn.toLowerCase().trim() === nameKey;
-                  const libraryMovement = byName && !idNameMatches ? byName : byId;
-
-                  const libraryVideoUrl = libraryMovement?.videoUrl ?? null;
-                  const coachUrl = (m.youtubeUrl ?? "").trim() || null;
-                  const coachPinnedRealVideo = coachUrl && !isYoutubeSearch(coachUrl);
-
-                  // Priority: library match (respects videoLocked) → coach-
-                  // pinned real URL → search fallback. The library match
-                  // now reflects the CURRENT name, not the stale FK.
-                  const youtubeUrl =
-                    libraryVideoUrl ||
-                    (coachPinnedRealVideo ? coachUrl : null) ||
-                    (m.name ? movementYoutubeSearchUrl(m.name) : undefined);
-
-                  const finalMovementId = libraryMovement?.id ?? movementId;
-
-                  return {
-                    movementId: finalMovementId,
-                    customName: m.name || null,
-                    prescription: {
-                      sets: m.sets || undefined,
-                      reps: m.reps || undefined,
-                      load: m.load || undefined,
-                      rest: m.rest || undefined,
-                      notes: m.notes || undefined,
-                      youtubeUrl,
-                    },
-                    order: mi,
-                    isTest: m.isTest,
-                  };
-                }),
-              },
-            },
-          });
-        }
+        const dateStr = new Date(day.date).toISOString().slice(0, 10);
+        dayPlans.push({ weekId, day, oldSession: oldSessionByDate.get(dateStr) });
       }
+    }
+
+    // Step 2b: create all sessions in one shot.
+    const createdSessions = dayPlans.length
+      ? await tx.programSession.createManyAndReturn({
+          data: dayPlans.map((p) => ({
+            programWeekId: p.weekId,
+            date: new Date(p.day.date),
+            day: p.day.day,
+            focus: p.day.focus,
+            intensity: p.day.intensity,
+            notes: p.day.notes,
+            coJointKey: p.oldSession?.coJointKey ?? null,
+          })),
+          select: { id: true, date: true, programWeekId: true },
+        })
+      : [];
+    // Index new sessions by (weekId, YYYY-MM-DD) so we can map back to each
+    // plan — two plans never share both since sessions are unique by date.
+    const newSessionIdByKey = new Map<string, string>(
+      createdSessions.map((s) => [`${s.programWeekId}:${s.date.toISOString().slice(0, 10)}`, s.id]),
+    );
+
+    // Step 3: restore sessionLogs for the days whose old session had one.
+    const sessionLogRows = dayPlans.flatMap((p) => {
+      if (!p.oldSession?.sessionLog) return [];
+      const key = `${p.weekId}:${new Date(p.day.date).toISOString().slice(0, 10)}`;
+      const newId = newSessionIdByKey.get(key);
+      if (!newId) return [];
+      const log = p.oldSession.sessionLog;
+      return [{
+        programSessionId: newId,
+        athleteId: log.athleteId,
+        intensityFeedback: log.intensityFeedback,
+        intensityReview: log.intensityReview ?? undefined,
+        completedAt: log.completedAt,
+        rating: log.rating,
+        notes: log.notes,
+        actuals: (log.actuals ?? undefined) as object | undefined,
+        mediaData: (log.mediaData ?? undefined) as object | undefined,
+      }];
+    });
+    if (sessionLogRows.length) {
+      await tx.sessionLog.createMany({ data: sessionLogRows });
+    }
+
+    // Step 4: collect every block across every day, tagged with its parent
+    // sessionId. We stash the movement rows alongside so we can batch-insert
+    // them in step 5 once block ids are back.
+    type BlockPlan = {
+      sessionId: string;
+      block: typeof dayPlans[number]["day"]["blocks"][number];
+      order: number;
+    };
+    const blockPlans: BlockPlan[] = [];
+    for (const p of dayPlans) {
+      const key = `${p.weekId}:${new Date(p.day.date).toISOString().slice(0, 10)}`;
+      const sessionId = newSessionIdByKey.get(key);
+      if (!sessionId) continue;
+      p.day.blocks.forEach((b, bi) => blockPlans.push({ sessionId, block: b, order: bi }));
+    }
+
+    // We generate stable cuids client-side (via the Prisma schema's cuid
+    // default) by having Prisma do it per-row inside createManyAndReturn's
+    // RETURNING — so after this call we know each block's id and can map
+    // movements to them without another round-trip.
+    const createdBlocks = blockPlans.length
+      ? await tx.programBlock.createManyAndReturn({
+          data: blockPlans.map((p) => ({
+            programSessionId: p.sessionId,
+            blockCode: p.block.blockCode || String.fromCharCode(65 + p.order),
+            label: p.block.label,
+            format: p.block.format,
+            restSec: p.block.restSec,
+            notes: p.block.notes,
+            order: p.order,
+          })),
+          select: { id: true },
+        })
+      : [];
+
+    // Step 5: build all movement rows, mapped to their block id by position.
+    const movementRows = blockPlans.flatMap((p, idx) => {
+      const blockId = createdBlocks[idx]?.id;
+      if (!blockId) return [];
+      return p.block.movements.map((m, mi) => {
+        const movementId = m.movementId || undefined;
+        const nameKey = m.name?.toLowerCase().trim();
+
+        const byId = movementId ? movementMap.get(movementId) : null;
+        const byName = nameKey ? movementMap.get(nameKey) : null;
+        const idNameMatches =
+          byId?.nameEn &&
+          nameKey &&
+          byId.nameEn.toLowerCase().trim() === nameKey;
+        const libraryMovement = byName && !idNameMatches ? byName : byId;
+
+        const libraryVideoUrl = libraryMovement?.videoUrl ?? null;
+        const coachUrl = (m.youtubeUrl ?? "").trim() || null;
+        const coachPinnedRealVideo = coachUrl && !isYoutubeSearch(coachUrl);
+        const youtubeUrl =
+          libraryVideoUrl ||
+          (coachPinnedRealVideo ? coachUrl : null) ||
+          (m.name ? movementYoutubeSearchUrl(m.name) : undefined);
+        const finalMovementId = libraryMovement?.id ?? movementId;
+
+        return {
+          programBlockId: blockId,
+          movementId: finalMovementId,
+          customName: m.name || null,
+          prescription: {
+            sets: m.sets || undefined,
+            reps: m.reps || undefined,
+            load: m.load || undefined,
+            rest: m.rest || undefined,
+            notes: m.notes || undefined,
+            youtubeUrl,
+          },
+          order: mi,
+          isTest: m.isTest,
+        };
+      });
+    });
+    if (movementRows.length) {
+      await tx.programMovement.createMany({ data: movementRows });
     }
   }, { timeout: 60_000, maxWait: 10_000 });
 
