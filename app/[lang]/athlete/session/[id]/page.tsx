@@ -6,6 +6,7 @@ import { getDictionary, hasLocale } from "../../../dictionaries";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
 import IntensityReview from "@/components/IntensityReview";
+import SessionActualsForm from "@/components/SessionActualsForm";
 import { ensureMovementVideoUrls } from "@/lib/youtube-search";
 import { isYoutubeSearch } from "@/lib/youtube";
 import { saveSessionFeedback } from "./actions";
@@ -180,6 +181,39 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
           </ul>
         </Card>
       ))}
+
+      {sp?.saveErr && (
+        <div className="rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm p-3">
+          ✕ {String(sp.saveErr)}
+        </div>
+      )}
+
+      {/* Per-movement actuals — the weights/reps/times the athlete did.
+          Available even BEFORE the session is marked complete so the athlete
+          can log as they go. */}
+      <SessionActualsForm
+        sessionId={s.id}
+        lang={lang}
+        movements={s.blocks.flatMap((b) =>
+          b.movements.map((m, idx) => {
+            const p = (m.prescription ?? {}) as Record<string, unknown>;
+            const localName = lang === "es"
+              ? (m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—")
+              : lang === "ar"
+              ? (m.movement?.nameAr ?? m.movement?.nameEn ?? m.customName ?? "—")
+              : (m.movement?.nameEn ?? m.customName ?? "—");
+            return {
+              id: m.id,
+              name: localName,
+              blockCode: b.blockCode ?? "",
+              idx,
+              prescribedLoad: (p.load as string | undefined) ?? (p.load_kg != null ? `${p.load_kg} kg` : null),
+              prescribedReps: (p.reps as string | undefined) ?? (p.reps_range as string | undefined) ?? null,
+            };
+          })
+        )}
+        initialActuals={((s.sessionLog?.actuals ?? {}) as Record<string, { load?: string; reps?: string; time?: string; notes?: string }>)}
+      />
 
       {s.sessionLog && (
         <IntensityReview
