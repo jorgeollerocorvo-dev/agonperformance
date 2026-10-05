@@ -8,6 +8,7 @@ import BrandedHeader from "@/components/BrandedHeader";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import AccountLogoutButton from "@/components/AccountLogoutButton";
 import { Card, Button } from "@/components/ui/Card";
+import AthleteHubSection from "@/components/AthleteHubSection";
 
 export default async function AccountPage({ params, searchParams }: PageProps<"/[lang]/account">) {
   const { lang } = await params;
@@ -69,6 +70,10 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
           <h1 className="text-3xl font-bold">{dict.account.title}</h1>
           <p className="text-sm text-[var(--ink-muted)] mt-1">{user.email}</p>
         </header>
+
+        {/* Athlete hub: profile, goals, nutrition, PRs, benchmarks, etc.
+            Renders ONLY if the signed-in user has an athlete profile. */}
+        <AthleteHubSection userId={user.id} lang={lang} />
 
         {sp?.saved && <div className="rounded-xl bg-[var(--success)]/10 text-[var(--success)] px-4 py-2 text-sm border border-[var(--success)]/20">{dict.account.saved}</div>}
         {sp?.error === "wrong" && <div className="rounded-xl bg-[var(--danger)]/10 text-[var(--danger)] px-4 py-2 text-sm border border-[var(--danger)]/20">{dict.account.wrongPassword}</div>}
