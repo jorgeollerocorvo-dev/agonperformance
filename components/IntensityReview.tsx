@@ -58,15 +58,23 @@ export default function IntensityReview({
       formData.set("intensityFeedback", String(feedback));
       formData.set("intensityReview", review);
       await saveSessionFeedback(formData);
+      // The server action always ends with a redirect() to re-render the
+      // page with the updated state — Next throws a NEXT_REDIRECT to signal
+      // it, which propagates past the try/catch. If we reach here it means
+      // the action resolved without a redirect, which is still a success.
       setShowSuccess(true);
       setIsEditing(false);
-      // Auto-redirect after 3 seconds
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
+      setTimeout(() => { window.location.reload(); }, 2000);
     } catch (err) {
+      // Standard #1: NEVER show "Failed to save" for Next's internal
+      // redirect/notFound signals — they ARE the success path. We MUST
+      // re-throw them so Next can handle the navigation.
+      const digest = (err as { digest?: string } | null)?.digest;
+      if (typeof digest === "string" && (digest.startsWith("NEXT_REDIRECT") || digest === "NEXT_NOT_FOUND")) {
+        throw err;
+      }
       console.error("Failed to save feedback:", err);
-      alert("Failed to save feedback");
+      alert("Failed to save feedback. Please try again — your data was NOT lost.");
     } finally {
       setIsPending(false);
     }

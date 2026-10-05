@@ -50,6 +50,12 @@ export default function ProgressPhotoUploader() {
           await uploadProgressPhoto(fd);
           e.target.value = "";
         } catch (ex) {
+          // Standard #1: never report success paths as errors. NEXT_REDIRECT
+          // and NEXT_NOT_FOUND are routing signals, not failures.
+          const digest = (ex as { digest?: string } | null)?.digest;
+          if (typeof digest === "string" && (digest.startsWith("NEXT_REDIRECT") || digest === "NEXT_NOT_FOUND")) {
+            throw ex;
+          }
           setErr((ex as Error).message);
         }
       });

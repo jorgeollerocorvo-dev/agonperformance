@@ -6,7 +6,24 @@ proposed change would violate one, redesign it before shipping.
 
 ## 1. Saves are sacred
 
-Clients, programs, workouts, and movements MUST always save successfully.
+Clients, programs, workouts, and movements MUST always save successfully,
+and MUST never falsely report failure to the user.
+
+**Specific anti-pattern to always avoid**: client components that `await` a
+server action inside a `try/catch` must re-throw any error whose `.digest`
+starts with `NEXT_` (i.e. `NEXT_REDIRECT`, `NEXT_NOT_FOUND`). Those are
+Next.js routing signals, not failures — swallowing them produces false
+"Failed to save" alerts even when the data landed in the DB. Pattern:
+
+```ts
+try {
+  await someServerAction(fd);
+} catch (err) {
+  const digest = (err as { digest?: string } | null)?.digest;
+  if (typeof digest === "string" && digest.startsWith("NEXT_")) throw err;
+  // only here: real failure — surface it
+}
+```
 
 - Every mutation path (`saveProgram`, `createProgram`, `copyDayToAthlete`,
   `importAndCreateProgram`, `importWorkoutPhotos`, athlete engagement actions)

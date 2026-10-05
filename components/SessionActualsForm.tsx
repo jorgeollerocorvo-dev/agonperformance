@@ -56,8 +56,14 @@ export default function SessionActualsForm({
       try {
         await saveActuals(fd);
         setSaved(true);
-      } catch {
-        /* Server action handles redirect/error UI via searchParams */
+      } catch (err) {
+        // Re-throw NEXT_REDIRECT so navigation works — Next's redirect from
+        // the server action is the success path, not a failure (standard #1).
+        const digest = (err as { digest?: string } | null)?.digest;
+        if (typeof digest === "string" && (digest.startsWith("NEXT_REDIRECT") || digest === "NEXT_NOT_FOUND")) {
+          throw err;
+        }
+        /* actual error — the server action already redirected with ?saveErr */
       }
     });
   }
