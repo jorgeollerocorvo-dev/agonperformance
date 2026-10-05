@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hasLocale } from "../../../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";
 import MeasurementChart from "@/components/MeasurementChart";
-import { createHabit, deleteHabit, replyToCheckIn, updateAthleteStatus } from "./actions";
+import { createHabit, deleteHabit, replyToCheckIn, updateAthleteStatus, upsertNutritionPlan, updateAthleteCoachNotes } from "./actions";
 import type { AthleteStatus } from "@prisma/client";
 
 export default async function CoachAthleteEngagementPage({ params }: PageProps<"/[lang]/coach/athletes/[id]/engagement">) {
@@ -18,7 +18,7 @@ export default async function CoachAthleteEngagementPage({ params }: PageProps<"
   const athlete = await prisma.athlete.findFirst({ where: { id, coachProfileId: coach.id } });
   if (!athlete) notFound();
 
-  const [photos, measurements, checkIns, habits, habitLogs] = await Promise.all([
+  const [photos, measurements, checkIns, habits, habitLogs, nutrition] = await Promise.all([
     prisma.progressPhoto.findMany({
       where: { athleteId: id },
       orderBy: { takenAt: "desc" },
@@ -39,6 +39,7 @@ export default async function CoachAthleteEngagementPage({ params }: PageProps<"
       where: { habit: { athleteId: id }, date: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
       select: { habitId: true, date: true, completed: true },
     }),
+    prisma.nutritionPlan.findUnique({ where: { athleteId: id } }),
   ]);
 
   const statuses: AthleteStatus[] = ["ACTIVE", "NEW", "PAUSED", "AT_RISK", "ON_STREAK", "ARCHIVED"];
@@ -62,6 +63,78 @@ export default async function CoachAthleteEngagementPage({ params }: PageProps<"
             {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <Button type="submit" size="sm">Guardar</Button>
+        </form>
+      </Card>
+
+      {/* Goals + coach notes (visible by athlete) ──────────── */}
+      <Card>
+        <h2 className="font-semibold text-lg mb-3">🎯 Objetivos y notas (visible por el cliente)</h2>
+        <form action={updateAthleteCoachNotes} className="space-y-2 text-sm">
+          <input type="hidden" name="athleteId" value={id} />
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">Objetivo competitivo</span>
+            <input name="competitiveGoal" defaultValue={athlete.competitiveGoal ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">División</span>
+            <input name="division" defaultValue={athlete.division ?? ""} placeholder="ej. RX, Masters 35-39" className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">Objetivos personales</span>
+            <textarea name="goals" defaultValue={athlete.goals ?? ""} rows={3} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">Notas libres</span>
+            <textarea name="notes" defaultValue={athlete.notes ?? ""} rows={3} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <Button type="submit" size="sm">Guardar</Button>
+        </form>
+      </Card>
+
+      {/* Nutrition plan ─────────────────────────────────────── */}
+      <Card>
+        <h2 className="font-semibold text-lg mb-3">🥗 Plan de nutrición</h2>
+        <form action={upsertNutritionPlan} className="space-y-2 text-sm">
+          <input type="hidden" name="athleteId" value={id} />
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <label className="block">
+              <span className="text-xs text-[var(--ink-muted)]">kcal</span>
+              <input name="caloriesTarget" type="number" defaultValue={nutrition?.caloriesTarget ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 outline-none" />
+            </label>
+            <label className="block">
+              <span className="text-xs text-[var(--ink-muted)]">Proteína (g)</span>
+              <input name="proteinG" type="number" defaultValue={nutrition?.proteinG ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 outline-none" />
+            </label>
+            <label className="block">
+              <span className="text-xs text-[var(--ink-muted)]">Carbos (g)</span>
+              <input name="carbsG" type="number" defaultValue={nutrition?.carbsG ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 outline-none" />
+            </label>
+            <label className="block">
+              <span className="text-xs text-[var(--ink-muted)]">Grasa (g)</span>
+              <input name="fatG" type="number" defaultValue={nutrition?.fatG ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 outline-none" />
+            </label>
+            <label className="block">
+              <span className="text-xs text-[var(--ink-muted)]">Comidas/día</span>
+              <input name="mealsPerDay" type="number" defaultValue={nutrition?.mealsPerDay ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 outline-none" />
+            </label>
+          </div>
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">Estructura del día (desayuno, pre-entreno, post, cena…)</span>
+            <textarea name="mealPlan" defaultValue={nutrition?.mealPlan ?? ""} rows={4} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">Suplementación</span>
+            <input name="supplements" defaultValue={nutrition?.supplements ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">Restricciones / alergias</span>
+            <input name="restrictions" defaultValue={nutrition?.restrictions ?? ""} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-[var(--ink-muted)]">Notas</span>
+            <textarea name="notes" defaultValue={nutrition?.notes ?? ""} rows={2} className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 outline-none" />
+          </label>
+          <Button type="submit" size="sm">Guardar plan</Button>
         </form>
       </Card>
 

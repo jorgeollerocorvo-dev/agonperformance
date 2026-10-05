@@ -293,6 +293,7 @@ model Athlete {
   measurements     BodyMeasurement[] @relation("AthleteMeasurements")
   checkIns         CheckIn[]         @relation("AthleteCheckIns")
   habits           Habit[]           @relation("AthleteHabits")
+  nutritionPlan    NutritionPlan?    @relation("AthleteNutrition")
 }
 
 model AthleteLink {
@@ -873,4 +874,26 @@ enum AthleteStatus {
   AT_RISK
   ON_STREAK
   ARCHIVED
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// NutritionPlan — coach-authored dietary targets for an athlete. One per
+// athlete (unique on athleteId); the coach edits macros + meal structure +
+// notes, athlete reads on their account hub.
+// ──────────────────────────────────────────────────────────────────────────
+model NutritionPlan {
+  id              String   @id @default(cuid())
+  athleteId       String   @unique
+  athlete         Athlete  @relation("AthleteNutrition", fields: [athleteId], references: [id], onDelete: Cascade)
+  caloriesTarget  Int?
+  proteinG        Int?
+  carbsG          Int?
+  fatG            Int?
+  mealsPerDay     Int?
+  mealPlan        String?  // free text: a day's meal structure
+  supplements     String?
+  restrictions    String?
+  notes           String?
+  updatedAt       DateTime @updatedAt
+  updatedByUserId String?
 }

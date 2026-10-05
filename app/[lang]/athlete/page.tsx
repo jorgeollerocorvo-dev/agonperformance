@@ -283,11 +283,11 @@ export default async function AthleteToday({ params, searchParams }: PageProps<"
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <div className="flex gap-1">
+              <Link href={`/${lang}/athlete/account`} className="text-xs rounded-full bg-[var(--ink)] text-white px-3 py-1.5 font-semibold hover:opacity-90">
+                👤 Mi cuenta
+              </Link>
               <Link href={`/${lang}/athlete/evolution`} className="text-xs rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1.5 font-semibold hover:opacity-80">
                 📈 PRs
-              </Link>
-              <Link href={`/${lang}/athlete/engagement`} className="text-xs rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1.5 font-semibold hover:opacity-80">
-                📊 Progreso
               </Link>
             </div>
             <PushEnableButton />

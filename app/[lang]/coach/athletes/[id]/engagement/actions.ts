@@ -55,3 +55,65 @@ export async function updateAthleteStatus(formData: FormData) {
   revalidatePath(`/[lang]/coach/athletes/${athleteId}/engagement`, "page");
   revalidatePath(`/[lang]/coach/athletes`, "page");
 }
+
+/**
+ * Nutrition plan: single row per athlete, upsert. Coach fills in macros +
+ * meal structure + free-text notes; athlete reads on their account hub.
+ */
+export async function upsertNutritionPlan(formData: FormData) {
+  const athleteId = String(formData.get("athleteId") ?? "");
+  const { coach } = await assertOwnsAthlete(athleteId);
+  const num = (name: string): number | null => {
+    const v = String(formData.get(name) ?? "").trim();
+    if (!v) return null;
+    const n = parseInt(v, 10);
+    return isNaN(n) ? null : n;
+  };
+  const str = (name: string): string | null => {
+    const v = String(formData.get(name) ?? "").trim();
+    return v || null;
+  };
+  const data = {
+    caloriesTarget: num("caloriesTarget"),
+    proteinG: num("proteinG"),
+    carbsG: num("carbsG"),
+    fatG: num("fatG"),
+    mealsPerDay: num("mealsPerDay"),
+    mealPlan: str("mealPlan"),
+    supplements: str("supplements"),
+    restrictions: str("restrictions"),
+    notes: str("notes"),
+    updatedByUserId: coach.userId,
+  };
+  await prisma.nutritionPlan.upsert({
+    where: { athleteId },
+    create: { athleteId, ...data },
+    update: data,
+  });
+  revalidatePath(`/[lang]/coach/athletes/${athleteId}/engagement`, "page");
+  revalidatePath(`/[lang]/athlete/account`, "page");
+}
+
+/**
+ * Edit coach notes / goals / 1rms / benchmarks — the free-form fields on
+ * Athlete the athlete needs to see on their account hub.
+ */
+export async function updateAthleteCoachNotes(formData: FormData) {
+  const athleteId = String(formData.get("athleteId") ?? "");
+  await assertOwnsAthlete(athleteId);
+  const str = (name: string): string | null => {
+    const v = String(formData.get(name) ?? "").trim();
+    return v || null;
+  };
+  await prisma.athlete.update({
+    where: { id: athleteId },
+    data: {
+      goals: str("goals"),
+      competitiveGoal: str("competitiveGoal"),
+      division: str("division"),
+      notes: str("notes"),
+    },
+  });
+  revalidatePath(`/[lang]/coach/athletes/${athleteId}/engagement`, "page");
+  revalidatePath(`/[lang]/athlete/account`, "page");
+}
