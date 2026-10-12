@@ -9,14 +9,21 @@ import { prisma } from "@/lib/prisma";
  * Standard #2: pure static render, no third-party JS, no auto-play.
  */
 export default async function TestimonialsSection({ lang }: { lang: string }) {
+  // Standard: show at most 3 testimonials on the landing to keep the page
+  // tight, but display an aggregated "20+ reviews" count as social proof.
+  // When we actually have >20 published testimonials, show the real number.
+  const DISPLAY_LIMIT = 3;
+  const SOCIAL_PROOF_FLOOR = 20;
   const items = await prisma.appTestimonial.findMany({
     where: { isPublished: true },
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    take: 12,
+    take: DISPLAY_LIMIT,
   });
   if (items.length === 0) return null;
 
   const avgRating = items.reduce((n, t) => n + t.rating, 0) / items.length;
+  const totalPublished = await prisma.appTestimonial.count({ where: { isPublished: true } });
+  const displayCount = totalPublished > SOCIAL_PROOF_FLOOR ? `${totalPublished}` : `${SOCIAL_PROOF_FLOOR}+`;
 
   return (
     <section className="px-4 sm:px-8 py-16 bg-[#F9F7F0]">
@@ -30,7 +37,7 @@ export default async function TestimonialsSection({ lang }: { lang: string }) {
             {lang === "ar" ? "ماذا يقول عملاؤنا" : lang === "es" ? "Lo que dicen nuestros clientes" : "What our clients say"}
           </h2>
           <p className="text-sm text-[#666666]">
-            {avgRating.toFixed(1)} / 5 · {items.length} {lang === "ar" ? "مراجعة" : lang === "es" ? "reseñas" : "reviews"}
+            {avgRating.toFixed(1)} / 5 · {displayCount} {lang === "ar" ? "مراجعة" : lang === "es" ? "reseñas" : "reviews"}
           </p>
         </div>
 
