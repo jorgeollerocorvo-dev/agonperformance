@@ -63,6 +63,14 @@ export default function EvolutionChart({ series }: { series: Series[] }) {
 }
 
 function SeriesCard({ series }: { series: Series }) {
+  // Pointer-tracked spotlight — subtle, no third-party JS, matches the
+  // Aceternity-style effect from the audit report. Only re-renders inline
+  // CSS variables, so cheap.
+  const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty("--my", `${e.clientY - rect.top}px`);
+  };
   const data = series.points.map((p) => ({
     date: p.date,
     value: series.metric === "weight" ? p.weightKg : series.metric === "time" ? p.timeSec : p.reps,
@@ -78,8 +86,19 @@ function SeriesCard({ series }: { series: Series }) {
       : "—";
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-3 space-y-2">
-      <div className="flex items-baseline justify-between gap-2">
+    <div
+      onMouseMove={onMove}
+      className="group relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 space-y-2 overflow-hidden transition-shadow hover:shadow-md"
+      style={{ ["--mx" as string]: "50%", ["--my" as string]: "50%" }}
+    >
+      {/* Spotlight overlay — appears on hover, follows the pointer. */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{
+          background: `radial-gradient(400px circle at var(--mx) var(--my), ${series.isBenchmark ? "rgba(79, 70, 229, 0.14)" : "rgba(5, 150, 105, 0.14)"}, transparent 70%)`,
+        }}
+      />
+      <div className="relative flex items-baseline justify-between gap-2">
         <div className="font-semibold text-sm truncate">{series.label}</div>
         <div className="text-xs">
           <span className="text-[var(--ink-muted)]">{series.metric === "time" ? "Best:" : "PR:"}</span>{" "}
@@ -104,11 +123,11 @@ function SeriesCard({ series }: { series: Series }) {
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="text-xs text-[var(--ink-muted)]">
+        <div className="relative text-xs text-[var(--ink-muted)]">
           Solo 1 entrada ({series.points[0]?.date}). Añade más para ver evolución.
         </div>
       )}
-      <div className="text-[0.65rem] text-[var(--ink-subtle)]">
+      <div className="relative text-[0.65rem] text-[var(--ink-subtle)]">
         {series.points.length} {series.points.length === 1 ? "entrada" : "entradas"} · desde {series.points[0]?.date}
       </div>
     </div>

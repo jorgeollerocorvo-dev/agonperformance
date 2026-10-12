@@ -631,16 +631,20 @@ enum SubscriptionInterval {
 }
 
 model SubscriptionPlan {
-  id        String               @id @default(cuid())
-  code      String               @unique
-  nameEn    String
-  nameEs    String
-  nameAr    String?
-  price     Decimal              @db.Decimal(10, 2)
-  currency  String               @default("EUR")
-  interval  SubscriptionInterval
-  features  Json?
-  isActive  Boolean              @default(true)
+  id              String               @id @default(cuid())
+  code            String               @unique
+  nameEn          String
+  nameEs          String
+  nameAr          String?
+  price           Decimal              @db.Decimal(10, 2)
+  currency        String               @default("EUR")
+  interval        SubscriptionInterval
+  features        Json?
+  isActive        Boolean              @default(true)
+  // Stripe price id (price_...). Null until the admin links the plan to a
+  // Stripe product/price via the dashboard — Checkout refuses to start
+  // without it, cleanly, so no silent failures.
+  providerPriceId String?
 
   subscriptions Subscription[]
 }

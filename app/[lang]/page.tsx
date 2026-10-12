@@ -94,6 +94,12 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
               <p className="text-white/90 text-sm">Talk with our experts today</p>
             </Link>
           </div>
+          {/* Pricing CTA */}
+          <div className="mt-8 text-center">
+            <Link href={`/${lang}/pricing`} className="inline-block text-sm text-[#2E75B6] font-semibold hover:underline">
+              {lang === "es" ? "Ver planes y precios →" : lang === "ar" ? "عرض الخطط والأسعار ←" : "See plans and pricing →"}
+            </Link>
+          </div>
         </section>
       )}
 
