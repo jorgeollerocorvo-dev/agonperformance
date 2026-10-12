@@ -6,6 +6,7 @@ import { primaryRole } from "@/lib/roles";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import BrandedHeader from "@/components/BrandedHeader";
 import HeroSection from "@/components/HeroSection";
+import TestimonialsSection from "@/components/TestimonialsSection";
 import AccountLogoutButton from "@/components/AccountLogoutButton";
 import { BRAND } from "@/lib/brand";
 
@@ -95,6 +96,9 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
           </div>
         </section>
       )}
+
+      {/* Testimonials — hidden if there are none */}
+      <TestimonialsSection lang={lang} />
 
       {/* Footer */}
       <footer className="border-t border-[#E5E5E5] bg-[#F5F5F5] px-4 sm:px-8 py-12">

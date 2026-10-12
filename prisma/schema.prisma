@@ -897,3 +897,26 @@ model NutritionPlan {
   updatedAt       DateTime @updatedAt
   updatedByUserId String?
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// AppTestimonial — curated client reviews shown on the landing page.
+// Dual-language (Arabic original + English translation) with star rating.
+// Admin-managed (Jorge-only). Not tied to a specific coach's reviews
+// (that's the Review model); these are testimonials ABOUT the app.
+// ──────────────────────────────────────────────────────────────────────────
+model AppTestimonial {
+  id          String   @id @default(cuid())
+  quoteAr     String?  // Arabic original
+  quoteEn     String?  // English translation (also used as fallback for ES viewers until a Spanish quote exists)
+  quoteEs     String?  // optional Spanish
+  rating      Int      @default(5)
+  clientName  String?  // display name (optional)
+  clientCity  String?  // "Doha", "Al Rayyan"
+  clientRole  String?  // "CrossFit athlete", "Weekend warrior"
+  order       Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublished, order])
+}

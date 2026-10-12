@@ -30,6 +30,7 @@ export default async function AdminLayout({
   const items: MobileMenuItem[] = [
     { href: `/${lang}/admin/coaches`, label: "Coaches Area" },
     { href: `/${lang}/admin/catalog`, label: "🛍️ Catalog" },
+    { href: `/${lang}/admin/testimonials`, label: "⭐ Testimonials" },
     { href: `/${lang}/coach`, label: dict.coach.dashboard ?? "Coach Dashboard" },
     { href: `/${lang}/account`, label: dict.nav.account ?? "Account" },
   ];
