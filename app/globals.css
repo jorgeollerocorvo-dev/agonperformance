@@ -59,8 +59,22 @@
   --font-sans: var(--font-sans);
 }
 
-/* Force light mode — dark auto-switch disabled per product decision */
+/* Light scheme by default; dark scheme opts in via next-themes which adds
+   `.dark` to <html>. Qatar athletes training at 5am / 10pm wanted this. */
 :root { color-scheme: light; }
+
+.dark {
+  color-scheme: dark;
+  --bg:         #0F0F10;
+  --bg-alt:     #17171A;
+  --surface:    #1A1A1E;
+  --surface-2:  #23232A;
+  --ink:        #F5F3EF;
+  --ink-muted:  #A8A49D;
+  --ink-subtle: #6B6762;
+  --border:     #2E2E36;
+  --primary-soft: rgba(46, 117, 182, 0.18);
+}
 
 html, body {
   background: var(--bg);

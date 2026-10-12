@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agon · Sin conexión</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #F7F5F0; color: #0F0F10; margin: 0; display: grid; place-items: center; min-height: 100vh; padding: 2rem; text-align: center; }
+    .card { max-width: 24rem; padding: 2rem; border-radius: 1rem; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+    p { color: #666; font-size: 0.95rem; line-height: 1.5; }
+    button { margin-top: 1.25rem; background: #0F0F10; color: #fff; border: 0; padding: 0.75rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📶</div>
+    <h1>Sin conexión</h1>
+    <p>No hay internet ahora mismo. Tu último entreno sigue guardado y lo verás cuando vuelva la señal.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </div>
+</body>
+</html>

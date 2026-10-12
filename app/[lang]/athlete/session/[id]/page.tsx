@@ -7,9 +7,12 @@ import { Card, Pill, Button } from "@/components/ui/Card";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
 import IntensityReview from "@/components/IntensityReview";
 import SessionActualsForm from "@/components/SessionActualsForm";
+import WorkoutTimer from "@/components/WorkoutTimer";
+import OneRmCalculator from "@/components/OneRmCalculator";
 import { ensureMovementVideoUrls } from "@/lib/youtube-search";
 import { isYoutubeSearch } from "@/lib/youtube";
 import { saveSessionFeedback } from "./actions";
+import { loadAthleteEvolution } from "@/lib/athlete-evolution";
 
 export default async function SessionDetail({ params, searchParams }: PageProps<"/[lang]/athlete/session/[id]">) {
   const { lang, id } = await params;
@@ -54,6 +57,19 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
     targets.map((t) => ({ key: t.id, movementId: t.movementId, fallbackName: t.name })),
   );
   for (const [id, url] of resolvedMap) resolvedVideoByMovement.set(id, url);
+
+  // Standard #4-ish: pre-compute each movement's prior best so PR detection is
+  // instant on save. We use the same evolution loader the charts read from,
+  // so "PR" means what the chart would show — one source of truth.
+  const prior = await loadAthleteEvolution(link.athleteId);
+  const priorBestByName = new Map<string, number>();
+  for (const s of prior) {
+    if (s.metric !== "weight" || s.best?.weightKg == null) continue;
+    // Index under the canonical English name AND the series label (benchmark
+    // name) so renames or benchmark-matched movements still look up correctly.
+    priorBestByName.set(s.label.toLowerCase().trim(), s.best.weightKg);
+    priorBestByName.set(s.key.toLowerCase().trim(), s.best.weightKg);
+  }
 
   async function toggleComplete() {
     "use server";
@@ -188,30 +204,45 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
         </div>
       )}
 
+      {/* Live workout tools: timer + 1RM calc. Compact so they don't crowd. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <WorkoutTimer compact />
+        <OneRmCalculator />
+      </div>
+
       {/* Per-movement actuals — the weights/reps/times the athlete did.
           Available even BEFORE the session is marked complete so the athlete
           can log as they go. */}
+      {/* Load prior PRs so we can detect new PRs on save (standard: let the
+          athlete see dopamine when they beat themselves). */}
+      {(() => null)()}
       <SessionActualsForm
         sessionId={s.id}
         lang={lang}
-        movements={s.blocks.flatMap((b) =>
-          b.movements.map((m, idx) => {
-            const p = (m.prescription ?? {}) as Record<string, unknown>;
-            const localName = lang === "es"
-              ? (m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—")
-              : lang === "ar"
-              ? (m.movement?.nameAr ?? m.movement?.nameEn ?? m.customName ?? "—")
-              : (m.movement?.nameEn ?? m.customName ?? "—");
-            return {
-              id: m.id,
-              name: localName,
-              blockCode: b.blockCode ?? "",
-              idx,
-              prescribedLoad: (p.load as string | undefined) ?? (p.load_kg != null ? `${p.load_kg} kg` : null),
-              prescribedReps: (p.reps as string | undefined) ?? (p.reps_range as string | undefined) ?? null,
-            };
-          })
-        )}
+        movements={(() => {
+          // Collapse all series into {movementName: bestWeightKg} once.
+          // Pulled from evolution loader (same source charts use).
+          return s.blocks.flatMap((b) =>
+            b.movements.map((m, idx) => {
+              const p = (m.prescription ?? {}) as Record<string, unknown>;
+              const localName = lang === "es"
+                ? (m.movement?.nameEs ?? m.movement?.nameEn ?? m.customName ?? "—")
+                : lang === "ar"
+                ? (m.movement?.nameAr ?? m.movement?.nameEn ?? m.customName ?? "—")
+                : (m.movement?.nameEn ?? m.customName ?? "—");
+              const canonical = m.movement?.nameEn ?? m.customName ?? localName;
+              return {
+                id: m.id,
+                name: localName,
+                blockCode: b.blockCode ?? "",
+                idx,
+                prescribedLoad: (p.load as string | undefined) ?? (p.load_kg != null ? `${p.load_kg} kg` : null),
+                prescribedReps: (p.reps as string | undefined) ?? (p.reps_range as string | undefined) ?? null,
+                previousBestKg: priorBestByName.get(canonical.toLowerCase().trim()) ?? null,
+              };
+            })
+          );
+        })()}
         initialActuals={((s.sessionLog?.actuals ?? {}) as Record<string, { load?: string; reps?: string; time?: string; notes?: string }>)}
       />
 
