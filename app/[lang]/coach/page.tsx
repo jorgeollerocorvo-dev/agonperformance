@@ -105,10 +105,13 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
       </section>
 
       <section className="flex flex-wrap gap-2">
-        <Link href={`/${lang}/coach/templates`} className="text-xs rounded-full bg-white border border-[var(--border)] px-3 py-1.5 hover:bg-[var(--surface-2)]">
+        <Link href={`/${lang}/coach/whatsapp`} className="text-xs rounded-full bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 hover:bg-[var(--surface-2)]">
+          💚 WhatsApp
+        </Link>
+        <Link href={`/${lang}/coach/templates`} className="text-xs rounded-full bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 hover:bg-[var(--surface-2)]">
           💬 Plantillas de mensajes
         </Link>
-        <Link href={`/${lang}/coach/import/photos`} className="text-xs rounded-full bg-white border border-[var(--border)] px-3 py-1.5 hover:bg-[var(--surface-2)]">
+        <Link href={`/${lang}/coach/import/photos`} className="text-xs rounded-full bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 hover:bg-[var(--surface-2)]">
           📸 Importar desde fotos
         </Link>
       </section>
