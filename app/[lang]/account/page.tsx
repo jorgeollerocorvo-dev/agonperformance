@@ -55,7 +55,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[var(--bg)]">
       <BrandedHeader lang={lang}>
         <LanguageSwitcher current={lang} compact />
         <Link

@@ -25,7 +25,7 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
   const dict = await getDictionary(lang);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[var(--bg)]">
       {/* Premium Branded Header */}
       <BrandedHeader lang={lang}>
         <LanguageSwitcher current={lang} compact />
@@ -33,7 +33,7 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
           <>
             <Link
               href={dashboardHref}
-              className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors whitespace-nowrap"
+              className="rounded-lg bg-[var(--primary)] text-white px-4 py-2 text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors whitespace-nowrap"
             >
               {dict.nav.profile} →
             </Link>
@@ -43,13 +43,13 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
           <>
             <Link
               href={`/${lang}/login`}
-              className="text-sm px-3 py-2 text-[#666666] hover:text-[#1A1A1A] transition-colors whitespace-nowrap"
+              className="text-sm px-3 py-2 text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors whitespace-nowrap"
             >
               {dict.auth.signIn}
             </Link>
             <Link
               href={`/${lang}/register`}
-              className="rounded-lg bg-[#2E75B6] text-white px-4 py-2 text-sm font-semibold hover:bg-[#1E5A94] transition-colors whitespace-nowrap"
+              className="rounded-lg bg-[var(--primary)] text-white px-4 py-2 text-sm font-semibold hover:bg-[var(--primary-hover)] transition-colors whitespace-nowrap"
             >
               {dict.auth.signUp}
             </Link>
@@ -67,7 +67,7 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
             {/* Browse Coaches */}
             <Link
               href={`/${lang}/coaches`}
-              className="p-8 rounded-xl bg-[#2E75B6] text-white font-bold text-center hover:bg-[#1E5A94] transition-colors shadow-md hover:shadow-lg"
+              className="p-8 rounded-xl bg-[var(--primary)] text-white font-bold text-center hover:bg-[var(--primary-hover)] transition-colors shadow-md hover:shadow-lg"
             >
               <div className="text-4xl mb-3">🗺️</div>
               <h3 className="text-xl mb-2">Browse Coaches</h3>
@@ -77,17 +77,17 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
             {/* Find My Coach */}
             <Link
               href={`/${lang}/find-my-coach`}
-              className="p-8 rounded-xl border-2 border-[#1A1A1A] bg-white text-[#1A1A1A] font-bold text-center hover:bg-[#1A1A1A] hover:text-white transition-colors"
+              className="p-8 rounded-xl border-2 border-[var(--ink)] bg-[var(--surface)] text-[var(--ink)] font-bold text-center hover:bg-[var(--ink)] hover:text-[var(--bg)] transition-colors"
             >
               <div className="text-4xl mb-3">📋</div>
               <h3 className="text-xl mb-2">Get Matched</h3>
-              <p className="text-[#666666] text-sm hover:text-white/90">We find the perfect coach for you</p>
+              <p className="text-[var(--ink-muted)] text-sm hover:text-[var(--bg)]/90">We find the perfect coach for you</p>
             </Link>
 
             {/* Book Consultation */}
             <Link
               href={`/${lang}/consultation`}
-              className="p-8 rounded-xl bg-[#2E75B6] text-white font-bold text-center hover:bg-[#1E5A94] transition-colors shadow-md hover:shadow-lg"
+              className="p-8 rounded-xl bg-[var(--primary)] text-white font-bold text-center hover:bg-[var(--primary-hover)] transition-colors shadow-md hover:shadow-lg"
             >
               <div className="text-4xl mb-3">💬</div>
               <h3 className="text-xl mb-2">Free Consultation</h3>
@@ -96,7 +96,7 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
           </div>
           {/* Pricing CTA */}
           <div className="mt-8 text-center">
-            <Link href={`/${lang}/pricing`} className="inline-block text-sm text-[#2E75B6] font-semibold hover:underline">
+            <Link href={`/${lang}/pricing`} className="inline-block text-sm text-[var(--primary)] font-semibold hover:underline">
               {lang === "es" ? "Ver planes y precios →" : lang === "ar" ? "عرض الخطط والأسعار ←" : "See plans and pricing →"}
             </Link>
           </div>
@@ -107,9 +107,9 @@ export default async function LandingPage({ params }: PageProps<"/[lang]">) {
       <TestimonialsSection lang={lang} />
 
       {/* Footer */}
-      <footer className="border-t border-[#E5E5E5] bg-[#F5F5F5] px-4 sm:px-8 py-12">
-        <div className="max-w-6xl mx-auto text-center text-[#666666]">
-          <p className="mb-2 font-bold text-[#1A1A1A]">{BRAND.name}</p>
+      <footer className="border-t border-[var(--border)] bg-[var(--surface-2)] px-4 sm:px-8 py-12">
+        <div className="max-w-6xl mx-auto text-center text-[var(--ink-muted)]">
+          <p className="mb-2 font-bold text-[var(--ink)]">{BRAND.name}</p>
           <p className="text-sm mb-4">{BRAND.tagline}</p>
           <p className="text-xs">© 2026 {BRAND.name}. All rights reserved.</p>
         </div>

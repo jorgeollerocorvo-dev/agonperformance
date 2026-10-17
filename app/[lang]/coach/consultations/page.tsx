@@ -146,7 +146,7 @@ export default async function ConsultationsPage({
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[var(--bg)]">
       {/* Header */}
       <BrandedHeader lang={lang}>
         <LanguageSwitcher current={lang} compact />
