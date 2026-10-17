@@ -33,10 +33,10 @@ export default async function TestimonialsSection({ lang }: { lang: string }) {
             {"★".repeat(Math.round(avgRating))}
             {"☆".repeat(5 - Math.round(avgRating))}
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#1A1A1A] mb-2">
+          <h2 className="text-3xl sm:text-4xl font-bold text-[var(--ink)] mb-2">
             {lang === "ar" ? "ماذا يقول عملاؤنا" : lang === "es" ? "Lo que dicen nuestros clientes" : "What our clients say"}
           </h2>
-          <p className="text-sm text-[#666666]">
+          <p className="text-sm text-[var(--ink-muted)]">
             {avgRating.toFixed(1)} / 5 · {displayCount} {lang === "ar" ? "مراجعة" : lang === "es" ? "reseñas" : "reviews"}
           </p>
         </div>
@@ -51,7 +51,7 @@ export default async function TestimonialsSection({ lang }: { lang: string }) {
             const isPrimaryArabic = primary === t.quoteAr;
 
             return (
-              <div key={t.id} className="bg-white rounded-xl p-6 shadow-sm border border-[#E5E5E5] flex flex-col">
+              <div key={t.id} className="bg-[var(--surface)] rounded-xl p-6 shadow-sm border border-[var(--border)] flex flex-col">
                 <div className="text-amber-500 mb-3">
                   {"★".repeat(t.rating)}
                   <span className="text-[#E5E5E5]">{"★".repeat(5 - t.rating)}</span>
@@ -59,7 +59,7 @@ export default async function TestimonialsSection({ lang }: { lang: string }) {
 
                 {primary && (
                   <blockquote
-                    className={`text-[#1A1A1A] text-base leading-relaxed mb-3 ${isPrimaryArabic ? "text-right" : ""}`}
+                    className={`text-[var(--ink)] text-base leading-relaxed mb-3 ${isPrimaryArabic ? "text-right" : ""}`}
                     dir={isPrimaryArabic ? "rtl" : "ltr"}
                   >
                     &ldquo;{primary}&rdquo;
@@ -67,18 +67,18 @@ export default async function TestimonialsSection({ lang }: { lang: string }) {
                 )}
 
                 {showArabicSubtext && t.quoteAr && (
-                  <div className="text-sm text-[#666666] italic mt-1 text-right border-t border-[#F0F0F0] pt-2" dir="rtl">
+                  <div className="text-sm text-[var(--ink-muted)] italic mt-1 text-right border-t border-[var(--border)] pt-2" dir="rtl">
                     &ldquo;{t.quoteAr}&rdquo;
                   </div>
                 )}
                 {showEnglishSubtext && t.quoteEn && (
-                  <div className="text-sm text-[#666666] italic mt-1 border-t border-[#F0F0F0] pt-2">
+                  <div className="text-sm text-[var(--ink-muted)] italic mt-1 border-t border-[var(--border)] pt-2">
                     &ldquo;{t.quoteEn}&rdquo;
                   </div>
                 )}
 
-                <div className="mt-auto pt-3 border-t border-[#F0F0F0] text-xs text-[#666666]">
-                  {t.clientName && <span className="font-semibold text-[#1A1A1A]">{t.clientName}</span>}
+                <div className="mt-auto pt-3 border-t border-[var(--border)] text-xs text-[var(--ink-muted)]">
+                  {t.clientName && <span className="font-semibold text-[var(--ink)]">{t.clientName}</span>}
                   {t.clientRole && <span className="ml-2">· {t.clientRole}</span>}
                   {t.clientCity && <div className="mt-0.5">📍 {t.clientCity}</div>}
                 </div>

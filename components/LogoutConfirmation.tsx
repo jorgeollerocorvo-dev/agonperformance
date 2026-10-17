@@ -56,17 +56,17 @@ export default function LogoutConfirmation({
                 <h2 className="text-2xl font-bold text-green-600 mb-2">
                   Logged Out Successfully
                 </h2>
-                <p className="text-[#666666] mb-4">
+                <p className="text-[var(--ink-muted)] mb-4">
                   See you next time! Redirecting...
                 </p>
               </>
             ) : (
               <>
                 <div className="text-4xl mb-4">👋</div>
-                <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">
+                <h2 className="text-2xl font-bold text-[var(--ink)] mb-2">
                   Logging Out
                 </h2>
-                <p className="text-[#666666] mb-8">
+                <p className="text-[var(--ink-muted)] mb-8">
                   Are you sure you want to log out? You can log back in anytime.
                 </p>
 
@@ -74,7 +74,7 @@ export default function LogoutConfirmation({
                   <button
                     onClick={onClose}
                     disabled={isLoading}
-                    className="px-6 py-3 border-2 border-[#E5E5E5] text-[#1A1A1A] font-bold rounded-lg hover:border-[#1A1A1A] transition-colors disabled:opacity-50"
+                    className="px-6 py-3 border-2 border-[var(--border)] text-[var(--ink)] font-bold rounded-lg hover:border-[#1A1A1A] transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>

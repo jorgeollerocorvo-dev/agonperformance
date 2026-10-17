@@ -33,11 +33,13 @@ export default async function AthleteLayout({
 
   const navLink = "px-3 py-1.5 rounded-full text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]";
 
+  // Lean nav: Today + Calendar + Messages + Account.
+  // History is redundant with Calendar (both show past sessions); the
+  // movements history is reachable from Account → Historial.
+  // Talk-to-coach is reachable from Today and from Messages.
   const items: MobileMenuItem[] = [
     { href: `/${lang}/athlete`, label: dict.nav.today },
     { href: `/${lang}/athlete/calendar`, label: dict.nav.calendar ?? "Calendar" },
-    { href: `/${lang}/athlete/history`, label: dict.nav.history },
-    { href: `/${lang}/athlete/talk`, label: dict.athlete.talkToCoach ?? "Talk to coach" },
     { href: `/${lang}/messages`, label: dict.nav.messages },
     { href: `/${lang}/account`, label: dict.nav.account },
   ];
@@ -61,7 +63,6 @@ export default async function AthleteLayout({
           <nav className="hidden sm:flex gap-1">
             <Link href={`/${lang}/athlete`} className={navLink}>{dict.nav.today}</Link>
             <Link href={`/${lang}/athlete/calendar`} className={navLink}>{dict.nav.calendar ?? "Calendar"}</Link>
-            <Link href={`/${lang}/athlete/history`} className={navLink}>{dict.nav.history}</Link>
             <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
             <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
           </nav>

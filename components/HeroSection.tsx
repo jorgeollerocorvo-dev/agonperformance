@@ -36,7 +36,7 @@ export default function HeroSection({
 
           {/* Brand Name */}
           <div>
-            <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight text-[#1A1A1A] leading-[0.9] mb-4">
+            <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight text-[var(--ink)] leading-[0.9] mb-4">
               {BRAND.name}
             </h1>
             <div className="h-1 w-16 bg-[#2E75B6] mx-auto rounded-full" />
@@ -44,10 +44,10 @@ export default function HeroSection({
 
           {/* Tagline */}
           <div className="space-y-4">
-            <p className="text-2xl sm:text-4xl font-bold text-[#1A1A1A] max-w-3xl mx-auto">
+            <p className="text-2xl sm:text-4xl font-bold text-[var(--ink)] max-w-3xl mx-auto">
               {BRAND_MESSAGE.hero.heading}
             </p>
-            <p className="text-lg sm:text-xl text-[#666666] max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl text-[var(--ink-muted)] max-w-2xl mx-auto leading-relaxed">
               {BRAND_MESSAGE.hero.description}
             </p>
           </div>
@@ -63,7 +63,7 @@ export default function HeroSection({
               </Link>
               <Link
                 href={`/${lang}/register`}
-                className="px-8 py-3 border-2 border-[#1A1A1A] text-[#1A1A1A] font-bold text-lg rounded-lg hover:bg-[#1A1A1A] hover:text-white transition-colors"
+                className="px-8 py-3 border-2 border-[#1A1A1A] text-[var(--ink)] font-bold text-lg rounded-lg hover:bg-[#1A1A1A] hover:text-white transition-colors"
               >
                 {BRAND_MESSAGE.cta.primary}
               </Link>
@@ -76,15 +76,15 @@ export default function HeroSection({
               {BRAND_MESSAGE.features.map((feature, idx) => (
                 <div
                   key={idx}
-                  className="p-6 bg-white border border-[#E5E5E5] rounded-xl hover:border-[#2E75B6] hover:shadow-lg transition-all"
+                  className="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-xl hover:border-[#2E75B6] hover:shadow-lg transition-all"
                 >
                   <div className="text-3xl mb-3">
                     {idx === 0 ? "🎯" : idx === 1 ? "👨‍🏫" : "📊"}
                   </div>
-                  <h3 className="text-xl font-bold text-[#1A1A1A] mb-2">
+                  <h3 className="text-xl font-bold text-[var(--ink)] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-[#666666]">{feature.description}</p>
+                  <p className="text-[var(--ink-muted)]">{feature.description}</p>
                 </div>
               ))}
             </div>

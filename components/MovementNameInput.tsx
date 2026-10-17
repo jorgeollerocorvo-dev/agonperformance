@@ -87,7 +87,7 @@ export default function MovementNameInput({
         autoComplete="off"
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full mt-1 z-30 max-h-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-white shadow-[var(--shadow-md)]">
+        <ul className="absolute left-0 right-0 top-full mt-1 z-30 max-h-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
           {suggestions.map((s, i) => {
             // Show whichever name matches what the coach typed, with the other language(s)
             // as secondary text. Detect by simple substring match against the input.

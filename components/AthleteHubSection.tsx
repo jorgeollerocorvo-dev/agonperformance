@@ -63,20 +63,19 @@ export default async function AthleteHubSection({ userId, lang }: { userId: stri
         <QuickLink href={`/${lang}/athlete/calendar`} icon="📅" label="Calendario" />
       </div>
 
-      {/* Profile */}
+      {/* Profile — kept lean: name + coach + division + the three stats that
+          actually matter to the athlete. Sex/age/height/weight hidden here
+          (they can see them on the measurement chart if they log them) and
+          are TMI as a static display. */}
       <Card>
         <h2 className="font-semibold mb-3">Perfil</h2>
         <dl className="grid grid-cols-2 gap-y-2 text-sm">
           <Row label="Nombre" value={athlete.fullName} />
           <Row label="Coach" value={coachName} />
-          {athlete.sex && <Row label="Sexo" value={athlete.sex === "M" ? "Hombre" : "Mujer"} />}
-          {athlete.age != null && <Row label="Edad" value={`${athlete.age} años`} />}
-          {athlete.heightCm != null && <Row label="Altura" value={`${athlete.heightCm} cm`} />}
-          {athlete.weightKg != null && <Row label="Peso" value={`${athlete.weightKg} kg`} />}
           {athlete.division && <Row label="División" value={athlete.division} />}
           <Row label="Entrenando desde" value={firstSession?.date.toISOString().slice(0, 10) ?? "—"} />
           <Row label="Última sesión completada" value={lastSession?.date.toISOString().slice(0, 10) ?? "—"} />
-          <Row label="Movimientos totales programados" value={String(movementCount)} />
+          <Row label="Movimientos totales" value={String(movementCount)} />
         </dl>
       </Card>
 
@@ -117,12 +116,13 @@ export default async function AthleteHubSection({ userId, lang }: { userId: stri
         </Card>
       )}
 
+      {/* 1RMs + benchmarks + competition targets stay — those are "data the
+          client wants to see". Dropped: injuryHistory, trainingFrequency,
+          programmingNotes — all coach-internal JSON that looked like noise
+          to the athlete and never rendered well as a key:value dump. */}
       {renderJsonBlock(athlete.current1rms, "💪 1RMs actuales")}
       {renderJsonBlock(athlete.currentBenchmarks, "⏱️ Benchmarks")}
       {renderJsonBlock(athlete.targetsByCompetition, "🏆 Objetivos por competición")}
-      {renderJsonBlock(athlete.injuryHistory, "🩹 Historial de lesiones")}
-      {renderJsonBlock(athlete.trainingFrequency, "📆 Frecuencia de entrenamiento")}
-      {renderJsonBlock(athlete.programmingNotes, "📋 Notas de programación")}
 
       {athlete.notes && (
         <Card>
@@ -145,7 +145,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function QuickLink({ href, icon, label }: { href: string; icon: string; label: string }) {
   return (
-    <Link href={href} className="rounded-xl border border-[var(--border)] bg-white hover:bg-[var(--surface-2)] p-3 text-center transition">
+    <Link href={href} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] p-3 text-center transition">
       <div className="text-2xl mb-1">{icon}</div>
       <div className="text-xs font-semibold">{label}</div>
     </Link>

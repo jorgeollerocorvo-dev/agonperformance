@@ -167,7 +167,7 @@ export default function IntensityReview({
             onChange={(e) => setReview(e.target.value)}
             placeholder="How did your body feel? Any pain, energy levels, or general thoughts?"
             rows={2}
-            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-white text-sm"
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
           />
         </div>
 
