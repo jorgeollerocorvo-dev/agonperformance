@@ -40,7 +40,7 @@ export default async function CoachLayout({
     ...(showLeads ? [{ href: `/${lang}/coach/movements`, label: dict.nav.movements ?? "Movements", highlight: true }] : []),
     ...(showLeads ? [{ href: `/${lang}/admin/coaches`, label: "Coaches Area", highlight: true }] : []),
     ...(showLeads ? [{ href: `/${lang}/admin/catalog`, label: "🛍️ Catalog", highlight: true }] : []),
-    { href: `/${lang}/messages`, label: dict.nav.messages },
+    { href: `/${lang}/coach/whatsapp`, label: "💚 WhatsApp" },
     { href: `/${lang}/coach/profile`, label: dict.nav.profile },
     { href: `/${lang}/account`, label: dict.nav.account },
   ];
@@ -88,7 +88,7 @@ export default async function CoachLayout({
                 🛍️ Catalog
               </Link>
             )}
-            <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
+            <Link href={`/${lang}/coach/whatsapp`} className={navLink}>💚 WhatsApp</Link>
             <Link href={`/${lang}/coach/profile`} className={navLink}>{dict.nav.profile}</Link>
             <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
           </nav>

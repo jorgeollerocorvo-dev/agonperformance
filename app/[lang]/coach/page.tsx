@@ -33,8 +33,10 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
   const programCount = await prisma.program.count({
     where: { athlete: { coachProfileId: coachProfile.id } },
   });
-  const convoCount = await prisma.conversation.count({
-    where: { coachUserId: session.user.id },
+  // Count WhatsApp threads that need the coach's attention — in-app
+  // messaging was retired, this stat now reflects WhatsApp escalations.
+  const convoCount = await prisma.whatsAppMessage.count({
+    where: { requiresCoach: true },
   });
 
   // Get consultation bookings count (only for Jorge)
@@ -89,9 +91,9 @@ export default async function CoachDashboard({ params }: PageProps<"/[lang]/coac
           icon={<IconChart />}
         />
         <StatCard
-          label={dict.nav.messages}
+          label="WhatsApp"
           value={convoCount}
-          href={`/${lang}/messages`}
+          href={`/${lang}/coach/whatsapp`}
           icon={<IconChat />}
         />
         {isJorge && (

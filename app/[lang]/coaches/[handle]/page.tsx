@@ -26,31 +26,11 @@ export default async function PublicCoachProfile({ params }: PageProps<"/[lang]/
 
   async function startConversation(formData: FormData) {
     "use server";
-    const session = await auth();
-    if (!session?.user) redirect(`/${lang}/login?next=/${lang}/coaches/${handle}`);
     const body = String(formData.get("body") ?? "").trim();
-    if (!body) return;
-
-    const clientUserId = session.user.id;
-    const coachUserId = coach!.userId;
-    if (clientUserId === coachUserId) return;
-
-    const convo = await prisma.conversation.upsert({
-      where: { clientUserId_coachUserId: { clientUserId, coachUserId } },
-      update: { lastMessageAt: new Date() },
-      create: { clientUserId, coachUserId },
-    });
-
-    await prisma.message.create({
-      data: {
-        conversationId: convo.id,
-        senderUserId: clientUserId,
-        body,
-        containsContactInfo: /\b\d{6,}\b|@|whatsapp/i.test(body),
-      },
-    });
-
-    redirect(`/${lang}/messages/${convo.id}`);
+    const { waLink } = await import("@/lib/whatsapp-link");
+    const url = waLink({ phone: coach!.user.phone, prefill: body || `Hola, te escribo desde tu perfil en Agon Performance.` });
+    if (url) redirect(url);
+    redirect(`/${lang}/coaches/${handle}`);
   }
 
   return (

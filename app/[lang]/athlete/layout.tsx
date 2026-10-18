@@ -32,14 +32,23 @@ export default async function AthleteLayout({
 
   const navLink = "px-3 py-1.5 rounded-full text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]";
 
-  // Lean nav: Today + Calendar + Messages + Account.
-  // History is redundant with Calendar (both show past sessions); the
-  // movements history is reachable from Account → Historial.
-  // Talk-to-coach is reachable from Today and from Messages.
+  // Resolve the athlete's coach WhatsApp link once per request so the nav
+  // can point directly to wa.me — in-app messages were removed per product
+  // decision, every "talk to coach" CTA now opens WhatsApp.
+  let whatsappHref: string | null = null;
+  if (session?.user?.id) {
+    const { prisma } = await import("@/lib/prisma");
+    const { getCoachWhatsAppUrlForAthlete } = await import("@/lib/whatsapp-link");
+    const direct = await prisma.athlete.findUnique({ where: { userId: session.user.id }, select: { id: true } });
+    const athleteId = direct?.id ?? (await prisma.athleteLink.findFirst({ where: { userId: session.user.id, active: true }, select: { athleteId: true } }))?.athleteId ?? null;
+    if (athleteId) whatsappHref = await getCoachWhatsAppUrlForAthlete(athleteId);
+  }
+
+  // Lean nav: Today + Calendar + WhatsApp (external) + Account.
   const items: MobileMenuItem[] = [
     { href: `/${lang}/athlete`, label: dict.nav.today },
     { href: `/${lang}/athlete/calendar`, label: dict.nav.calendar ?? "Calendar" },
-    { href: `/${lang}/messages`, label: dict.nav.messages },
+    { href: whatsappHref ?? `/${lang}/athlete/talk`, label: "WhatsApp" },
     { href: `/${lang}/account`, label: dict.nav.account },
   ];
 
@@ -62,7 +71,11 @@ export default async function AthleteLayout({
           <nav className="hidden sm:flex gap-1">
             <Link href={`/${lang}/athlete`} className={navLink}>{dict.nav.today}</Link>
             <Link href={`/${lang}/athlete/calendar`} className={navLink}>{dict.nav.calendar ?? "Calendar"}</Link>
-            <Link href={`/${lang}/messages`} className={navLink}>{dict.nav.messages}</Link>
+            {whatsappHref ? (
+              <a href={whatsappHref} target="_blank" rel="noreferrer" className={navLink}>💚 WhatsApp</a>
+            ) : (
+              <Link href={`/${lang}/athlete/talk`} className={navLink}>💚 WhatsApp</Link>
+            )}
             <Link href={`/${lang}/account`} className={navLink}>{dict.nav.account}</Link>
           </nav>
 
