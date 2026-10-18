@@ -7,7 +7,6 @@ import HomeLink from "@/components/HomeLink";
 import { isJorge } from "@/lib/jorge";
 import { aiImportEnabled } from "@/lib/features";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import MobileMenu, { type MobileMenuItem } from "@/components/MobileMenu";
 import AccountLogoutButton from "@/components/AccountLogoutButton";
 
@@ -95,7 +94,6 @@ export default async function CoachLayout({
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <ThemeToggle />
             <LanguageSwitcher current={lang} compact />
             <div className="hidden sm:block">
               <AccountLogoutButton lang={lang} compact />

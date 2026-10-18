@@ -5,7 +5,6 @@ import "../globals.css";
 import { hasLocale, LOCALES } from "./dictionaries";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
-import { ThemeProvider } from "next-themes";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -20,10 +19,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F7F5F0" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F0F10" },
-  ],
+  themeColor: "#F7F5F0",
 };
 
 export function generateStaticParams() {
@@ -40,12 +36,10 @@ export default async function RootLayout({
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={lang} dir={dir} className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang={lang} dir={dir} className={`${inter.variable} h-full antialiased`} style={{ colorScheme: "light" }}>
       <body className="min-h-full bg-[var(--bg)] text-[var(--ink)]">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-          <ServiceWorkerRegister />
-        </ThemeProvider>
+        {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

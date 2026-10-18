@@ -59,37 +59,10 @@
   --font-sans: var(--font-sans);
 }
 
-/* Light scheme by default; dark scheme opts in via next-themes which adds
-   `.dark` to <html>. Qatar athletes training at 5am / 10pm wanted this. */
+/* Light-only — dark mode cancelled per product decision. The CSS variables
+   above stay (components keep using var(--surface)/var(--ink)/etc) so the
+   next palette iteration only needs to touch :root values. */
 :root { color-scheme: light; }
-
-.dark {
-  color-scheme: dark;
-  --bg:         #0F0F10;
-  --bg-alt:     #17171A;
-  --surface:    #1A1A1E;
-  --surface-2:  #23232A;
-  --surface-3:  #2A2A32;
-  --ink:        #F5F3EF;
-  --ink-muted:  #B5B1A9;   /* bumped from #A8A49D for AAA on body text */
-  --ink-subtle: #7F7B74;   /* bumped from #6B6762 */
-  --border:     #2E2E36;
-  --border-strong: #3A3A44;
-  /* Softer primary tint that still reads as a tint over dark surfaces */
-  --primary-soft: rgba(97, 157, 221, 0.22);
-  /* Lighter primary variant for use on dark backgrounds (contrast fix for
-     the “+ Add” / status badges / soft-primary links). The bare --primary
-     stays cobalt, used when it sits on light surfaces inside dark mode. */
-  --primary-on-dark: #78B1E8;
-  --danger-soft: rgba(239, 68, 68, 0.18);
-  --success-soft: rgba(16, 185, 129, 0.18);
-}
-
-/* In dark mode, anything using text-[var(--primary)] on top of
-   bg-[var(--primary-soft)] uses the brighter variant automatically. */
-.dark .text-\[var\(--primary\)\] {
-  color: var(--primary-on-dark);
-}
 
 html, body {
   background: var(--bg);

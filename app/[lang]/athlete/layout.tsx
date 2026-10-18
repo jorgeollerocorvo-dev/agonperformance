@@ -12,7 +12,6 @@ import { hasRole } from "@/lib/roles";
 import { getDictionary, hasLocale } from "../dictionaries";
 import HomeLink from "@/components/HomeLink";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import MobileMenu, { type MobileMenuItem } from "@/components/MobileMenu";
 
 export default async function AthleteLayout({
@@ -68,7 +67,6 @@ export default async function AthleteLayout({
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <ThemeToggle />
             <LanguageSwitcher current={lang} compact />
             <form action={async () => { "use server"; await signOut({ redirect: false }); }} className="hidden sm:block">
               <button className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] px-3 py-1.5">{dict.nav.logout}</button>
