@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
+
+// Server actions inherit the page's maxDuration on Vercel. AI program
+// generation can take 15-45s on larger programs, so we raise the ceiling
+// (Hobby plan allows up to 60s since early 2025).
+export const maxDuration = 60;
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app/api/whatsapp/webhook/route.ts": { "maxDuration": 30 },
+    "app/api/billing/webhook/route.ts":  { "maxDuration": 15 },
+    "app/api/programs/[id]/pdf/route.ts": { "maxDuration": 30 },
+    "app/api/programs/[id]/document/route.ts": { "maxDuration": 60 },
+    "app/[lang]/coach/programs/ai-new/page.tsx": { "maxDuration": 60 },
+    "app/[lang]/coach/import/page.tsx": { "maxDuration": 60 },
+    "app/[lang]/coach/import/photos/page.tsx": { "maxDuration": 60 }
+  },
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/push-sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+    }
+  ]
+}

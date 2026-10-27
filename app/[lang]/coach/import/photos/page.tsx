@@ -1,6 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
+
+// Vision AI on multiple photos in parallel can take 10-30s.
+export const maxDuration = 60;
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
 import { Card, Button } from "@/components/ui/Card";
