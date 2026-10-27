@@ -7,6 +7,9 @@ import CheckoutButton from "@/components/CheckoutButton";
 import BrandedHeader from "@/components/BrandedHeader";
 import { isStripeConfigured } from "@/lib/stripe";
 
+// Reads SubscriptionPlan from DB — can't be prerendered when Neon is cold.
+export const dynamic = "force-dynamic";
+
 /**
  * Public pricing page — reads SubscriptionPlan rows and renders them with
  * a Stripe Checkout button. If Stripe isn't wired up yet (no key or no
