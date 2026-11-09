@@ -9,6 +9,7 @@ import { isYoutubeSearch } from "@/lib/youtube";
 import { getDayNameFromDate } from "@/lib/day-utils";
 import Link from "next/link";
 import PushEnableButton from "@/components/PushEnableButton";
+import VisibilityRefresh from "@/components/VisibilityRefresh";
 import { Card, Pill, Button } from "@/components/ui/Card";
 import { saveSessionFeedback } from "./actions";
 
@@ -272,6 +273,7 @@ export default async function AthleteToday({ params, searchParams }: PageProps<"
 
   return (
     <div className="space-y-6">
+      <VisibilityRefresh />
       {/* Header with Greeting */}
       <div className="space-y-6">
         <div className="flex items-center gap-3 sm:gap-4">

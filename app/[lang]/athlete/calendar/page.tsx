@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../dictionaries";
 import { Card, Pill } from "@/components/ui/Card";
+import VisibilityRefresh from "@/components/VisibilityRefresh";
 
 /**
  * Map a session's focus text to a workout-type emoji so calendar cells read
@@ -144,6 +145,7 @@ export default async function AthleteCalendar({ params, searchParams }: PageProp
 
   return (
     <div className="space-y-6">
+      <VisibilityRefresh />
       <header className="flex items-baseline justify-between gap-3 flex-wrap">
         <div>
           <p className="text-xs sm:text-sm text-[var(--ink-muted)] uppercase tracking-wide font-medium">{dict.athlete.calendarTitle ?? "Calendar"}</p>

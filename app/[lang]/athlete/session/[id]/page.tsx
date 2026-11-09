@@ -7,6 +7,7 @@ import { Card, Pill, Button } from "@/components/ui/Card";
 import MovementVideoPreview from "@/components/MovementVideoPreview";
 import IntensityReview from "@/components/IntensityReview";
 import SessionActualsForm from "@/components/SessionActualsForm";
+import VisibilityRefresh from "@/components/VisibilityRefresh";
 import WorkoutTimer from "@/components/WorkoutTimer";
 import OneRmCalculator from "@/components/OneRmCalculator";
 import { ensureMovementVideoUrls } from "@/lib/youtube-search";
@@ -110,6 +111,10 @@ export default async function SessionDetail({ params, searchParams }: PageProps<
 
   return (
     <div className="space-y-6">
+      {/* When the athlete comes back to this tab/window, re-fetch so any
+          coach edits (renamed movements, new videos, new blocks) show up
+          without needing a hard refresh. Throttled to once every 30s. */}
+      <VisibilityRefresh />
       <Link href={backHref} className="text-sm text-[var(--ink-muted)] hover:underline">← {backLabel}</Link>
 
       <header className="flex items-baseline justify-between gap-3 flex-wrap">
