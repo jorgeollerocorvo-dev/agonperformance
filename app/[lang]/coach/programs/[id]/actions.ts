@@ -740,16 +740,21 @@ export async function generateAIProgressionWeek(formData: FormData) {
     weekLabel: w.weekLabel,
     days: w.sessions.map((s) => {
       const isRest = (s.focus ?? "").toLowerCase().includes("rest") || s.blocks.length === 0;
+      // Pull the athlete's logged actuals for this session from SessionLog —
+      // this is what makes the AI progress from REALITY not the prescription.
+      const actuals = (s.sessionLog?.actuals ?? null) as Record<string, { load?: string; reps?: string; time?: string }> | null;
       return {
         dayOfWeek: s.day,
         focus: s.focus,
         isRest,
+        intensityFeedback: s.sessionLog?.intensityFeedback ?? null,
         blocks: s.blocks.map((b) => ({
           blockCode: b.blockCode,
           label: b.label,
           format: b.format,
           movements: b.movements.map((m) => {
             const p = (m.prescription ?? {}) as Record<string, unknown>;
+            const actual = actuals?.[m.id] ?? null;
             return {
               name: m.movement?.nameEn ?? m.customName ?? "(unnamed)",
               sets: typeof p.sets === "string" || typeof p.sets === "number" ? String(p.sets) : null,
@@ -760,13 +765,24 @@ export async function generateAIProgressionWeek(formData: FormData) {
                 null,
               rest: typeof p.rest === "string" ? p.rest : null,
               notes: typeof p.notes === "string" ? p.notes : null,
-              actualLoad: null,
+              actualLoad: actual?.load ?? null,
+              actualReps: actual?.reps ?? null,
+              actualTime: actual?.time ?? null,
             };
           }),
         })),
       };
     }),
   }));
+
+  // Pull the last 3 check-ins + the athlete's own 1RMs/benchmarks so the AI
+  // can autoregulate (deload when stressed, anchor loads to real strength).
+  const recentCheckIns = await prisma.checkIn.findMany({
+    where: { athleteId: full.athleteId },
+    orderBy: { weekOf: "desc" },
+    take: 3,
+    select: { weekOf: true, energy: true, sleep: true, stress: true, motivation: true, weekSummary: true },
+  });
 
   if (priorWeeks.length === 0) {
     redirect(
@@ -787,23 +803,30 @@ export async function generateAIProgressionWeek(formData: FormData) {
   // their locked demo videos.
   const libraryMovementNames = await listLibraryMovementNames();
 
-  let nextWeek;
-  try {
-    nextWeek = await generateProgressionWeek({
-      programTitle: full.title,
-      programGoal: full.goal,
-      athleteName: full.athlete.fullName,
-      athleteContext: formatAthleteContext(full.athlete),
-      priorWeeks,
-      newWeekNumber,
-      coachHint,
-      libraryMovementNames,
-    });
-  } catch (e) {
-    redirect(
-      `/${lang}/coach/programs/${programId}?aiWeekError=${encodeURIComponent((e as Error).message)}`,
-    );
-  }
+  // generateProgressionWeek now never throws — it falls back to a
+  // deterministic generator on AI failure and tags the result with
+  // _fallback=true so we can warn the coach.
+  const nextWeek = await generateProgressionWeek({
+    programTitle: full.title,
+    programGoal: full.goal,
+    athleteName: full.athlete.fullName,
+    athleteContext: formatAthleteContext(full.athlete),
+    priorWeeks,
+    newWeekNumber,
+    coachHint,
+    libraryMovementNames,
+    current1rms: (full.athlete.current1rms ?? null) as Record<string, unknown> | null,
+    currentBenchmarks: (full.athlete.currentBenchmarks ?? null) as Record<string, unknown> | null,
+    recentCheckIns: recentCheckIns.map((c) => ({
+      weekOf: c.weekOf.toISOString().slice(0, 10),
+      energy: c.energy,
+      sleep: c.sleep,
+      stress: c.stress,
+      motivation: c.motivation,
+      weekSummary: c.weekSummary,
+    })),
+  });
+  const usedFallback = !!(nextWeek as unknown as { _fallback?: boolean })._fallback;
 
   // Resolve every AI-invented movement name against the Movement library so
   // matched ones inherit their curated (possibly locked) videoUrl and movementId.
@@ -895,7 +918,7 @@ export async function generateAIProgressionWeek(formData: FormData) {
   );
 
   revalidateProgramSurfaces(programId);
-  redirect(`/${lang}/coach/programs/${programId}?aiWeekAdded=${nextWeek.weekNumber}`);
+  redirect(`/${lang}/coach/programs/${programId}?aiWeekAdded=${nextWeek.weekNumber}${usedFallback ? "&fallback=1" : ""}`);
 }
 
 // ────────────────────────────────────────────────────────────

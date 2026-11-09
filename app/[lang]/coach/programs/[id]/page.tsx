@@ -252,12 +252,22 @@ export default async function ProgramDetail({ params, searchParams }: PageProps<
         </Card>
       )}
 
-      <CoachMonthlyCalendar
-        sessions={allSessions}
-        programId={program.id}
-        lang={lang}
-        dict={dict}
-      />
+      {/* Monthly calendar is behind a disclosure now — it eats a lot of
+          vertical space and most coaches just use the day cards below. */}
+      <details className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+        <summary className="cursor-pointer px-4 sm:px-5 py-3 text-sm font-semibold hover:bg-[var(--surface-2)] rounded-2xl list-none flex items-center justify-between">
+          <span>📅 Ver calendario mensual</span>
+          <span className="text-xs text-[var(--ink-muted)]">({allSessions.length} sesiones)</span>
+        </summary>
+        <div className="p-4 sm:p-5 border-t border-[var(--border)]">
+          <CoachMonthlyCalendar
+            sessions={allSessions}
+            programId={program.id}
+            lang={lang}
+            dict={dict}
+          />
+        </div>
+      </details>
 
       {/* Flash: week just deleted, with one-click undo */}
       {weekDeletedId && (
