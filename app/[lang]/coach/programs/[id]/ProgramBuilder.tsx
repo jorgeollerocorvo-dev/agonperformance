@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveProgram, type EditorProgram, type EditorDay, type EditorBlock, type EditorMovement } from "./actions";
 import { getDayNameFromDateString } from "@/lib/day-utils";
@@ -61,6 +62,19 @@ export default function ProgramBuilder({
   lastCompletedDate: string | null;
 }) {
   const [prog, setProg] = useState<EditorProgram>(initial);
+  const router = useRouter();
+
+  // When saveProgram writes freshly resolved videoUrls to the DB (from
+  // library matches or the fire-and-forget YouTube bootstrap), we need
+  // to pull them back so the builder shows the new thumbnails without a
+  // manual reload. `router.refresh()` re-fetches the RSC parent and feeds
+  // the new `initial` prop. We sync prog ↔ initial here so the client
+  // state doesn't ignore the update.
+  useEffect(() => {
+    setProg(initial);
+    // Only react to identity changes of the `initial` prop reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
   const [activeWeek, setActiveWeek] = useState(0);
   const [pending, start] = useTransition();
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -92,9 +106,11 @@ export default function ProgramBuilder({
       start(async () => {
         try {
           await saveProgram(prog);
+          // Re-fetch the server-rendered parent so freshly resolved video
+          // URLs for renamed movements come back in `initial`.
+          router.refresh();
           setAutoSaveStatus("saved");
           setSavedAt(Date.now());
-          // Clear "saved" status after 2 seconds
           setTimeout(() => setAutoSaveStatus("idle"), 2000);
         } catch (err) {
           setAutoSaveStatus("error");
@@ -171,6 +187,7 @@ export default function ProgramBuilder({
   const save = () => {
     start(async () => {
       await saveProgram(prog);
+      router.refresh();
       setSavedAt(Date.now());
     });
   };
@@ -703,7 +720,20 @@ function BlockEditor({
                 <div className="flex-1">
                   <MovementNameInput
                     value={m.name}
-                    onChange={(next) => onMovementPatch(mi, (v) => { v.name = next; })}
+                    onChange={(next) => onMovementPatch(mi, (v) => {
+                      const changed = (v.name ?? "").trim().toLowerCase() !== (next ?? "").trim().toLowerCase();
+                      v.name = next;
+                      // When the name actually changes we clear the stale YouTube
+                      // URL + FK so the thumbnail doesn't show the old video.
+                      // saveProgram will re-resolve from library (or bootstrap
+                      // from YouTube fire-and-forget) and router.refresh() below
+                      // pulls the new URL back without waiting for a page
+                      // reload.
+                      if (changed) {
+                        v.youtubeUrl = null;
+                        v.movementId = null;
+                      }
+                    })}
                     placeholder={dict.movementName}
                     className="w-full text-sm font-semibold bg-transparent outline-none"
                   />

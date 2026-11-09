@@ -162,12 +162,59 @@ export async function saveProgram(input: EditorProgram) {
   // intentionally not awaited.
   const unresolvedNames = Array.from(movementNames).filter((n) => !movementMap.has(n));
   if (unresolvedNames.length > 0) {
+    const programIdForBackfill = program.id;
     void (async () => {
       try {
         const { resolveOrCreateMovementByName } = await import("@/lib/youtube-search");
-        await Promise.allSettled(
-          unresolvedNames.slice(0, 3).map((n) => resolveOrCreateMovementByName(n)),
+        const results = await Promise.allSettled(
+          unresolvedNames.slice(0, 3).map(async (name) => {
+            const r = await resolveOrCreateMovementByName(name);
+            return r ? { name, id: r.id, videoUrl: r.videoUrl } : null;
+          }),
         );
+        // Back-fill the ProgramMovement rows we just wrote so the coach
+        // sees the real video on refresh without having to re-save. We
+        // scope strictly to THIS program's movements and match by
+        // customName (case-insensitive, trimmed).
+        for (const r of results) {
+          if (r.status !== "fulfilled" || !r.value) continue;
+          const { name, id: libId, videoUrl } = r.value;
+          await prisma.programMovement
+            .updateMany({
+              where: {
+                movementId: null,
+                customName: { equals: name, mode: "insensitive" },
+                programBlock: { programSession: { programWeek: { programId: programIdForBackfill } } },
+              },
+              data: { movementId: libId },
+            })
+            .catch(() => {});
+          // Also stamp the resolved real URL into each prescription so
+          // the thumbnail renders immediately (the join fallback covers
+          // the FK case too, but updating the prescription means the
+          // coach's own program builder picks it up at next load).
+          if (videoUrl) {
+            const rows = await prisma.programMovement.findMany({
+              where: {
+                movementId: libId,
+                programBlock: { programSession: { programWeek: { programId: programIdForBackfill } } },
+              },
+              select: { id: true, prescription: true },
+            });
+            for (const row of rows) {
+              const p = (row.prescription ?? {}) as Record<string, unknown>;
+              const current = typeof p.youtubeUrl === "string" ? p.youtubeUrl : null;
+              // Only overwrite auto-generated search URLs — never clobber a
+              // real URL the coach pinned manually.
+              if (!current || /youtube\.com\/results\?/.test(current)) {
+                await prisma.programMovement.update({
+                  where: { id: row.id },
+                  data: { prescription: { ...p, youtubeUrl: videoUrl } },
+                }).catch(() => {});
+              }
+            }
+          }
+        }
       } catch {
         /* fire-and-forget */
       }
@@ -337,20 +384,43 @@ export async function saveProgram(input: EditorProgram) {
 
         const byId = movementId ? movementMap.get(movementId) : null;
         const byName = nameKey ? movementMap.get(nameKey) : null;
-        const idNameMatches =
-          byId?.nameEn &&
-          nameKey &&
-          byId.nameEn.toLowerCase().trim() === nameKey;
-        const libraryMovement = byName && !idNameMatches ? byName : byId;
+
+        // Detect a rename: the stored FK points to a library entry whose
+        // name no longer matches what the coach has in the input. When
+        // that's true we MUST NOT inherit anything from the old entry —
+        // not the FK, not the library's videoUrl, not the coach's
+        // prescription.youtubeUrl (which was the old name's video). The
+        // whole movement starts fresh with the new name.
+        const renamed =
+          !!byId?.nameEn && !!nameKey && byId.nameEn.toLowerCase().trim() !== nameKey;
+
+        // Pick the library row to associate with: if renamed, ONLY accept
+        // a brand-new library match on the new name. If not renamed,
+        // either the by-id row (keep stable FK) or an upgrade when the
+        // library now has a better-matching row for the current name.
+        const libraryMovement = renamed
+          ? (byName ?? null)
+          : (byName ?? byId ?? null);
 
         const libraryVideoUrl = libraryMovement?.videoUrl ?? null;
-        const coachUrl = (m.youtubeUrl ?? "").trim() || null;
+
+        // Coach's URL: trust it only when NOT renamed. On rename, the old
+        // URL is stale by definition — the resolver (fire-and-forget) will
+        // bootstrap a fresh real video from YouTube for the new name, and
+        // the search URL fallback renders a clickable placeholder in the
+        // meantime. Never carry the old video across a rename.
+        const coachUrl = renamed ? null : ((m.youtubeUrl ?? "").trim() || null);
         const coachPinnedRealVideo = coachUrl && !isYoutubeSearch(coachUrl);
+
         const youtubeUrl =
           libraryVideoUrl ||
           (coachPinnedRealVideo ? coachUrl : null) ||
           (m.name ? movementYoutubeSearchUrl(m.name) : undefined);
-        const finalMovementId = libraryMovement?.id ?? movementId;
+
+        // On rename with no new library match → drop the FK entirely so a
+        // future bootstrap can write a fresh one. Otherwise keep the
+        // library's id if we matched by name, else the original FK.
+        const finalMovementId = renamed && !byName ? undefined : (libraryMovement?.id ?? movementId);
 
         return {
           programBlockId: blockId,
