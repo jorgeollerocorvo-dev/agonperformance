@@ -15,6 +15,7 @@ import AthleteProfileEditor from "@/components/AthleteProfileEditor";
 import CoachAssignmentPicker from "@/components/CoachAssignmentPicker";
 import { reassignAthleteToCoach } from "../../../admin/coaches/[coachId]/actions";
 import { isJorge } from "@/lib/jorge";
+import Tabs from "@/components/Tabs";
 
 async function deleteProgramAction(formData: FormData) {
   "use server";
@@ -225,14 +226,31 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         <span className="text-sm text-zinc-500">{athlete.division ?? ""}</span>
         <div className="ml-auto flex gap-2">
           <Link href={`/${lang}/coach/athletes/${id}/evolution`} className="text-xs rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1.5 font-semibold hover:opacity-80">
-            📈 Evolución · PRs
+            📈 Evolución
           </Link>
           <Link href={`/${lang}/coach/athletes/${id}/engagement`} className="text-xs rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1.5 font-semibold hover:opacity-80">
-            📊 Progreso · Check-ins
+            📊 Progreso
           </Link>
         </div>
       </header>
 
+      {/* Tabbed sections so the 3 big cards (profile · programs · client
+          access · admin) don't all render at once — standard: avoid over-
+          information. */}
+      {(() => { const t = typeof sp?.tab === "string" ? sp.tab : "profile"; return (
+      <>
+      <Tabs
+        tabs={[
+          { id: "profile", label: "Perfil", icon: "👤" },
+          { id: "programs", label: "Programas", icon: "📋", badge: athlete.programs.length || undefined },
+          { id: "access", label: "Acceso cliente", icon: "🔑" },
+          { id: "admin", label: "Admin", icon: "⚙️", hidden: !jorgeMode },
+        ]}
+        currentTab={t}
+        basePath={`/${lang}/coach/athletes/${id}`}
+      />
+
+      {t === "profile" && (
       <AthleteProfileEditor
         athlete={athlete}
         dict={dict}
@@ -240,11 +258,9 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         inputCls={inputCls}
         lang={lang}
         athleteId={id}
-      />
+      />)}
 
-      {/* Jorge-only: assign / reassign this athlete's coach. Always visible so
-          Jorge can confirm the current assignment or change it at any time. */}
-      {jorgeMode && (
+      {t === "admin" && jorgeMode && (
         <Card>
           <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
             <h2 className="text-lg font-semibold">👤 Assign coach</h2>
@@ -264,7 +280,7 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
         </Card>
       )}
 
-      {/* Login account for the athlete */}
+      {t === "access" && (
       <Card>
         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
           <h2 className="text-lg font-semibold">{dict.coach.clientLogin ?? "Client login"}</h2>
@@ -324,8 +340,9 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
             </form>
           </>
         )}
-      </Card>
+      </Card>)}
 
+      {t === "programs" && (
       <section id="programs" className="space-y-3 scroll-mt-24">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">{dict.nav.programs}</h2>
@@ -437,21 +454,23 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
             })}
           </Card>
         )}
-      </section>
+      </section>)}
 
-      {athlete.testResults.length > 0 && (
+      {t === "profile" && athlete.testResults.length > 0 && (
         <section>
           <h2 className="text-lg font-medium mb-3">{dict.coach.recentTests}</h2>
-          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm">
-            {athlete.testResults.map((t) => (
-              <li key={t.id} className="px-4 py-2 flex justify-between">
-                <span>{toDateStr(t.date)} · {t.movement?.nameEn ?? t.customMovement} ({t.testType})</span>
-                <span className="text-zinc-600 dark:text-zinc-400">{t.resultValue?.toString() ?? "—"} {t.resultUnit ?? ""}</span>
+          <ul className="divide-y divide-zinc-200 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm">
+            {athlete.testResults.map((tr) => (
+              <li key={tr.id} className="px-4 py-2 flex justify-between">
+                <span>{toDateStr(tr.date)} · {tr.movement?.nameEn ?? tr.customMovement} ({tr.testType})</span>
+                <span className="text-[var(--ink-muted)]">{tr.resultValue?.toString() ?? "—"} {tr.resultUnit ?? ""}</span>
               </li>
             ))}
           </ul>
         </section>
       )}
+      </>
+      ); })()}
     </div>
   );
 }

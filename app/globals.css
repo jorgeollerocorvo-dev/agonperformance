@@ -86,3 +86,8 @@ h1, h2, h3, .display {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* Hide the scrollbar on horizontal pill rails (tabs, chip rows) while
+   keeping the scroll behaviour. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -3,15 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 
 /**
- * Athlete hub: profile, goals, nutrition, 1RMs, benchmarks, injury history,
- * links to evolution / movements / engagement / calendar. Rendered inside
- * /account when the signed-in user has an athlete profile — so the single
- * "Account" nav link shows everything in one place.
+ * Athlete hub, split across tabs. Call-site passes the current `tab` and we
+ * render just that panel — keeps the account page lean and respects the
+ * "no over-information" standard.
  *
- * Standard #2: all read-only aggregations, no AI, no YouTube.
+ * Tabs:
+ *   overview  → profile + goals + quick links
+ *   plan      → nutrition plan + 1RMs + benchmarks + competition targets
+ *   progress  → quick links to progress & evolution (heavy rendering lives
+ *               on the dedicated routes, not duplicated here)
  */
-export default async function AthleteHubSection({ userId, lang }: { userId: string; lang: string }) {
-  // Resolve the athlete: direct Athlete.userId OR active AthleteLink.
+export type HubTab = "overview" | "plan" | "progress";
+
+export default async function AthleteHubSection({
+  userId,
+  lang,
+  tab = "overview",
+}: {
+  userId: string;
+  lang: string;
+  tab?: HubTab;
+}) {
+  // Resolve the athlete via direct User → Athlete OR AthleteLink.
   let athleteId: string | null = null;
   const direct = await prisma.athlete.findUnique({ where: { userId }, select: { id: true } });
   if (direct) {
@@ -25,16 +38,21 @@ export default async function AthleteHubSection({ userId, lang }: { userId: stri
   }
   if (!athleteId) return null;
 
-  const [athlete, nutrition, movementCount, lastSession, firstSession] = await Promise.all([
+  if (tab === "plan") return <PlanTab athleteId={athleteId} />;
+  if (tab === "progress") return <ProgressTab athleteId={athleteId} lang={lang} />;
+  return <OverviewTab athleteId={athleteId} lang={lang} />;
+}
+
+/* ─────────── Overview tab (default) ─────────── */
+
+async function OverviewTab({ athleteId, lang }: { athleteId: string; lang: string }) {
+  const [athlete, movementCount, lastSession, firstSession] = await Promise.all([
     prisma.athlete.findUnique({
       where: { id: athleteId },
       include: {
-        coachProfile: {
-          select: { user: { select: { displayName: true, fullName: true, email: true } } },
-        },
+        coachProfile: { select: { user: { select: { displayName: true, fullName: true, email: true } } } },
       },
     }),
-    prisma.nutritionPlan.findUnique({ where: { athleteId } }),
     prisma.programMovement.count({
       where: { programBlock: { programSession: { programWeek: { program: { athleteId } } } } },
     }),
@@ -51,22 +69,21 @@ export default async function AthleteHubSection({ userId, lang }: { userId: stri
   ]);
   if (!athlete) return null;
 
-  const coachName = athlete.coachProfile?.user?.displayName ?? athlete.coachProfile?.user?.fullName ?? athlete.coachProfile?.user?.email ?? "—";
+  const coachName =
+    athlete.coachProfile?.user?.displayName ??
+    athlete.coachProfile?.user?.fullName ??
+    athlete.coachProfile?.user?.email ??
+    "—";
 
   return (
     <>
-      {/* Quick links */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <QuickLink href={`/${lang}/athlete/evolution`} icon="📈" label="PRs y evolución" />
-        <QuickLink href={`/${lang}/athlete/movements`} icon="🏋️" label="Mi historial" />
+        <QuickLink href={`/${lang}/athlete`} icon="📅" label="Hoy" />
+        <QuickLink href={`/${lang}/athlete/evolution`} icon="📈" label="PRs" />
+        <QuickLink href={`/${lang}/athlete/movements`} icon="🏋️" label="Historial" />
         <QuickLink href={`/${lang}/athlete/engagement`} icon="📊" label="Fotos · Hábitos" />
-        <QuickLink href={`/${lang}/athlete/calendar`} icon="📅" label="Calendario" />
       </div>
 
-      {/* Profile — kept lean: name + coach + division + the three stats that
-          actually matter to the athlete. Sex/age/height/weight hidden here
-          (they can see them on the measurement chart if they log them) and
-          are TMI as a static display. */}
       <Card>
         <h2 className="font-semibold mb-3">Perfil</h2>
         <dl className="grid grid-cols-2 gap-y-2 text-sm">
@@ -79,7 +96,6 @@ export default async function AthleteHubSection({ userId, lang }: { userId: stri
         </dl>
       </Card>
 
-      {/* Goals */}
       {(athlete.goals || athlete.competitiveGoal) && (
         <Card>
           <h2 className="font-semibold mb-3">🎯 Objetivos</h2>
@@ -98,7 +114,41 @@ export default async function AthleteHubSection({ userId, lang }: { userId: stri
         </Card>
       )}
 
-      {/* Nutrition */}
+      {athlete.notes && (
+        <Card>
+          <h2 className="font-semibold mb-3">📝 Notas del coach</h2>
+          <div className="text-sm whitespace-pre-wrap">{athlete.notes}</div>
+        </Card>
+      )}
+    </>
+  );
+}
+
+/* ─────────── Plan tab (nutrition + 1RMs + benchmarks) ─────────── */
+
+async function PlanTab({ athleteId }: { athleteId: string }) {
+  const [athlete, nutrition] = await Promise.all([
+    prisma.athlete.findUnique({
+      where: { id: athleteId },
+      select: { current1rms: true, currentBenchmarks: true, targetsByCompetition: true },
+    }),
+    prisma.nutritionPlan.findUnique({ where: { athleteId } }),
+  ]);
+  if (!athlete) return null;
+
+  const empty = !nutrition && !athlete.current1rms && !athlete.currentBenchmarks && !athlete.targetsByCompetition;
+  if (empty) {
+    return (
+      <Card>
+        <p className="text-sm text-[var(--ink-muted)] text-center py-4">
+          Tu coach todavía no ha creado tu plan. Cuando añada nutrición, 1RMs o benchmarks, aparecerán aquí.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <>
       {nutrition && (
         <Card>
           <h2 className="font-semibold mb-3">🥗 Plan de nutrición</h2>
@@ -112,27 +162,40 @@ export default async function AthleteHubSection({ userId, lang }: { userId: stri
           {nutrition.supplements && <TextSection label="Suplementación" text={nutrition.supplements} />}
           {nutrition.restrictions && <TextSection label="Restricciones" text={nutrition.restrictions} />}
           {nutrition.notes && <TextSection label="Notas del coach" text={nutrition.notes} />}
-          <div className="text-[0.65rem] text-[var(--ink-subtle)] mt-2">Actualizado {nutrition.updatedAt.toISOString().slice(0, 10)}</div>
+          <div className="text-[0.65rem] text-[var(--ink-subtle)] mt-2">
+            Actualizado {nutrition.updatedAt.toISOString().slice(0, 10)}
+          </div>
         </Card>
       )}
 
-      {/* 1RMs + benchmarks + competition targets stay — those are "data the
-          client wants to see". Dropped: injuryHistory, trainingFrequency,
-          programmingNotes — all coach-internal JSON that looked like noise
-          to the athlete and never rendered well as a key:value dump. */}
       {renderJsonBlock(athlete.current1rms, "💪 1RMs actuales")}
       {renderJsonBlock(athlete.currentBenchmarks, "⏱️ Benchmarks")}
       {renderJsonBlock(athlete.targetsByCompetition, "🏆 Objetivos por competición")}
-
-      {athlete.notes && (
-        <Card>
-          <h2 className="font-semibold mb-3">📝 Notas del coach</h2>
-          <div className="text-sm whitespace-pre-wrap">{athlete.notes}</div>
-        </Card>
-      )}
     </>
   );
 }
+
+/* ─────────── Progress tab (quick-links to full pages) ─────────── */
+
+function ProgressTab({ athleteId: _athleteId, lang }: { athleteId: string; lang: string }) {
+  return (
+    <>
+      <Card>
+        <p className="text-sm text-[var(--ink-muted)] mb-4">
+          Para no sobrecargar esta pantalla, los módulos pesados (fotos, gráficas, grid de hábitos) viven en su propia página.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <BigLink href={`/${lang}/athlete/evolution`} icon="📈" title="Evolución y PRs" desc="Pesos, tiempos y récords por movimiento." />
+          <BigLink href={`/${lang}/athlete/engagement`} icon="📊" title="Fotos · Medidas · Check-ins · Hábitos" desc="Registra tu progreso semanal." />
+          <BigLink href={`/${lang}/athlete/movements`} icon="🏋️" title="Historial de movimientos" desc="Cada ejercicio que has hecho." />
+          <BigLink href={`/${lang}/athlete/calendar`} icon="📅" title="Calendario" desc="Vista mensual de tus sesiones." />
+        </div>
+      </Card>
+    </>
+  );
+}
+
+/* ─────────── primitives ─────────── */
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -148,6 +211,18 @@ function QuickLink({ href, icon, label }: { href: string; icon: string; label: s
     <Link href={href} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] p-3 text-center transition">
       <div className="text-2xl mb-1">{icon}</div>
       <div className="text-xs font-semibold">{label}</div>
+    </Link>
+  );
+}
+
+function BigLink({ href, icon, title, desc }: { href: string; icon: string; title: string; desc: string }) {
+  return (
+    <Link href={href} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)] hover:shadow-md p-4 transition flex items-start gap-3">
+      <div className="text-2xl shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <div className="font-semibold text-sm">{title}</div>
+        <div className="text-xs text-[var(--ink-muted)] mt-0.5">{desc}</div>
+      </div>
     </Link>
   );
 }
