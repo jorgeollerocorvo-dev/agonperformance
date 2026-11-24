@@ -245,20 +245,23 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
       </form>
 
       {coachProfile?.athletes.length === 0 ? (
-        <p className="text-sm text-zinc-500">{dict.coach.noAthletes}</p>
+        <p className="text-sm text-[var(--ink-muted)]">{dict.coach.noAthletes}</p>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">
           {coachProfile?.athletes.map((a) => (
             <li key={a.id}>
-              <div className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 gap-4">
-                <Link href={`/${lang}/coach/athletes/${a.id}`} className="flex-1 hover:opacity-80">
-                  <div className="font-medium">{a.fullName}</div>
-                  <div className="text-xs text-zinc-500">
+              <div className="flex items-center justify-between px-4 py-3 hover:bg-[var(--surface-2)] gap-4">
+                <Link href={`/${lang}/coach/athletes/${a.id}`} className="flex-1 hover:opacity-80 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="font-medium">{a.fullName}</div>
+                    <StatusBadge status={a.status} />
+                  </div>
+                  <div className="text-xs text-[var(--ink-muted)] truncate mt-0.5">
                     {[a.sex, a.age ? `${a.age} y/o` : null, a.division, a.email].filter(Boolean).join(" · ")}
                   </div>
                 </Link>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-zinc-400">→</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm text-[var(--ink-subtle)]">→</span>
                   <DeleteAthleteButton athleteId={a.id} athleteName={a.fullName} lang={lang} deleteAction={deleteAthlete} />
                 </div>
               </div>
@@ -271,7 +274,31 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
 }
 
 const inputCls =
-  "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800";
+  "w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm";
+
+/** Status tag — colour-coded pill. Hides ACTIVE (default) to reduce noise. */
+function StatusBadge({ status }: { status: string }) {
+  if (status === "ACTIVE") return null;
+  const map: Record<string, string> = {
+    NEW: "bg-emerald-100 text-emerald-800",
+    PAUSED: "bg-amber-100 text-amber-800",
+    AT_RISK: "bg-red-100 text-red-800",
+    ON_STREAK: "bg-indigo-100 text-indigo-800",
+    ARCHIVED: "bg-slate-200 text-slate-700",
+  };
+  const label: Record<string, string> = {
+    NEW: "nuevo",
+    PAUSED: "pausado",
+    AT_RISK: "en riesgo",
+    ON_STREAK: "🔥 racha",
+    ARCHIVED: "archivado",
+  };
+  return (
+    <span className={`text-[0.6rem] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 ${map[status] ?? "bg-slate-100 text-slate-700"}`}>
+      {label[status] ?? status.toLowerCase()}
+    </span>
+  );
+}
 
 function Field({ label, full, children }: { label: string; full?: boolean; children: React.ReactNode }) {
   return (

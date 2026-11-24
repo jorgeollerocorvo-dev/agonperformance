@@ -125,12 +125,11 @@ export async function generateAndCreateProgram(
     libraryMovementNames,
   };
 
-  let parsed;
-  try {
-    parsed = await generateProgramFromBrief(brief);
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
+  // generateProgramFromBrief never throws now — on AI failure it returns a
+  // skeleton program tagged with _fallback=true. Caller surfaces the flag
+  // so the coach knows the AI didn't contribute and can fill in manually.
+  const parsed = await generateProgramFromBrief(brief);
+  const usedFallback = !!(parsed as { _fallback?: boolean })._fallback;
 
   if (!parsed.weeks || parsed.weeks.length === 0) {
     return { error: "AI returned an empty program. Try a more specific brief." };
@@ -245,7 +244,7 @@ export async function generateAndCreateProgram(
   }, { timeout: 90_000, maxWait: 10_000 });
 
   revalidatePath(`/`, "layout");
-  return { previewId: program.id };
+  return { previewId: program.id, fallback: usedFallback };
 }
 
 export async function generateAndRedirect(formData: FormData) {
@@ -256,6 +255,6 @@ export async function generateAndRedirect(formData: FormData) {
     redirect(`/${lang}/coach/programs/ai-new?error=${encodeURIComponent(result.error)}`);
   }
   if (result.previewId) {
-    redirect(`/${lang}/coach/programs/${result.previewId}?aiCreated=1`);
+    redirect(`/${lang}/coach/programs/${result.previewId}?aiCreated=1${result.fallback ? "&fallback=1" : ""}`);
   }
 }

@@ -108,9 +108,11 @@ export function hasGenKey(): boolean {
   return activeProvider() !== null;
 }
 
-export async function generateProgramFromBrief(brief: ProgramBrief): Promise<ParsedProgram> {
+export async function generateProgramFromBrief(brief: ProgramBrief): Promise<ParsedProgram & { _fallback?: boolean }> {
   if (!hasGenKey()) {
-    throw new Error("No AI provider configured. Set GEMINI_API_KEY (free) at https://aistudio.google.com/app/apikey or ANTHROPIC_API_KEY on Railway.");
+    // No AI at all → skeleton fallback so the coach still gets a canvas
+    // to work on, same safety net as generateProgressionWeek.
+    return { ...buildSkeletonProgram(brief), _fallback: true };
   }
 
   // Cap reference materials at ~60k chars (~15k tokens) so the prompt stays well
@@ -173,29 +175,95 @@ Return ONLY the JSON.`;
     weeks <= 12 ? 48_000 :
     64_000;
 
-  const text = await generateText({
-    systemPrompt: SYSTEM_PROMPT,
-    userPrompt: userMessage,
-    expectJson: true,
-    maxTokens,
-  });
-  const raw = stripJsonFences(text);
-
-  // Detect truncation: a complete program always ends with "}" (after the closing
-  // ] of weeks). If the model ran out of token budget, the JSON ends mid-string
-  // or mid-object, which produces an unterminated-string parse error. Give the
-  // coach an actionable message instead of the raw parser error.
+  // Up to 2 AI attempts (second with a tighter prompt if the first was
+  // malformed) → deterministic skeleton as last resort. Mirrors the
+  // progression chain so saveProgram never leaves the coach stuck.
+  let raw: string | null = null;
   try {
-    return JSON.parse(raw) as ParsedProgram;
-  } catch (e) {
-    const trimmed = raw.trimEnd();
-    const looksTruncated = !trimmed.endsWith("}") || /Unterminated|Unexpected end/i.test((e as Error).message);
-    if (looksTruncated) {
-      throw new Error(
-        `The AI ran out of output budget for a ${weeks}-week program (used ${maxTokens.toLocaleString()} tokens). ` +
-        `Try shortening the program (fewer weeks or fewer days/week), or break it into two halves.`,
-      );
-    }
-    throw new Error(`AI returned invalid JSON: ${(e as Error).message}\n\nFirst 500 chars: ${raw.slice(0, 500)}`);
+    raw = await generateText({
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt: userMessage,
+      expectJson: true,
+      maxTokens,
+    });
+    return JSON.parse(stripJsonFences(raw)) as ParsedProgram;
+  } catch (first) {
+    console.warn("[generateProgram] first attempt failed:", (first as Error).message);
   }
+
+  try {
+    raw = await generateText({
+      systemPrompt: SYSTEM_PROMPT + "\n\nYour previous reply was invalid. Return ONLY the JSON, no prose.",
+      userPrompt: userMessage + "\n\nReminder: ONLY the JSON object, no commentary.",
+      expectJson: true,
+      maxTokens,
+    });
+    return JSON.parse(stripJsonFences(raw)) as ParsedProgram;
+  } catch (second) {
+    console.warn("[generateProgram] retry failed, using skeleton fallback:", (second as Error).message);
+  }
+
+  // Everything failed — hand the coach a skeleton to edit, never a blank page.
+  return { ...buildSkeletonProgram(brief), _fallback: true };
+}
+
+/**
+ * Last-resort generator — returns a structurally-complete program with the
+ * requested number of weeks + days, the typical warm-up / main / accessory
+ * block layout per training day, and NO specific movements/loads (the AI
+ * couldn't give us any, so we leave the canvas open). The coach fills it in
+ * manually. Flagged with _fallback=true so the UI can surface a notice.
+ */
+function buildSkeletonProgram(brief: ProgramBrief): ParsedProgram {
+  const weeks = Math.min(52, Math.max(1, brief.durationWeeks));
+  const daysPerWeek = Math.min(7, Math.max(1, brief.daysPerWeek ?? 4));
+  const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+  return {
+    title: brief.goalOverride || `Program for ${brief.athleteName}`,
+    goal: brief.goalOverride ?? null,
+    durationWeeks: weeks,
+    athleteName: brief.athleteName,
+    weeks: Array.from({ length: weeks }, (_, wi) => ({
+      weekNumber: wi + 1,
+      weekLabel: `Week ${wi + 1}`,
+      days: dayNames.map((day, di) => {
+        const isRest = di >= daysPerWeek;
+        return {
+          dayOfWeek: day,
+          date: null,
+          focus: isRest ? null : (di === 0 ? brief.needs || "Session focus TBD" : null),
+          intensity: isRest ? null : null,
+          isRest,
+          notes: isRest ? null : (di === 0 ? "AI couldn't generate — fill in movements and loads below." : null),
+          blocks: isRest ? [] : [
+            {
+              blockCode: "W",
+              label: "Warm-up",
+              format: null,
+              restSec: null,
+              notes: null,
+              movements: [],
+            },
+            {
+              blockCode: "A",
+              label: "Main work",
+              format: null,
+              restSec: null,
+              notes: null,
+              movements: [],
+            },
+            {
+              blockCode: "B",
+              label: "Accessories / finisher",
+              format: null,
+              restSec: null,
+              notes: null,
+              movements: [],
+            },
+          ],
+        };
+      }),
+    })),
+  };
 }
