@@ -59,15 +59,16 @@ export async function generateAndCreateProgram(
   formData: FormData,
 ): Promise<{ error?: string; previewId?: string }> {
   const session = await auth();
-  if (!session?.user || !session.user.roles?.includes("COACH")) return { error: "unauthorized" };
-
-  // Only Jorge can use AI program generation
+  // Standard #1 — don't gate on session.user.roles (JWT-baked, can be stale
+  // if the User row was recreated after login). Being isJorge AND owning a
+  // CoachProfile is the authoritative signal.
+  if (!session?.user?.id) return { error: "Sign in required." };
   if (!isJorge(session)) {
-    return { error: "AI program generation is only available for Jorge" };
+    return { error: "AI program generation is only available for Jorge for now." };
   }
 
   if (!aiProgramGenEnabled()) {
-    return { error: "AI program generation is currently disabled. Enable AI_PROGRAM_GEN_ENABLED on Railway and add Anthropic credits." };
+    return { error: "AI program generation is disabled. Set AI_PROGRAM_GEN_ENABLED=true and configure at least one AI provider key (GEMINI_API_KEY free is enough)." };
   }
 
   const coach = await prisma.coachProfile.findUnique({ where: { userId: session.user.id } });
@@ -215,8 +216,9 @@ export async function generateAndCreateProgram(
                   const lib = m.name ? libraryByName.get(normalizeName(m.name)) : undefined;
                   // If matched: link to library row and use its (possibly locked)
                   // curated video. Otherwise: keep the AI's free-text name and
-                  // fall back to a YouTube search URL.
-                  const youtubeUrl = lib?.videoUrl ?? movementYoutubeSearchUrl(m.name);
+                  // fall back to a YouTube search URL. Guard against empty
+                  // name — the search URL would otherwise encode "undefined".
+                  const youtubeUrl = lib?.videoUrl ?? (m.name ? movementYoutubeSearchUrl(m.name) : undefined);
                   return {
                     movementId: lib?.id,
                     customName: lib ? null : m.name,
