@@ -162,7 +162,17 @@ HOW A REAL COACH REASONS (apply this, don't just mirror):
 8. COACH HINT WINS. Anything in <hint> overrides defaults ("deload",
    "test week", "shift to hypertrophy", "add pull-up volume").
 
-9. SHAPE CONTRACTS:
+9. NO DATA → MOVEMENTS ONLY, LET THE COACH FILL LOADS. If the prior
+   weeks contain ZERO actualLoad / actualReps / actualTime entries
+   AND no intensityFeedback AND no recent check-ins, the athlete has
+   not logged anything — you don't have the evidence to prescribe
+   loads honestly. Output the movement NAMES and structure (blocks,
+   format, rest, notes) but set "load": null, "sets": null, and
+   "reps": null on every movement. The coach fills these in by hand.
+   Say so in weekIntent ("No logged data — movements only, coach to
+   set loads/reps").
+
+10. SHAPE CONTRACTS:
    - weekNumber MUST equal <new_week_number>.
    - 7 days per week with at least ONE rest day (isRest=true, blocks=[]).
    - Use movement names that match prior weeks where applicable.
@@ -299,6 +309,19 @@ Return ONLY the JSON for the new week.`;
  * instead of "Error, try again".
  */
 function buildDeterministicWeek(input: ProgressionWeekInput): ProgressionWeek {
+  // Same rule as AI prompt #9: if the athlete has logged NOTHING across the
+  // prior weeks, we have no evidence to progress from — don't invent loads.
+  // Mirror the movement structure but leave sets/reps/load blank so the
+  // coach fills them in manually.
+  const anyLogged = input.priorWeeks.some((w) =>
+    w.days.some((d) =>
+      (d.intensityFeedback ?? null) !== null ||
+      d.blocks.some((b) => b.movements.some((m) => m.actualLoad || m.actualReps || m.actualTime)),
+    ),
+  );
+  const hasCheckIns = (input.recentCheckIns ?? []).length > 0;
+  const blank = !anyLogged && !hasCheckIns;
+
   const last = input.priorWeeks.at(-1);
   if (!last) {
     // Nothing to mirror — one rest day with a note.
@@ -329,22 +352,41 @@ function buildDeterministicWeek(input: ProgressionWeekInput): ProgressionWeek {
     focus: isDueForDeload && d.focus ? `${d.focus} (deload)` : d.focus,
     intensity: isDueForDeload ? ("Light" as const) : null,
     isRest: d.isRest,
-    notes: null,
+    notes: blank && d.blocks.length > 0 ? "Sin datos previos — rellena pesos/reps a mano." : null,
     blocks: d.blocks.map((b) => ({
       blockCode: b.blockCode,
       label: b.label,
       format: b.format,
       restSec: null,
       notes: null,
-      movements: b.movements.map((m) => progressMovement(m, isDueForDeload)),
+      movements: b.movements.map((m) =>
+        blank ? blankMovement(m) : progressMovement(m, isDueForDeload),
+      ),
     })),
   }));
 
   return {
     weekNumber: input.newWeekNumber,
-    weekLabel: isDueForDeload ? "Deload" : `Week ${input.newWeekNumber}`,
+    weekLabel: blank
+      ? `Week ${input.newWeekNumber} — movimientos`
+      : isDueForDeload
+        ? "Deload"
+        : `Week ${input.newWeekNumber}`,
     days,
   } as unknown as ProgressionWeek;
+}
+
+/** Movements with structure but blank sets/reps/load — coach fills them in. */
+function blankMovement(m: PriorWeek["days"][number]["blocks"][number]["movements"][number]) {
+  return {
+    name: m.name,
+    sets: null,
+    reps: null,
+    load: null,
+    rest: m.rest,
+    notes: null,
+    isTest: false,
+  };
 }
 
 function progressMovement(m: PriorWeek["days"][number]["blocks"][number]["movements"][number], deload: boolean) {
