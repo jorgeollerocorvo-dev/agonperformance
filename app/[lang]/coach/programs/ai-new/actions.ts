@@ -57,7 +57,7 @@ function formatAthleteContext(a: {
 
 export async function generateAndCreateProgram(
   formData: FormData,
-): Promise<{ error?: string; previewId?: string }> {
+): Promise<{ error?: string; previewId?: string; fallback?: boolean }> {
   const session = await auth();
   // Standard #1 — don't gate on session.user.roles (JWT-baked, can be stale
   // if the User row was recreated after login). Being isJorge AND owning a
