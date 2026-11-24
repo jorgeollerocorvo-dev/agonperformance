@@ -89,7 +89,8 @@ DESIGN RULES
   * Final block (accessories): targeted weak points, core, prehab, or conditioning finisher. 2-4 movements.
 - Movement names: use plain English the Movement library can match (e.g. "Back squat", "Hip thrust", "Bar muscle-up", "Pigeon pose"). Avoid exotic abbreviations.
 - Sets/reps: be specific. Use ranges only when intentional (e.g. "8-10").
-- Loads: prefer percentages (% 1RM) or RPE for strength work; specific weights only when given by the athlete's current 1RMs.
+- Loads: prefer percentages (% 1RM) or RPE for strength work; specific weights only when given by the athlete's current 1RMs. If the brief contains NO 1RMs, NO reference loads, and NO current-stats block — set "load": null on strength movements and let the coach fill them in (say so in the day's "notes"). Do NOT invent kilos from thin air.
+- Sets/reps same rule: if you have zero evidence for the person's capacity (no history, no 1RMs, no fitness level hint) → set "sets": null and "reps": null on strength/accessory movements. Metcons and conditioning can still use standard formats (AMRAP X, EMOM X, 5 rounds etc.) because those scale naturally.
 - Exactly ONE rest day = isRest:true and an empty blocks array. Always include 7 days per week.
 - Avoid week 1 testing — schedule benchmark tests in the final week if program is ≥ 3 weeks.
 - Keep block count realistic: 3-5 blocks per training day (W + main + accessories). 5-12 movements total per day.

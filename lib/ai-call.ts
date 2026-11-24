@@ -3,21 +3,30 @@
  *
  * Tier 1 (free):   Google Gemini  — GEMINI_API_KEY   (15 req/min, 1500 req/day)
  * Tier 2 (free):   Groq           — GROQ_API_KEY     (free tier, very fast)
- * Tier 3 (paid):   Anthropic      — ANTHROPIC_API_KEY (only used if both free tiers fail)
+ * Tier 3 (paid):   OpenAI         — OPENAI_API_KEY   (prepaid credits; ~$0.003/req on gpt-4o-mini)
+ * Tier 4 (paid):   Anthropic      — ANTHROPIC_API_KEY (last resort)
  *
- * We only fall back to a PAID provider after every free provider is exhausted
- * or errored — Groq going in the middle turns almost all Gemini-rate-limit
- * events into free calls instead of Anthropic bills.
+ * We only fall back to a paid provider after every free provider is exhausted.
+ * Groq in the middle turns almost all Gemini-rate-limit events into free
+ * calls instead of paid bills.
  *
- * Setup (on Railway):
- *   railway variables --set "GEMINI_API_KEY=AIza..."     # tier 1
- *   railway variables --set "GROQ_API_KEY=gsk_..."       # tier 2 — grab at console.groq.com
- *   railway variables --set "ANTHROPIC_API_KEY=sk-ant-..." # tier 3 last resort
+ * Note on ChatGPT Plus: your $20/mo ChatGPT consumer subscription does NOT
+ * include API access. To use OpenAI here, create an API key at
+ * platform.openai.com → prepay $5-10 in credits → paste as OPENAI_API_KEY.
+ * It bills per-token, not monthly. gpt-4o-mini is ~$0.003 per average
+ * program generation; GPT-5 would be ~$0.03.
+ *
+ * Setup (Vercel or Railway env vars):
+ *   GEMINI_API_KEY=AIza...        (free — aistudio.google.com)
+ *   GROQ_API_KEY=gsk_...          (free — console.groq.com)
+ *   OPENAI_API_KEY=sk-...         (paid — platform.openai.com)
+ *   ANTHROPIC_API_KEY=sk-ant-...  (paid — console.anthropic.com)
  *
  * Optional model overrides:
- *   GEMINI_MODEL=gemini-2.5-flash        (pinned; latest alias has 30s timeouts)
- *   GROQ_MODEL=openai/gpt-oss-120b       (large fast model on Groq's free tier)
- *   ANTHROPIC_GEN_MODEL=claude-haiku-4-5 (cheapest Claude)
+ *   GEMINI_MODEL=gemini-2.5-flash
+ *   GROQ_MODEL=openai/gpt-oss-120b
+ *   OPENAI_MODEL=gpt-4o-mini       (default; cheapest capable)
+ *   ANTHROPIC_GEN_MODEL=claude-haiku-4-5
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -33,17 +42,18 @@ export type AiCallOptions = {
   maxTokens?: number;
 };
 
-type Provider = "gemini" | "groq" | "anthropic";
+type Provider = "gemini" | "groq" | "openai" | "anthropic";
 
 function hasKey(name: string): boolean {
   return (process.env[name] ?? "").trim().length > 0;
 }
 
-/** Tiered chain: free providers first, paid only as last resort. */
+/** Tiered chain: free providers first, then paid in order of cost. */
 function providerChain(): Provider[] {
   const chain: Provider[] = [];
   if (hasKey("GEMINI_API_KEY")) chain.push("gemini");
   if (hasKey("GROQ_API_KEY")) chain.push("groq");
+  if (hasKey("OPENAI_API_KEY")) chain.push("openai");
   if (hasKey("ANTHROPIC_API_KEY")) chain.push("anthropic");
   return chain;
 }
@@ -59,6 +69,7 @@ export function secondaryProvider(): Provider | null {
 async function callProvider(p: Provider, opts: AiCallOptions): Promise<string> {
   if (p === "gemini") return callGemini(opts);
   if (p === "groq") return callGroq(opts);
+  if (p === "openai") return callOpenAI(opts);
   return callAnthropic(opts);
 }
 
@@ -257,6 +268,51 @@ async function callGroq(opts: AiCallOptions): Promise<string> {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+ * OpenAI (paid — ChatGPT's API, not the ChatGPT Plus subscription)
+ * ────────────────────────────────────────────────────────────────────────── */
+
+async function callOpenAI(opts: AiCallOptions): Promise<string> {
+  const key = (process.env.OPENAI_API_KEY ?? "").trim();
+  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const body: Record<string, unknown> = {
+    model,
+    temperature: 0.4,
+    max_tokens: opts.maxTokens ?? 8000,
+    messages: [
+      { role: "system", content: opts.systemPrompt },
+      { role: "user", content: opts.userPrompt },
+    ],
+    ...(opts.expectJson ? { response_format: { type: "json_object" } } : {}),
+  };
+  let res: Response;
+  try {
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(90_000),
+    });
+  } catch (e) {
+    throw new Error(`OpenAI network error: ${(e as Error).message}`);
+  }
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    if (res.status === 401) throw new Error("OpenAI rejected the API key.");
+    if (res.status === 429) throw new Error("OpenAI rate limit or out of credits (429).");
+    if (res.status >= 500) throw new Error(`OpenAI ${res.status} server error (transient).`);
+    throw new Error(`OpenAI error ${res.status}: ${errText.slice(0, 300)}`);
+  }
+  type OpenAIResponse = { choices?: Array<{ message?: { content?: string } }> };
+  const json = (await res.json()) as OpenAIResponse;
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) throw new Error("OpenAI returned an empty response.");
+  return text.trim();
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
  * Anthropic Claude (paid last resort)
  * ────────────────────────────────────────────────────────────────────────── */
 
@@ -312,6 +368,7 @@ export type AiVisionOptions = {
 function visionChain(): Provider[] {
   const chain: Provider[] = [];
   if (hasKey("GEMINI_API_KEY")) chain.push("gemini");
+  if (hasKey("OPENAI_API_KEY")) chain.push("openai");
   if (hasKey("ANTHROPIC_API_KEY")) chain.push("anthropic");
   return chain;
 }
@@ -346,7 +403,10 @@ export async function generateFromImages(opts: AiVisionOptions & { noCache?: boo
   for (let i = 0; i < chain.length; i++) {
     const p = chain[i];
     try {
-      const out = p === "gemini" ? await callGeminiVision(opts) : await callAnthropicVision(opts);
+      const out =
+        p === "gemini" ? await callGeminiVision(opts)
+        : p === "openai" ? await callOpenAIVision(opts)
+        : await callAnthropicVision(opts);
       if (key) {
         prisma.aiCache
           .upsert({
@@ -411,6 +471,53 @@ async function callGeminiVision(opts: AiVisionOptions): Promise<string> {
   if (json.promptFeedback?.blockReason) throw new Error(`Gemini blocked the image prompt: ${json.promptFeedback.blockReason}`);
   const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("");
   if (!text) throw new Error("Gemini vision returned an empty response.");
+  return text.trim();
+}
+
+async function callOpenAIVision(opts: AiVisionOptions): Promise<string> {
+  const key = (process.env.OPENAI_API_KEY ?? "").trim();
+  const model = process.env.OPENAI_VISION_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  // OpenAI accepts images as data URLs inside a `content` array on a user
+  // message. We build one text part + N image parts.
+  const content: Array<Record<string, unknown>> = [{ type: "text", text: opts.userPrompt }];
+  for (const img of opts.images) {
+    content.push({
+      type: "image_url",
+      image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
+    });
+  }
+  const body: Record<string, unknown> = {
+    model,
+    temperature: 0.2,
+    max_tokens: opts.maxTokens ?? 4000,
+    messages: [
+      { role: "system", content: opts.systemPrompt },
+      { role: "user", content },
+    ],
+    ...(opts.expectJson ? { response_format: { type: "json_object" } } : {}),
+  };
+  let res: Response;
+  try {
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch (e) {
+    throw new Error(`OpenAI vision network error: ${(e as Error).message}`);
+  }
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    if (res.status === 401) throw new Error("OpenAI rejected the API key.");
+    if (res.status === 429) throw new Error("OpenAI vision rate limit / out of credits (429).");
+    if (res.status >= 500) throw new Error(`OpenAI ${res.status} vision server error (transient).`);
+    throw new Error(`OpenAI vision error ${res.status}: ${errText.slice(0, 300)}`);
+  }
+  type OpenAIVisionResp = { choices?: Array<{ message?: { content?: string } }> };
+  const json = (await res.json()) as OpenAIVisionResp;
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) throw new Error("OpenAI vision returned an empty response.");
   return text.trim();
 }
 
