@@ -9,6 +9,7 @@ import {
 type Candidate = {
   athleteId: string;
   athleteName: string;
+  clientNumber: number | null;
   targetSessionId: string | null;
   isLinked: boolean;
 };
@@ -134,7 +135,14 @@ export default function CopyDayToAthleteButton({
                         <input type="hidden" name="programId" value={programId} />
                         <input type="hidden" name="lang" value={lang} />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm truncate">{c.athleteName}</div>
+                          <div className="text-sm truncate flex items-center gap-1.5">
+                            {c.clientNumber != null && (
+                              <span className="shrink-0 text-[0.65rem] font-bold tabular-nums rounded bg-[var(--ink)] text-[var(--bg)] px-1">
+                                #{c.clientNumber}
+                              </span>
+                            )}
+                            <span className="truncate">{c.athleteName}</span>
+                          </div>
                           <div className="text-[0.65rem] text-[var(--ink-muted)]">
                             {c.targetSessionId
                               ? c.isLinked

@@ -222,7 +222,14 @@ export default async function AthleteDetail({ params, searchParams }: PageProps<
       <Link href={`/${lang}/coach/athletes`} className="text-sm text-zinc-500 hover:underline">← {dict.nav.athletes}</Link>
 
       <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-2xl sm:text-3xl font-semibold">{athlete.fullName}</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold flex items-center gap-3">
+          {athlete.clientNumber != null && (
+            <span className="text-base font-bold tabular-nums rounded-lg bg-[var(--ink)] text-[var(--bg)] px-2 py-1">
+              #{athlete.clientNumber}
+            </span>
+          )}
+          {athlete.fullName}
+        </h1>
         <span className="text-sm text-zinc-500">{athlete.division ?? ""}</span>
         <div className="ml-auto flex gap-2">
           <Link href={`/${lang}/coach/athletes/${id}/evolution`} className="text-xs rounded-full bg-[var(--primary-soft)] text-[var(--primary)] px-3 py-1.5 font-semibold hover:opacity-80">

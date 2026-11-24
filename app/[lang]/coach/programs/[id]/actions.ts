@@ -1185,6 +1185,10 @@ export async function listCoJointCandidates(
 ): Promise<Array<{
   athleteId: string;
   athleteName: string;
+  /** Short human number (#N) per coach — null if this athlete hasn't been
+   * assigned one yet (legacy row). Shown in the picker so the coach can
+   * reference clients by number. */
+  clientNumber: number | null;
   targetSessionId: string | null;
   isLinked: boolean;
 }>> {
@@ -1239,12 +1243,13 @@ export async function listCoJointCandidates(
     if (!prog) return [];
     const athletes = await prisma.athlete.findMany({
       where: { coachProfileId: coach.id, id: { not: prog.athleteId } },
-      orderBy: { fullName: "asc" },
-      select: { id: true, fullName: true },
+      orderBy: [{ clientNumber: "asc" }, { fullName: "asc" }],
+      select: { id: true, fullName: true, clientNumber: true },
     });
     return athletes.map((a) => ({
       athleteId: a.id,
       athleteName: a.fullName,
+      clientNumber: a.clientNumber,
       targetSessionId: null,
       isLinked: false,
     }));
@@ -1255,8 +1260,8 @@ export async function listCoJointCandidates(
   // All other athletes owned by this coach.
   const athletes = await prisma.athlete.findMany({
     where: { coachProfileId: coach.id, id: { not: sourceAthleteId } },
-    orderBy: { fullName: "asc" },
-    select: { id: true, fullName: true },
+    orderBy: [{ clientNumber: "asc" }, { fullName: "asc" }],
+    select: { id: true, fullName: true, clientNumber: true },
   });
 
   // For each, find a session on the same date in any of their programs.
@@ -1272,6 +1277,7 @@ export async function listCoJointCandidates(
       return {
         athleteId: a.id,
         athleteName: a.fullName,
+        clientNumber: a.clientNumber,
         targetSessionId: target?.id ?? null,
         isLinked:
           !!source.coJointKey &&

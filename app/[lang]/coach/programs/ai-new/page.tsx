@@ -8,9 +8,10 @@ import { auth } from "@/auth";
 export const maxDuration = 60;
 import { prisma } from "@/lib/prisma";
 import { getDictionary, hasLocale } from "../../../dictionaries";
-import { Card, Button } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { aiProgramGenEnabled } from "@/lib/features";
 import { generateAndRedirect } from "./actions";
+import AiGenerateSubmit from "@/components/AiGenerateSubmit";
 import { isJorge } from "@/lib/jorge";
 import { ACCEPTED_MIME_TYPES } from "@/lib/parse-document";
 
@@ -160,10 +161,13 @@ export default async function AiNewProgramPage({ params, searchParams }: PagePro
           </div>
 
           <div className="pt-2">
-            <Button type="submit" size="lg" disabled={!enabled}>
-              ✨ {dict.coach.aiGenerate ?? "Generate program"}
-            </Button>
-            <p className="text-xs text-[var(--ink-subtle)] mt-2">
+            {/* Client-side submit with live loading bar + elapsed counter
+                so coaches aren't guessing whether the AI is working. */}
+            <AiGenerateSubmit
+              label={dict.coach.aiGenerate ?? "Generate program"}
+              pendingLabel="Generando programa"
+            />
+            <p className="text-xs text-[var(--ink-subtle)] mt-2 text-center">
               {dict.coach.aiTimingNote ?? "Generation takes ~10–25s for short programs, up to ~60s for 12 weeks. Don't navigate away."}
             </p>
           </div>

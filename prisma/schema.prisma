@@ -246,6 +246,10 @@ model CoachMovement {
 model Athlete {
   id             String   @id @default(cuid())
   athleteKey     String   @unique // matches JSON "ravi", "wasmiya"; unique per system
+  // Human-readable short number per coach (#1, #2, #3…). Auto-assigned on
+  // create as max(clientNumber)+1 within the coach's roster. Stable even if
+  // a client is deleted — numbers are never re-used.
+  clientNumber   Int?
   userId         String?  @unique // optional link to marketplace user
   user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   coachProfileId String
@@ -295,6 +299,8 @@ model Athlete {
   habits           Habit[]           @relation("AthleteHabits")
   nutritionPlan    NutritionPlan?    @relation("AthleteNutrition")
   whatsappMessages WhatsAppMessage[] @relation("AthleteWhatsApp")
+
+  @@unique([coachProfileId, clientNumber])
 }
 
 model AthleteLink {

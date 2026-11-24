@@ -94,10 +94,21 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
         userId = u.id;
       }
 
+      // Auto-assign the next human-readable number (#1, #2…) within this
+      // coach's roster. We take max+1 instead of count+1 so numbers are
+      // stable across deletions.
+      const maxRow = await tx.athlete.findFirst({
+        where: { coachProfileId: cp.id, clientNumber: { not: null } },
+        orderBy: { clientNumber: "desc" },
+        select: { clientNumber: true },
+      });
+      const clientNumber = (maxRow?.clientNumber ?? 0) + 1;
+
       const created = await tx.athlete.create({
         data: {
           athleteKey,
           coachProfileId: cp.id,
+          clientNumber,
           userId,
           fullName,
           email,
@@ -253,6 +264,11 @@ export default async function AthletesPage({ params }: PageProps<"/[lang]/coach/
               <div className="flex items-center justify-between px-4 py-3 hover:bg-[var(--surface-2)] gap-4">
                 <Link href={`/${lang}/coach/athletes/${a.id}`} className="flex-1 hover:opacity-80 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {a.clientNumber != null && (
+                      <span className="text-xs font-bold tabular-nums rounded-md bg-[var(--ink)] text-[var(--bg)] px-1.5 py-0.5">
+                        #{a.clientNumber}
+                      </span>
+                    )}
                     <div className="font-medium">{a.fullName}</div>
                     <StatusBadge status={a.status} />
                   </div>
