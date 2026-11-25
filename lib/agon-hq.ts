@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { chooseMedia } from "./agon-media";
 import { creativeSchema, creativePrompt, localCreativeBrief } from "./agon-creative-team";
 import { qatarDay, dailyPlan, prefix, pauseKey, draftKey } from "./agon-hq-plan";
 
@@ -30,7 +31,7 @@ const storedSchema = z.object({
   status: z.enum(["generating", "draft", "failed", "approved", "rejected"]),
   day: z.string(), format: z.string(), topic: z.string(), plannedTime: z.string(),
   copy: copySchema.optional(), product: z.object({ name: z.string(), price: z.string(), currency: z.string() }).optional(),
-  source: z.string().optional(), error: z.string().optional(), creative: creativeSchema.optional(),
+  source: z.string().optional(), error: z.string().optional(), creative: creativeSchema.optional(), mediaId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
 });
 export async function hqDrafts() {
   const rows = await prisma.aiCache.findMany({ where: { promptHash: { startsWith: prefix + "draft:" } }, orderBy: { promptHash: "desc" }, take: 30 });
@@ -107,7 +108,9 @@ export async function runHqDraft(manual = false, now = new Date()) {
     }
     const copy = copySchema.parse(ai ?? templateCopy(actualPlan, product));
     const creative = ai?.creative ?? localCreativeBrief(actualPlan.format, actualPlan.topic, copy.scenes);
-    await prisma.aiCache.update({ where: { promptHash: key }, data: { response: JSON.stringify({ ...actualPlan, status: "draft", copy, creative, product, source: ai ? "Gemini" : fallbackReason ? "Local template (" + fallbackReason + "; no retry)" : "Template (no external AI call)" }) } });
+    const recent=(await hqDrafts()).filter(d=>d.day!==day).slice(0,3).flatMap(d=>d.mediaId?[d.mediaId]:[]);
+    const mediaId=product?undefined:((await chooseMedia(actualPlan.topic,day,recent)) ?? (await chooseMedia(actualPlan.topic,day)));
+    await prisma.aiCache.update({ where: { promptHash: key }, data: { response: JSON.stringify({ ...actualPlan, status: "draft", copy, creative, product, mediaId, source: ai ? "Gemini" : fallbackReason ? "Local template (" + fallbackReason + "; no retry)" : "Template (no external AI call)" }) } });
     return "draft";
   } catch {
     await prisma.aiCache.update({ where: { promptHash: key }, data: { response: JSON.stringify({ ...plan, status: "failed", error: "Draft generation failed. No paid fallback or automatic retry." }) } });
