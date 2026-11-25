@@ -40,7 +40,7 @@ export default async function CoachLayout({
     ...(showLeads ? [{ href: `/${lang}/coach/movements`, label: dict.nav.movements ?? "Movements", highlight: true }] : []),
     ...(showLeads ? [{ href: `/${lang}/admin/coaches`, label: "Coaches Area", highlight: true }] : []),
     ...(showLeads ? [{ href: `/${lang}/admin/catalog`, label: "🛍️ Catalog", highlight: true }] : []),
-    ...(showLeads ? [{ href: `/${lang}/coach/marketing`, label: "📣 Marketing", highlight: true }] : []),
+    ...(showLeads ? [{ href: `/${lang}/coach/marketing`, label: "📣 Marketing", highlight: true }, { href: `/${lang}/admin/ai-studio`, label: "AGON AI HQ", highlight: true }] : []),
     { href: `/${lang}/coach/whatsapp`, label: "💚 WhatsApp" },
     { href: `/${lang}/coach/profile`, label: dict.nav.profile },
     { href: `/${lang}/account`, label: dict.nav.account },
@@ -112,7 +112,10 @@ export default async function CoachLayout({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 py-6 sm:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 py-6 sm:py-10">
+        {showLeads && <Link href={`/${lang}/admin/ai-studio`} className="mb-4 inline-flex items-center gap-2 rounded-xl bg-[#1F3A5F] px-4 py-2.5 text-sm font-semibold text-white">AGON AI HQ <span aria-hidden="true">↗</span></Link>}
+        {children}
+      </main>
     </div>
   );
 }
