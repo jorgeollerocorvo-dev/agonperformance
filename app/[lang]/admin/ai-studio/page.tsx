@@ -1,4 +1,5 @@
 import Link from "next/link";
+import InstagramConnection from "./InstagramConnection";
 import { notFound } from "next/navigation";
 import { hasLocale } from "../../dictionaries";
 import { requireHqOwner } from "@/lib/agon-hq-owner";
@@ -53,7 +54,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
       <div className="grid gap-3 sm:grid-cols-2">{products.map(p=><div key={p.id} className="border border-[var(--border)] rounded-lg p-3"><strong>{p.nameEn}</strong><p>{p.price.toString()} {p.currency} · {p.category}</p><p className="text-sm">{p.variants.reduce((n,v)=>n+v.stock,0)} units across variants · {p.images.length ? "Product image available" : "No product image"}</p></div>)}</div>
     </section>
     <section className={panel}><h2 className="text-xl font-bold">Connections and next stages</h2>
-      <p>Instagram @agonperformanceqa: {process.env.AGON_HQ_INSTAGRAM_TOKEN ? "Token configured; verify account access" : "Not authorized"}. No live publishing.</p><a className="underline" href="/api/admin/agon-hq/instagram" target="_blank" rel="noreferrer">Verify Instagram connection</a><p>Automated video rendering, trend research, analytics and sales attribution: not connected.</p>
+      <p>Instagram @agonperformanceqa: {process.env.AGON_HQ_INSTAGRAM_TOKEN ? "Token configured; verify account access" : "Not authorized"}. No live publishing.</p><InstagramConnection /><p>Automated video rendering, trend research, analytics and sales attribution: not connected.</p>
     </section>
   </div>;
 }
