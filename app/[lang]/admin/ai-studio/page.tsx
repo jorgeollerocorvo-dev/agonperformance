@@ -1,5 +1,6 @@
 import Link from "next/link";
 import InstagramConnection from "./InstagramConnection";
+import InstagramPostTest from "./InstagramPostTest";
 import { notFound } from "next/navigation";
 import { hasLocale } from "../../dictionaries";
 import { requireHqOwner } from "@/lib/agon-hq-owner";
@@ -27,7 +28,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
       <section className={panel}><h2>Worker configuration</h2><p>{enabled && !paused ? "Enabled in configuration; scheduler must be verified" : "Paused / disabled"}</p><p>{gemini ? "Gemini configured; billing tier unverified" : "Local templates only"}</p></section>
     </div>
     <section className={panel}><h2 className="text-xl font-bold">Controls</h2>
-      <p>Instagram publishing, paid ads and website changes are disabled. Approval records a review only; it does not publish.</p>
+      <p>Automatic Instagram publishing, paid ads and website changes are disabled. Approval does not publish. Approved non-product image posts have a manual publishing test.</p>
       <div className="flex gap-3 flex-wrap">
         <form action={generateDraft}><button className={button}>Generate today's draft</button></form>
         <form action={paused ? resumeAutomation : pauseAutomation}><button className={button}>{paused ? "Allow scheduled drafts" : "Pause scheduled drafts"}</button></form>
@@ -48,6 +49,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
         </div>}
         {d.error && <p>{d.error}</p>}
         {d.status === "failed" && <form action={recoverDraft}><input type="hidden" name="key" value={d.key}/><button className={button}>Recover draft (no AI charge)</button></form>}
+        {d.status === "approved" && d.format === "Post" && d.copy && !d.product && <InstagramPostTest day={d.day} />}
         {d.status === "draft" && <form action={reviewDraft} className="flex gap-2"><input type="hidden" name="key" value={d.key}/><button className={button} name="status" value="approved">Approve draft</button><button className="rounded-lg border px-4 py-2" name="status" value="rejected">Reject</button></form>}
       </article>)}
     </section>
@@ -55,7 +57,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
       <div className="grid gap-3 sm:grid-cols-2">{products.map(p=><div key={p.id} className="border border-[var(--border)] rounded-lg p-3"><strong>{p.nameEn}</strong><p>{p.price.toString()} {p.currency} · {p.category}</p><p className="text-sm">{p.variants.reduce((n,v)=>n+v.stock,0)} units across variants · {p.images.length ? "Product image available" : "No product image"}</p></div>)}</div>
     </section>
     <section className={panel}><h2 className="text-xl font-bold">Connections and next stages</h2>
-      <p>Instagram @agonperformanceqa: {process.env.AGON_HQ_INSTAGRAM_TOKEN ? "Token configured; verify account access" : "Not authorized"}. No live publishing.</p><InstagramConnection /><p>Automated video rendering, trend research, analytics and sales attribution: not connected.</p>
+      <p>Instagram @agonperformanceqa: {process.env.AGON_HQ_INSTAGRAM_TOKEN ? "Token configured; verify account access" : "Not authorized"}. Automatic publishing disabled.</p><InstagramConnection /><p>Automated video rendering, trend research, analytics and sales attribution: not connected.</p>
     </section>
   </div>;
 }
