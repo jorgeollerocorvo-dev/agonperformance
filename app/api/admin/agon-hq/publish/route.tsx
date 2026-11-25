@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
+import { mediaBytes } from "@/lib/agon-media";
 import { requireHqOwner } from "@/lib/agon-hq-owner";
 import { hqDrafts } from "@/lib/agon-hq";
 import { prisma } from "@/lib/prisma";
@@ -12,9 +13,10 @@ const validDay = (day: string) => /^\d{4}-\d{2}-\d{2}$/.test(day);
 const idOk = (id: unknown): id is string => typeof id === "string" && /^\d{8,25}$/.test(id);
 const json = (body: object, status = 200) => Response.json(body, {status,headers:{"Cache-Control":"private, no-store"}});
 const DESIGN = "editorial-v2";
+const PHOTO = "photo-v3";
 function sign(day: string, expiry: string, design = "legacy") {
   if (!process.env.AUTH_SECRET) throw new Error("Signing unavailable");
-  return createHmac("sha256", process.env.AUTH_SECRET).update((design===DESIGN?"agon-hq-jpeg-v2:":"agon-hq-jpeg-v1:")+day+":"+expiry).digest("hex");
+  return createHmac("sha256", process.env.AUTH_SECRET).update((design===PHOTO?"agon-hq-jpeg-v3:":design===DESIGN?"agon-hq-jpeg-v2:":"agon-hq-jpeg-v1:")+day+":"+expiry).digest("hex");
 }
 async function approved(day: string) {
   return (await hqDrafts()).find(d=>d.day===day && d.status==="approved" && d.format==="Post" && d.copy && !d.product);
@@ -40,8 +42,8 @@ async function graph(node: string, fields?: Record<string,string>) {
 export async function GET(request: Request) {
   const u = new URL(request.url), day = u.searchParams.get("day") || "", expiry = u.searchParams.get("exp") || "", sig = u.searchParams.get("sig") || "";
   const preview=u.searchParams.get("preview")==="1";
-  const design=preview?DESIGN:u.searchParams.get("design")||"legacy";
-  if (!validDay(day)||![DESIGN,"legacy"].includes(design)) return new Response(null,{status:404});
+  let design=preview?DESIGN:u.searchParams.get("design")||"legacy";
+  if (!validDay(day)||![PHOTO,DESIGN,"legacy"].includes(design)) return new Response(null,{status:404});
   if (preview) await requireHqOwner();
   else {
     if (!/^\d{10}$/.test(expiry) || Number(expiry)<Date.now()/1000 || !/^[a-f0-9]{64}$/.test(sig)) return new Response(null,{status:404});
@@ -50,6 +52,7 @@ export async function GET(request: Request) {
   }
   const d=await approved(day);
   if (!d?.copy) return new Response(null,{status:404});
+  if(preview&&d.mediaId)design=PHOTO;
   const legacyPng = () => new ImageResponse(
     <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between",background:"#1F3A5F",color:"#E8E1D6",padding:84,fontFamily:"sans-serif"}}>
       <div style={{display:"flex",flexDirection:"column",gap:24}}><div style={{fontSize:38,fontWeight:700,letterSpacing:3}}>AGON PERFORMANCE</div><div style={{height:12,width:160,background:"#6B8F71"}}/></div>
@@ -76,7 +79,20 @@ export async function GET(request: Request) {
       </div>:<div style={{display:"flex",flexDirection:"column",background:"#1F3A5F",color:"#E8E1D6",padding:42,borderRadius:30,gap:20}}><div style={{display:"flex",fontSize:30,color:"#C6DAC8",letterSpacing:1}}>THE TAKEAWAY</div><div style={{display:"flex",fontSize:37,lineHeight:1.24}}>{d.copy!.caption.slice(0,240).trim()+(d.copy!.caption.length>240?"…":"")}</div></div>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:"2px solid #1F3A5F",paddingTop:24,fontSize:28,fontWeight:700}}><div style={{display:"flex"}}>TRAIN · EAT · PERFORM</div><div style={{display:"flex",color:"#1F3A5F"}}>LINK IN BIO ↗</div></div>
     </div>,{width:1080,height:1350});
-  const png=design===DESIGN?editorialPng():legacyPng();
+  const photo=design===PHOTO&&d.mediaId?await mediaBytes(d.mediaId):null;
+  if(design===PHOTO&&!photo)return new Response("Approved image unavailable",{status:409});
+  const photoPng=async()=>{
+    if(!photo)throw Error("Photo unavailable");
+    const cropped=await sharp(photo.bytes).resize(952,720,{fit:"cover",position:"attention"}).jpeg({quality:90}).toBuffer();
+    return new ImageResponse(
+      <div style={{display:"flex",flexDirection:"column",width:"100%",height:"100%",padding:64,background:"#E8E1D6",color:"#1F3A5F",fontFamily:"sans-serif",justifyContent:"space-between"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"2px solid #1F3A5F",paddingBottom:16,fontSize:29,fontWeight:700}}><div style={{display:"flex"}}>AGON PERFORMANCE</div><div style={{display:"flex",fontSize:24}}>{photo.meta.category.toUpperCase()}</div></div>
+        <div style={{display:"flex",fontSize:d.copy!.hook.length>85?47:d.copy!.hook.length>48?60:76,lineHeight:1.05,fontWeight:800,overflowWrap:"break-word"}}>{d.copy!.hook}</div>
+        <img src={"data:image/jpeg;base64,"+cropped.toString("base64")} width={952} height={720} style={{borderRadius:18}}/>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:26,fontWeight:700,borderTop:"2px solid #6B8F71",paddingTop:15}}><div style={{display:"flex"}}>TRAIN · EAT · PERFORM</div><div style={{display:"flex"}}>{photo.meta.source==="chatgpt-generated"?"AI ILLUSTRATION":"LINK IN BIO"}</div></div>
+      </div>,{width:1080,height:1350});
+  };
+  const png=design===PHOTO?await photoPng():design===DESIGN?editorialPng():legacyPng();
   const jpeg=await sharp(Buffer.from(await png.arrayBuffer())).jpeg({quality:90}).toBuffer();
   return new Response(new Uint8Array(jpeg),{headers:{"Content-Type":"image/jpeg","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
 }
@@ -89,6 +105,7 @@ export async function POST(request: Request) {
   if (!validDay(day) || !["prepare","status","publish"].includes(action)) return json({message:"Invalid request"},400);
   const d=await approved(day);
   if (!d?.copy) return json({message:"Only approved non-product image posts are supported in this test."},409);
+  const design=d.mediaId?PHOTO:DESIGN;
   let existing=await state(day);
   if (action==="status") {
     if (!existing) return json({stage:"not prepared"});
@@ -102,20 +119,20 @@ export async function POST(request: Request) {
     try {
       const profile=await graph(account+"?fields=id,username");
       if (profile.username?.toLowerCase()!=="agonperformanceqa" || profile.id!==account) return json({message:"Expected account not verified."},409);
-      const exp=String(Math.floor(Date.now()/1000)+3600), sig=sign(day,exp,DESIGN);
-      const image=origin+"/api/admin/agon-hq/publish?day="+day+"&design="+DESIGN+"&exp="+exp+"&sig="+sig;
+      const exp=String(Math.floor(Date.now()/1000)+3600), sig=sign(day,exp,design);
+      const image=origin+"/api/admin/agon-hq/publish?day="+day+"&design="+design+"&exp="+exp+"&sig="+sig;
       const probe=await fetch(image,{cache:"no-store",signal:AbortSignal.timeout(15000)});
       if (!probe.ok || !probe.headers.get("content-type")?.includes("image/jpeg")) return json({message:"JPEG delivery failed; no Meta container created."},503);
       const bytes=Buffer.from(await probe.arrayBuffer());
       const info=await sharp(bytes).metadata();
       if(info.format!=="jpeg"||info.width!==1080||info.height!==1350||bytes.length>8*1024*1024) return json({message:"Media failed technical quality checks."},503);
-      const initial: State={stage:"creating",design:DESIGN};
+      const initial: State={stage:"creating",design};
       try {await prisma.aiCache.create({data:{promptHash:stateKey(day),response:JSON.stringify(initial),provider:"agon-hq-publish"}});}
       catch(e) {if((e as {code?:string}).code==="P2002") return json({message:"An attempt already exists. Check status."},409);throw e;}
       try {
         const meta=await graph(account+"/media",{image_url:image,caption:d.copy.caption});
         if (!idOk(meta.id)) throw new Error("No container ID");
-        const next: State={stage:"container",container:meta.id,design:DESIGN,message:"Media container created; nothing published."};
+        const next: State={stage:"container",container:meta.id,design,message:"Media container created; nothing published."};
         await transition(day,JSON.stringify(initial),next);
         return json(next);
       } catch {
@@ -125,7 +142,7 @@ export async function POST(request: Request) {
     } catch {return json({message:"Preparation failed before publishing. Check connection and media delivery."},503);}
   }
   if (!existing || existing.data.stage!=="container" || !idOk(existing.data.container)) return json({message:"No ready container; no publish attempted."},409);
-  if(existing.data.design!==DESIGN) return json({message:"This container uses an older visual. Do not publish it from the new preview."},409);
+  if(input.visualConfirmed!==true||existing.data.design!==design) return json({message:"This container uses an older visual. Do not publish it from the new preview."},409);
   const container=existing.data.container;
   try {
     const profile=await graph(account+"?fields=id,username");
@@ -133,12 +150,12 @@ export async function POST(request: Request) {
     const meta=await graph(container+"?fields=status_code");
     if(meta.status_code!=="FINISHED") return json({stage:"container",metaStatus:meta.status_code,message:"Wait for FINISHED before publishing."},409);
   } catch {return json({message:"Could not verify readiness. Nothing published."},503);}
-  const pending: State={stage:"publishing",container,design:DESIGN};
+  const pending: State={stage:"publishing",container,design};
   if(!await transition(day,existing.row.response,pending)) return json({message:"Another attempt already started."},409);
   try {
     const meta=await graph(account+"/media_publish",{creation_id:container});
     if(!idOk(meta.id)) throw new Error("No published media ID");
-    const done: State={stage:"published",container,design:DESIGN,media:meta.id,message:"Instagram returned a published media ID."};
+    const done: State={stage:"published",container,design,media:meta.id,message:"Instagram returned a published media ID."};
     await transition(day,JSON.stringify(pending),done);return json(done);
   } catch {
     return json({stage:"publishing",message:"Publishing outcome uncertain. Do not retry; check Instagram manually to avoid duplicates."},503);
