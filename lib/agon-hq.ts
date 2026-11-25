@@ -70,7 +70,7 @@ export async function runHqDraft(manual = false, now = new Date()) {
     const products = plan.topic === "Catalog spotlight" ? (await catalogForHq()).filter(p => p.images.length > 0 && p.variants.some(v => v.stock > 0)) : [];
     const picked = products.length ? products[Math.floor(now.getTime() / 86400000) % products.length] : undefined;
     const product = picked ? { name: picked.nameEn, price: picked.price.toString(), currency: picked.currency } : undefined;
-    const actualPlan = !product && plan.topic === "Catalog spotlight" ? { ...plan, topic: "Training essentials" } : plan;
+    const actualPlan = !product && plan.topic === "Catalog spotlight" ? { ...plan, topic: "Training education" as const } : plan;
     const ai = await geminiCopy(actualPlan, product);
     const copy = ai ?? {
       hook: product ? "Explore " + product.name : "Build consistency with AGON",
