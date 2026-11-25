@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   const legacyPng = () => new ImageResponse(
     <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between",background:"#1F3A5F",color:"#E8E1D6",padding:84,fontFamily:"sans-serif"}}>
       <div style={{display:"flex",flexDirection:"column",gap:24}}><div style={{fontSize:38,fontWeight:700,letterSpacing:3}}>AGON PERFORMANCE</div><div style={{height:12,width:160,background:"#6B8F71"}}/></div>
-      <div style={{display:"flex",flexDirection:"column",gap:30}}><div style={{fontSize:35,color:"#C6DAC8"}}>{d.topic.toUpperCase()}</div><div style={{fontSize:d.copy.hook.length>85?64:84,fontWeight:700,lineHeight:1.14,overflowWrap:"break-word"}}>{d.copy.hook}</div></div>
+      <div style={{display:"flex",flexDirection:"column",gap:30}}><div style={{fontSize:35,color:"#C6DAC8"}}>{d.topic.toUpperCase()}</div><div style={{fontSize:d.copy!.hook.length>85?64:84,fontWeight:700,lineHeight:1.14,overflowWrap:"break-word"}}>{d.copy!.hook}</div></div>
       <div style={{display:"flex",flexDirection:"column",gap:16}}><div style={{height:3,width:"100%",background:"#6B8F71"}}/><div style={{fontSize:34,color:"#C6DAC8"}}>Train smarter. · Link in bio</div></div>
     </div>,{width:1080,height:1350});
   const nutrition=d.topic==="Nutrition education" && ["protein","carbohydrate","produce","fluid"].every(word=>d.copy!.caption.toLowerCase().includes(word));
