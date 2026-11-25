@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "../../dictionaries";
 import { requireHqOwner } from "@/lib/agon-hq-owner";
 import { catalogForHq, hqDrafts, hqPaused } from "@/lib/agon-hq";
-import { generateDraft, pauseAutomation, resumeAutomation, reviewDraft } from "./actions";
+import { generateDraft, pauseAutomation, resumeAutomation, reviewDraft, recoverDraft } from "./actions";
 export const dynamic = "force-dynamic";
 const panel = "rounded-2xl border border-[var(--border)] p-5 space-y-3";
 const button = "rounded-lg bg-[#1F3A5F] text-white px-4 py-2 font-semibold";
@@ -47,6 +47,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
         {d.format === "Reel" && process.env.AGON_HQ_RENDER_ENABLED === "true" && <form method="post" action={"/api/admin/agon-hq/reel?day=" + encodeURIComponent(d.day)}><button type="submit" className="underline">Render MP4 storyboard preview</button></form>}
         </div>}
         {d.error && <p>{d.error}</p>}
+        {d.status === "failed" && <form action={recoverDraft}><input type="hidden" name="key" value={d.key}/><button className={button}>Recover draft (no AI charge)</button></form>}
         {d.status === "draft" && <form action={reviewDraft} className="flex gap-2"><input type="hidden" name="key" value={d.key}/><button className={button} name="status" value="approved">Approve draft</button><button className="rounded-lg border px-4 py-2" name="status" value="rejected">Reject</button></form>}
       </article>)}
     </section>
