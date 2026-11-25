@@ -108,8 +108,8 @@ function cacheKey(opts: AiCallOptions): string {
  * Cache hits are FREE — no provider call, no quota spent. Set opts.noCache
  * to bypass (currently unused; add if a caller ever needs fresh randomness).
  */
-export async function generateText(opts: AiCallOptions & { noCache?: boolean; freeOnly?: boolean }): Promise<string> {
-  const chain = providerChain().filter(p => !opts.freeOnly || p === "gemini" || p === "groq");
+export async function generateText(opts: AiCallOptions & { noCache?: boolean }): Promise<string> {
+  const chain = providerChain();
   if (chain.length === 0) {
     throw new Error(
       "No AI provider configured. Set GEMINI_API_KEY (free), GROQ_API_KEY (free), or ANTHROPIC_API_KEY on Railway.",
