@@ -25,7 +25,37 @@ export async function GET() {
       if (!res.ok) continue;
       const data = await res.json() as { username?: string; user_id?: string; id?: string };
       if (data.username?.toLowerCase() !== "agonperformanceqa" || !(data.user_id || data.id)) continue;
-      return reply({ connected: true, username: data.username, login: check.login, message: "Profile access verified. Publishing permission and media delivery are not tested." });
+      let publishingPermission: "granted" | "not_listed" | "unverified" = "unverified";
+      let insightsPermission: "granted" | "not_listed" | "unverified" = "unverified";
+      let publishingQuotaReadable = false;
+      if (check.login === "Facebook Graph") {
+        try {
+          const permissions = await fetch("https://graph.facebook.com/" + version + "/me/permissions?limit=100", {
+            headers: { Authorization: "Bearer " + token }, cache: "no-store", signal: AbortSignal.timeout(10000),
+          });
+          if (permissions.ok) {
+            const result = await permissions.json() as { data?: Array<{permission: string; status: string}>; paging?: {next?: string} };
+            if (Array.isArray(result.data)) {
+              const granted = (name: string) => result.data!.some(p => p.permission === name && p.status === "granted");
+              publishingPermission = granted("instagram_content_publish") ? "granted" : result.paging?.next ? "unverified" : "not_listed";
+              insightsPermission = granted("instagram_manage_insights") ? "granted" : result.paging?.next ? "unverified" : "not_listed";
+            }
+          }
+        } catch { /* Some token types do not support user permission lookup. */ }
+      }
+      const verifiedId = data.user_id || data.id || "";
+      if (/^\d{8,25}$/.test(verifiedId)) {
+        try {
+          const quota = await fetch("https://" + check.host + "/" + version + "/" + verifiedId + "/content_publishing_limit?fields=quota_usage", {
+            headers: { Authorization: "Bearer " + token }, cache: "no-store", signal: AbortSignal.timeout(10000),
+          });
+          if (quota.ok) {
+            const result = await quota.json() as {data?: Array<{quota_usage?: number}>};
+            publishingQuotaReadable = Array.isArray(result.data) && result.data.some(row => typeof row.quota_usage === "number");
+          }
+        } catch { /* Read-only diagnostics must never expose upstream errors or secrets. */ }
+      }
+      return reply({ connected: true, username: data.username, login: check.login, publishingPermission, insightsPermission, publishingQuotaReadable, message: "Profile verified. Read-only publishing diagnostics completed; no content was created or published. Media delivery remains untested." });
     } catch { /* Never expose token or upstream response. */ }
   }
   return reply({ connected: false, message: "Neither login path verified the expected AGON profile. Check token type, permissions and Graph API version." }, 503);
