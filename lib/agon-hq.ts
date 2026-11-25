@@ -58,6 +58,30 @@ async function geminiCopy(plan: ReturnType<typeof dailyPlan>, product?: {name: s
   const result = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return copySchema.parse(JSON.parse(result.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || ""));
 }
+function templateCopy(plan: ReturnType<typeof dailyPlan>, product?: {name: string; price: string; currency: string}) {
+  if (product) return { hook: "Explore " + product.name.slice(0,125), caption: "Discover " + product.name.slice(0,200) + " in the AGON catalog. Check the latest details through the link in bio.", scenes: ["Opening AGON brand title", "Show verified catalog photography", "Close with AGON Performance and link in bio"] };
+  const topics: Record<string, {hook: string; caption: string; scenes: string[]}> = {
+    "Nutrition education": {hook:"Fuel the work you put in",caption:"Training is only part of the picture. Build meals around a protein source, carbohydrate-rich foods, colorful produce and enough fluids. Adjust portions to your needs and preferences. Explore AGON Performance through the link in bio.",scenes:["Title: Fuel your training","Show a balanced meal with protein, carbohydrates and produce","Show a water bottle and close with AGON Performance"]},
+    "Training education": {hook:"Make every rep count",caption:"Start with a manageable load, keep your movement controlled and progress gradually. Consistency matters more than chasing a personal best every session. Explore AGON Performance through the link in bio.",scenes:["Title: Make every rep count","Demonstrate a controlled movement with light load","Close with a reminder to progress gradually"]},
+    "Strength and conditioning": {hook:"Build strength with purpose",caption:"Combine appropriate resistance training with conditioning that fits your current fitness. Record your sessions, allow recovery and increase demands gradually. Explore AGON Performance through the link in bio.",scenes:["Title: Strength with purpose","Show controlled strength work","Show a conditioning clip and AGON closing title"]},
+    "Coaching and performance": {hook:"Train with a plan",caption:"Set a realistic goal, track your sessions and review what is working. A structured plan can help you adapt training to your schedule and current ability. Explore AGON Performance through the link in bio.",scenes:["Title: Train with a plan","Show a simple training log","Close with AGON Performance"]},
+    "Recovery and lifestyle": {hook:"Recovery is part of training",caption:"Make room for sleep, regular meals and lighter sessions when needed. Your routine should fit your life, not just your workout. Explore AGON Performance through the link in bio.",scenes:["Title: Recovery matters","Show an easy walk and a calm evening routine","Close with AGON Performance"]},
+  };
+  return topics[plan.topic] ?? topics["Training education"];
+}
+
+export async function recoverHqDraft(key: string) {
+  if (!/^agon-hq-v1:draft:\d{4}-\d{2}-\d{2}$/.test(key)) return;
+  const row = await prisma.aiCache.findUnique({where:{promptHash:key}});
+  if (!row) return;
+  const parsed = storedSchema.safeParse(JSON.parse(row.response));
+  if (!parsed.success || parsed.data.status !== "failed") return;
+  const plan = dailyPlan(parsed.data.day);
+  const actualPlan = plan.topic === "Catalog spotlight" ? {...plan, topic:"Training education" as const} : plan;
+  const copy = copySchema.parse(templateCopy(actualPlan));
+  await prisma.aiCache.updateMany({where:{promptHash:key,response:row.response},data:{response:JSON.stringify({...actualPlan,status:"draft",copy,source:"Local recovery template (no AI call)"})}});
+}
+
 export async function runHqDraft(manual = false, now = new Date()) {
   if (!manual && (process.env.AGON_HQ_AUTOMATION_ENABLED !== "true" || await hqPaused())) return "paused";
   const day = qatarDay(now);
@@ -71,13 +95,16 @@ export async function runHqDraft(manual = false, now = new Date()) {
     const picked = products.length ? products[Math.floor(now.getTime() / 86400000) % products.length] : undefined;
     const product = picked ? { name: picked.nameEn, price: picked.price.toString(), currency: picked.currency } : undefined;
     const actualPlan = !product && plan.topic === "Catalog spotlight" ? { ...plan, topic: "Training education" as const } : plan;
-    const ai = await geminiCopy(actualPlan, product);
-    const copy = ai ?? {
-      hook: product ? "Explore " + product.name : "Build consistency with AGON",
-      caption: product ? "Discover " + product.name + " in the AGON catalog. See the latest details through the link in bio." : "Small, consistent steps make training more sustainable. Explore AGON Performance through the link in bio.",
-      scenes: ["Opening brand title in navy and sage", product ? "Show verified catalog photography of " + product.name : "Use licensed training footage or original clips", "Close with AGON Performance and link in bio"],
-    };
-    await prisma.aiCache.update({ where: { promptHash: key }, data: { response: JSON.stringify({ ...actualPlan, status: "draft", copy, product, source: ai ? "Gemini" : "Template (no external AI call)" }) } });
+    let ai: z.infer<typeof copySchema> | null = null;
+    let fallbackReason = "";
+    try { ai = await geminiCopy(actualPlan, product); }
+    catch (err) {
+      const status = err instanceof Error ? /^Gemini request failed: HTTP (\d{3})$/.exec(err.message)?.[1] : undefined;
+      fallbackReason = status ? "Gemini HTTP " + status : "Gemini response or connection failed";
+      console.warn("AGON HQ:", fallbackReason, "using local template");
+    }
+    const copy = copySchema.parse(ai ?? templateCopy(actualPlan, product));
+    await prisma.aiCache.update({ where: { promptHash: key }, data: { response: JSON.stringify({ ...actualPlan, status: "draft", copy, product, source: ai ? "Gemini" : fallbackReason ? "Local template (" + fallbackReason + "; no retry)" : "Template (no external AI call)" }) } });
     return "draft";
   } catch {
     await prisma.aiCache.update({ where: { promptHash: key }, data: { response: JSON.stringify({ ...plan, status: "failed", error: "Draft generation failed. No paid fallback or automatic retry." }) } });
