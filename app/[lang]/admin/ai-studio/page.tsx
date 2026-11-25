@@ -21,7 +21,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
     <header className="rounded-2xl bg-[#1F3A5F] text-white p-6">
       <p className="text-[#c6dac8] text-sm">PRIVATE OWNER WORKSPACE</p>
       <h1 className="text-3xl font-bold">AGON AI HQ</h1>
-      <p>Marketing supervision · Asia/Qatar · Draft mode</p>
+      <p>Marketing supervision · Asia/Qatar · Editorial preview v2</p>
     </header>
     <div className="grid gap-3 sm:grid-cols-3">
       <section className={panel}><h2>Catalog (up to 100 active)</h2><p className="text-3xl font-bold">{products.length}</p></section>
@@ -52,7 +52,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
         {d.copy && <><p className="font-semibold">{d.copy.hook}</p><p className="whitespace-pre-wrap">{d.copy.caption}</p><ol className="list-decimal pl-5">{d.copy.scenes.map((s,i)=><li key={i}>{s}</li>)}</ol></>}
         {d.copy && (() => {const brief=d.creative ?? localCreativeBrief(d.format,d.topic,d.copy.scenes); const checks=briefChecks(brief);return <details className="rounded-lg border border-[var(--border)] p-3 space-y-2"><summary className="font-semibold cursor-pointer">Creative direction · {d.creative ? "Stored brief" : "Local reference brief"}</summary><p>Objective: {brief.objective}</p><p>Audience: {brief.audience}</p><p>{brief.visualDirection}</p><h4 className="font-semibold">Required assets</h4><ul className="list-disc pl-5">{brief.assetRequirements.map((a,i)=><li key={i}>{a}</li>)}</ul><h4 className="font-semibold">Execution plan</h4><ol className="list-decimal pl-5">{brief.execution.map((a,i)=><li key={i}>{a}</li>)}</ol>{brief.audioDirection&&<p>Audio: {brief.audioDirection}</p>}<h4 className="font-semibold">Quality review</h4><p>Brief structure: {checks.complete ? "Complete" : "Incomplete"} · Final visual: {checks.visualStatus}</p><ul className="list-disc pl-5">{brief.reviewNotes.map((a,i)=><li key={i}>{a}</li>)}</ul></details>})()}
         {d.copy && <div className="flex flex-wrap gap-4 text-sm">
-          <a className="underline" href={"/api/admin/agon-hq/export?kind=cover&day=" + encodeURIComponent(d.day)}>Download branded cover (PNG)</a>
+          {!(d.status === "approved" && d.format === "Post" && !d.product) && <a className="underline" href={"/api/admin/agon-hq/export?kind=cover&day=" + encodeURIComponent(d.day)}>Download basic storyboard cover (PNG; not final media)</a>}
           <a className="underline" href={"/api/admin/agon-hq/export?kind=json&day=" + encodeURIComponent(d.day)}>Export draft / Reel storyboard (JSON)</a>
         {d.format === "Reel" && process.env.AGON_HQ_RENDER_ENABLED === "true" && <form method="post" action={"/api/admin/agon-hq/reel?day=" + encodeURIComponent(d.day)}><button type="submit" className="underline">Render MP4 storyboard preview</button></form>}
         </div>}
