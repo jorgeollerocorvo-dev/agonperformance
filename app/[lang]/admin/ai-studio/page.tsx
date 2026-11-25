@@ -1,4 +1,6 @@
 import Link from "next/link";
+import MediaLibrary from "./MediaLibrary";
+import { mediaList } from "@/lib/agon-media";
 import PremiumPilot from "./PremiumPilot";
 import { brand, managers, localCreativeBrief, briefChecks } from "@/lib/agon-creative-team";
 import InstagramConnection from "./InstagramConnection";
@@ -15,7 +17,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   await requireHqOwner();
-  const [products, drafts, paused] = await Promise.all([catalogForHq(), hqDrafts(), hqPaused()]);
+  const [products, drafts, paused, assets] = await Promise.all([catalogForHq(), hqDrafts(), hqPaused(), mediaList()]);
   const enabled = process.env.AGON_HQ_AUTOMATION_ENABLED === "true";
   const gemini = Boolean(process.env.GEMINI_API_KEY) && process.env.AGON_HQ_GEMINI_ENABLED === "true";
   return <div className="space-y-6">
@@ -44,12 +46,14 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
       </div>
       <p className="text-sm">Maximum one generation attempt per Qatar calendar day. No automatic paid fallback. Scheduling requires a separately configured Railway job.</p>
     </section>
+    <MediaLibrary initial={assets} days={drafts.filter(d=>d.copy&&!d.product&&!d.mediaId&&["draft","approved"].includes(d.status)).map(d=>({day:d.day,topic:d.topic}))}/>
     <PremiumPilot />
     <section className={panel}><h2 className="text-xl font-bold">Content queue</h2>
       {drafts.length === 0 && <p>No drafts yet.</p>}
       {drafts.map(d => <article key={d.key} className="rounded-xl border border-[var(--border)] p-4 space-y-2">
         <p className="text-sm">{d.day} · {d.format} · {d.status} · {d.source || "Pending"}</p>
         <h3 className="font-bold">{d.topic}</h3>
+        {d.mediaId&&<div className="max-w-xs"><img src={"/api/admin/agon-hq/media?id="+d.mediaId} alt="Selected approved media" className="rounded-lg w-full h-auto" loading="lazy"/><p className="text-xs">Automatically matched approved image · final visual review required</p></div>}
         {d.product && <p>Catalog snapshot: {d.product.name} · {d.product.price} {d.product.currency} (recheck before publishing)</p>}
         {d.copy && <><p className="font-semibold">{d.copy.hook}</p><p className="whitespace-pre-wrap">{d.copy.caption}</p><ol className="list-decimal pl-5">{d.copy.scenes.map((s,i)=><li key={i}>{s}</li>)}</ol></>}
         {d.copy && (() => {const brief=d.creative ?? localCreativeBrief(d.format,d.topic,d.copy.scenes); const checks=briefChecks(brief);return <details className="rounded-lg border border-[var(--border)] p-3 space-y-2"><summary className="font-semibold cursor-pointer">Creative direction · {d.creative ? "Stored brief" : "Local reference brief"}</summary><p>Objective: {brief.objective}</p><p>Audience: {brief.audience}</p><p>{brief.visualDirection}</p><h4 className="font-semibold">Required assets</h4><ul className="list-disc pl-5">{brief.assetRequirements.map((a,i)=><li key={i}>{a}</li>)}</ul><h4 className="font-semibold">Execution plan</h4><ol className="list-decimal pl-5">{brief.execution.map((a,i)=><li key={i}>{a}</li>)}</ol>{brief.audioDirection&&<p>Audio: {brief.audioDirection}</p>}<h4 className="font-semibold">Quality review</h4><p>Brief structure: {checks.complete ? "Complete" : "Incomplete"} · Final visual: {checks.visualStatus}</p><ul className="list-disc pl-5">{brief.reviewNotes.map((a,i)=><li key={i}>{a}</li>)}</ul></details>})()}
