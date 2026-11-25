@@ -965,20 +965,3 @@ model WhatsAppMessage {
   @@index([athleteId, createdAt])
   @@index([requiresCoach, createdAt])
 }
-
-model SocialDraft {
-  id          String   @id @default(cuid())
-  slot        String   @unique
-  status      String   @default("GENERATING")
-  productId   String?
-  productName String?
-  imageUrl    String?
-  caption     String?  @db.Text
-  hook        String?
-  storyboard  Json?
-  error       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([createdAt])
-}
