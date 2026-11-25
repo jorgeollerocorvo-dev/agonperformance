@@ -1,12 +1,12 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "RAILPACK",
+    "buildCommand": "npx prisma generate"
   },
   "deploy": {
-    "startCommand": "npm start",
-    "preDeploy": "npx prisma migrate deploy",
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 5
+    "startCommand": "npx --no-install tsx scripts/agon-hq-daily.ts",
+    "cronSchedule": "0 3 * * *",
+    "restartPolicyType": "NEVER"
   }
 }
