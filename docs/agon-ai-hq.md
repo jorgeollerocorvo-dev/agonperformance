@@ -13,3 +13,6 @@ To schedule, provision a separate Railway cron worker with the same application 
 Gemini is optional, disabled unless AGON_HQ_GEMINI_ENABLED=true; set on web and worker only after confirming billing tier and quotas. Reuse existing key securely; no paid-provider fallback. Only public catalog names and marketing topics sent to Gemini. No client records. Model output remains untrusted drafts. Railway usage can incur costs.
 
 Instagram: authorize the professional account through an official Meta app, configure token and permissions in Railway securely, then implement and test media hosting, render pipeline, container processing, idempotent publish, token renewal, insights, and emergency stop. Do not treat approval as authorization to publish. No credentials in GitHub. No Instagram connection has been established by this code.
+
+## Local video renderer
+`node scripts/render-agon-hq.mjs draft.json output.mp4` makes a silent, text-based branded H.264 1080x1920 30fps Reel from the draft format and copy fields. Requires FFmpeg with libx264 and drawtext plus DejaVu Sans. Smoke-tested locally on a sample: 20 seconds, 1080x1920, 30fps, yuv420p. It is not wired to the daily job or dashboard yet. Production needs private artifact storage, approved media delivery and review; footage, voiceover and carousel rendering remain unimplemented.
