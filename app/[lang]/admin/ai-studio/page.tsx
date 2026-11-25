@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PremiumPilot from "./PremiumPilot";
 import { brand, managers, localCreativeBrief, briefChecks } from "@/lib/agon-creative-team";
 import InstagramConnection from "./InstagramConnection";
 import InstagramPostTest from "./InstagramPostTest";
@@ -43,6 +44,7 @@ export default async function AiStudio({ params }: PageProps<"/[lang]/admin/ai-s
       </div>
       <p className="text-sm">Maximum one generation attempt per Qatar calendar day. No automatic paid fallback. Scheduling requires a separately configured Railway job.</p>
     </section>
+    <PremiumPilot />
     <section className={panel}><h2 className="text-xl font-bold">Content queue</h2>
       {drafts.length === 0 && <p>No drafts yet.</p>}
       {drafts.map(d => <article key={d.key} className="rounded-xl border border-[var(--border)] p-4 space-y-2">
